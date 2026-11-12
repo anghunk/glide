@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/logo.png" alt="Glide Logo" width="120" />
+  <img src="assets/brand/logo-readme.svg" alt="Glide Logo" width="144" />
 </p>
 <h1 align="center">Glide</h1>
 <p align="center">轻巧的原生桌面划词翻译工具，支持 macOS 与 Windows。</p>
