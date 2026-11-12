@@ -67,7 +67,37 @@ MyGo 在正式打包时把更新源和公钥写入程序。应用使用 MyGo 官
 
 开发模式中 MyGo 禁用自动更新。macOS 从 DMG 打开时应先拖到可写的“应用程序”目录再运行；Windows 使用默认的每用户安装目录。更新目标不可写时，应用会报告原因，不会静默要求管理员权限。
 
-Ed25519 更新签名与 Apple Developer ID / Windows Authenticode 代码签名用途不同。当前流程可生成完整更新链路和可下载安装包，但没有厂商证书时 macOS 使用本地临时签名，Windows 没有发布者证书；公开分发时需根据账号配置平台签名及 macOS 公证。这不影响同一更新密钥对归档的真实性校验。
+Ed25519 更新签名与 macOS / Windows 代码签名用途不同。macOS 现使用固定的自签名证书，Windows 没有发布者证书；归档继续使用原来的 Ed25519 密钥验证。
+
+## 固定的 macOS 自签名身份
+
+macOS 构建使用独立于 Apple 账号的 `Glide Local Signing` 自签名证书。`mygo.json` 的 `macos.signingIdentity` 固定为证书 SHA-1 指纹，用于选择签名身份。不同版本的程序散列会变化，但指定要求仍绑定同一证书及 `app.glide.translator`，使系统可以识别更新前后是同一应用。切换自临时签名后需要重新授权一次。已在本机验证：授权后替换为内容不同、使用同一证书的新构建，重启后辅助功能权限保持有效，无需再次移除和添加授权。
+
+本机证书、私钥、加密 PKCS#12 备份和密码保存在工作树之外：
+
+```text
+~/Library/Application Support/Glide/release-keys/macos-signing/
+```
+
+请离线备份整个目录，尤其是 `identity.p12` 和 `p12-password`。不要提交至 Git、作为 Release 附件发布，或重新生成同名证书替换。证书名相同不代表签名身份相同。更换电脑时，从备份恢复这个目录，再准备专用钥匙串；若证书尚未被信任，需在系统中确认它仅用于代码签名。证书有效期至 2046 年 11 月，换证前需重新评估身份迁移。
+
+```bash
+# 本地构建前解锁专用钥匙串，不会重新生成证书。
+python3 scripts/macos-signing.py prepare
+go tool mygo build -platform darwin/universal
+
+# 开发版使用同一证书，但保留独立的 .dev 应用标识和权限。
+make dev
+
+# 校验证书指纹后，将现有证书备份同步到 updates.github 指定仓库。
+python3 scripts/macos-signing.py sync
+```
+
+CI 使用 `MACOS_SIGNING_P12_BASE64` 和 `MACOS_SIGNING_P12_PASSWORD` 两个 Actions Secrets，校验指纹后导入临时专用钥匙串，只为代码签名信任该证书。构建结束清理钥匙串和临时文件。缺少证书或指纹不匹配时直接停止，不回退到临时签名。同步 Secrets 不会提交或推送代码，流水线改动需按正常流程推送后才生效。
+
+没有发布证书的贡献者可使用 `go tool mygo dev` 运行临时签名的开发版，不需要获取项目私钥。直接运行该命令不会采用 `macos.signingIdentity`，需要保持开发版权限时使用 `make dev`。
+
+自签名不依赖 Apple 开发者账号，也不能获得 Apple 公证；首次下载打开时仍可能遇到 Gatekeeper 来源验证提示。
 
 ## 本地验证
 

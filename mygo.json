@@ -2,11 +2,12 @@
   "name": "Glide",
   "slug": "glide",
   "identifier": "app.glide.translator",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "out": "build",
   "icon": "resources/icon.png",
   "macos": {
-    "icon": "assets/brand/icon-macos.icns"
+    "icon": "assets/brand/icon-macos.icns",
+    "signingIdentity": "BE42AF76C4CD07D0CA74E7A6E8EB8B0C1D0A1171"
   },
   "updates": {
     "github": "anghunk/glide",
