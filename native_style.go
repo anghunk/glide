@@ -16,9 +16,9 @@ type pnPalette struct {
 // pnColors 按当前主题给出独立的深浅配色，避免在暗色模式直接反转浅色层级。
 func pnColors(c *ui.Context) pnPalette {
 	if c.Theme().Dark {
-		return pnPalette{Window: ui.Hex("#141418"), Surface: ui.Hex("#232328"), Group: ui.Hex("#323237"), Text: ui.Hex("#ececf0"), Muted: ui.Hex("#a9a9b4"), Faint: ui.Hex("#83838f"), Accent: ui.Hex("#6b93ff"), Hover: ui.RGBA(255, 255, 255, .05), Selected: ui.Hex("#303036"), Divider: ui.RGBA(255, 255, 255, .07), FieldBorder: ui.RGBA(255, 255, 255, .13), Attention: ui.Hex("#f0a33a"), Danger: ui.Hex("#ff6961")}
+		return pnPalette{Window: ui.Hex("#141418"), Surface: ui.Hex("#232328"), Group: ui.Hex("#323237"), Text: ui.Hex("#ececf0"), Muted: ui.Hex("#a9a9b4"), Faint: ui.Hex("#83838f"), Accent: ui.Hex("#6b93ff"), Hover: ui.RGBA(255, 255, 255, .05), Selected: ui.Hex("#303036"), Divider: ui.RGBA(255, 255, 255, .045), FieldBorder: ui.RGBA(255, 255, 255, .13), Attention: ui.Hex("#f0a33a"), Danger: ui.Hex("#ff6961")}
 	}
-	return pnPalette{Window: ui.Hex("#eceef4"), Surface: ui.Hex("#ffffff"), Group: ui.Hex("#f3f3f4"), Text: ui.Hex("#1d1d1f"), Muted: ui.Hex("#6e6e78"), Faint: ui.Hex("#a3a3ad"), Accent: ui.Hex("#3b6cf6"), Hover: ui.RGBA(0, 0, 0, .04), Selected: ui.Hex("#ffffff"), Divider: ui.RGBA(0, 0, 0, .07), FieldBorder: ui.RGBA(0, 0, 0, .13), Attention: ui.Hex("#c27b0f"), Danger: ui.Hex("#d93a35")}
+	return pnPalette{Window: ui.Hex("#eceef4"), Surface: ui.Hex("#ffffff"), Group: ui.Hex("#f3f3f4"), Text: ui.Hex("#1d1d1f"), Muted: ui.Hex("#6e6e78"), Faint: ui.Hex("#a3a3ad"), Accent: ui.Hex("#3b6cf6"), Hover: ui.RGBA(0, 0, 0, .04), Selected: ui.Hex("#ffffff"), Divider: ui.RGBA(0, 0, 0, .04), FieldBorder: ui.RGBA(0, 0, 0, .13), Attention: ui.Hex("#c27b0f"), Danger: ui.Hex("#d93a35")}
 }
 
 // pnApplyTheme 为当前窗口配置系统字体、紧凑控件和蓝色焦点，返回可用于自绘容器的颜色。
@@ -39,7 +39,7 @@ func pnApplyTheme(c *ui.Context) pnPalette {
 var lucideAssets embed.FS
 
 var pnIcons = func() map[string]*ui.SVG {
-	files := map[string]string{"settings": "settings", "globe": "globe", "keyboard": "keyboard", "history": "history", "shield": "shield-check", "info": "info", "search": "search", "plus": "plus", "minus": "minus", "check": "check", "pin": "pin", "close": "x", "copy": "copy", "chevron-down": "chevron-down", "chevron-right": "chevron-right", "swap": "arrow-right-left", "bolt": "zap"}
+	files := map[string]string{"settings": "settings", "globe": "globe", "keyboard": "keyboard", "history": "history", "shield": "shield-check", "info": "info", "search": "search", "plus": "plus", "minus": "minus", "trash": "trash-2", "check": "check", "pin": "pin", "close": "x", "copy": "copy", "chevron-down": "chevron-down", "chevron-right": "chevron-right", "swap": "arrow-right-left", "bolt": "zap"}
 	icons := make(map[string]*ui.SVG, len(files))
 	for name, file := range files {
 		data, err := lucideAssets.ReadFile("assets/lucide/" + file + ".svg")

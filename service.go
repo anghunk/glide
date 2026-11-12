@@ -23,13 +23,17 @@ import (
 
 // Settings 描述语言、触发方式及各翻译渠道的独立配置。
 type Settings struct {
-	SourceLang      string               `json:"sourceLang"`
-	TargetLang      string               `json:"targetLang"`
-	Shortcut        string               `json:"shortcut"`
-	AutoSelection   bool                 `json:"autoSelection"`
-	ShowSourceInput bool                 `json:"showSourceInput"`
-	ShowLanguageBar bool                 `json:"showLanguageBar"`
-	Providers       []translation.Config `json:"providers"`
+	TrayClickShowsPanel bool                 `json:"trayClickShowsPanel"`
+	InputShortcut       string               `json:"inputShortcut"`
+	ClipboardShortcut   string               `json:"clipboardShortcut"`
+	HistoryLimit        int                  `json:"historyLimit"`
+	SourceLang          string               `json:"sourceLang"`
+	TargetLang          string               `json:"targetLang"`
+	Shortcut            string               `json:"shortcut"`
+	AutoSelection       bool                 `json:"autoSelection"`
+	ShowSourceInput     bool                 `json:"showSourceInput"`
+	ShowLanguageBar     bool                 `json:"showLanguageBar"`
+	Providers           []translation.Config `json:"providers"`
 }
 
 // PlatformState 向设置界面报告真实的取词支持及权限状态。
@@ -114,6 +118,7 @@ type GlideService struct {
 	panelGeneration uint64
 	watchCancel     context.CancelFunc
 	watchStop       func()
+	extraHotkeys    map[string]string
 	hotkey          string
 	hotkeyError     string
 	watchError      string
@@ -124,7 +129,7 @@ type GlideService struct {
 
 // defaultSettings 只默认启用无需付费凭据的渠道，自动划词由用户主动开启。
 func defaultSettings() Settings {
-	return Settings{SourceLang: "auto", TargetLang: "zh-CN", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
+	return Settings{TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "zh-CN", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
 }
 
 // cloneSettings 复制渠道切片，避免界面快照与运行配置共用可变数据。
@@ -152,13 +157,13 @@ func newService() (*GlideService, error) {
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
-	if len(a.history) > 100 {
-		a.history = a.history[:100]
+	if len(a.history) > a.settings.HistoryLimit {
+		a.history = a.history[:a.settings.HistoryLimit]
 	}
 	return a, nil
 }
 
-// GetState 返回设置与实时权限状态，凭据只在本机界面和系统凭据库间传递。
+// GetState 返回设置与实时权限状态，密钥随本地配置读取，不发送给界面以外的管理服务。
 func (a *GlideService) GetState() AppState {
 	cap := selection.Status()
 	a.mu.RLock()
@@ -174,14 +179,28 @@ func (a *GlideService) GetState() AppState {
 func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
+	if settings.HistoryLimit != 10 && settings.HistoryLimit != 50 && settings.HistoryLimit != 100 {
+		return AppState{}, fmt.Errorf("历史保留条数仅支持 10、50 或 100")
+	}
 	if settings.SourceLang == "" {
 		settings.SourceLang = "auto"
 	}
 	if settings.TargetLang == "" || settings.TargetLang == "auto" {
 		return AppState{}, fmt.Errorf("请选择目标语言")
 	}
-	if len(settings.Shortcut) > 100 || strings.TrimSpace(settings.Shortcut) == "" {
+	if len(settings.Shortcut) > 100 {
 		return AppState{}, fmt.Errorf("请输入有效快捷键")
+	}
+	seenShortcuts := map[string]bool{shortcutIdentity(settings.Shortcut): true}
+	for _, shortcut := range []string{settings.InputShortcut, settings.ClipboardShortcut} {
+		if shortcut == "" {
+			continue
+		}
+		key := shortcutIdentity(shortcut)
+		if len(shortcut) > 100 || seenShortcuts[key] {
+			return AppState{}, fmt.Errorf("快捷键重复或无效，请使用不同组合")
+		}
+		seenShortcuts[key] = true
 	}
 	if len(settings.Providers) > 24 {
 		return AppState{}, fmt.Errorf("最多配置 24 个翻译渠道")
@@ -194,6 +213,13 @@ func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 	for _, p := range settings.Providers {
 		if p.ID == "" || len(p.ID) > 80 || ids[p.ID] || !kinds[p.Kind] {
 			return AppState{}, fmt.Errorf("渠道标识重复或类型无效")
+		}
+		if p.Kind == "openai" {
+			switch translation.AIFormat(p) {
+			case "openai", "responses", "anthropic", "gemini":
+			default:
+				return AppState{}, fmt.Errorf("不支持的 AI 上游格式")
+			}
 		}
 		ids[p.ID] = true
 		if p.Endpoint != "" {
@@ -211,6 +237,9 @@ func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 	a.mu.Unlock()
 	a.configureTriggers()
 	a.notifySettings()
+	if err := a.trimHistory(); err != nil {
+		return a.GetState(), fmt.Errorf("设置已保存，但清理超额历史失败：%w", err)
+	}
 	return a.GetState(), nil
 }
 
@@ -229,7 +258,7 @@ func (a *GlideService) SetLanguages(sourceLang, targetLang string) (AppState, er
 	a.mu.RUnlock()
 	settings.SourceLang = sourceLang
 	settings.TargetLang = targetLang
-	if err := writeLanguageSettings(a.dir, settings); err != nil {
+	if err := writeSettings(a.dir, settings); err != nil {
 		return AppState{}, err
 	}
 	a.mu.Lock()
@@ -366,9 +395,10 @@ func (a *GlideService) recordHistory(response TranslationResponse) error {
 	defer a.historyMu.Unlock()
 	a.mu.RLock()
 	history := append([]TranslationResponse{response}, a.history...)
+	limit := a.settings.HistoryLimit
 	a.mu.RUnlock()
-	if len(history) > 100 {
-		history = history[:100]
+	if len(history) > limit {
+		history = history[:limit]
 	}
 	if err := writeJSON(filepath.Join(a.dir, "history.json"), history); err != nil {
 		return err
@@ -455,3 +485,53 @@ func (a *GlideService) OpenExternal(raw string) error {
 
 // OpenSelectionSettings 打开系统辅助功能设置，授权仍由用户在系统界面完成。
 func (a *GlideService) OpenSelectionSettings() error { return selection.OpenPermissionSettings() }
+
+// DeleteHistory 按请求标识删除单条记录；不存在时保持原有历史。
+func (a *GlideService) DeleteHistory(requestID string) error {
+	a.historyMu.Lock()
+	defer a.historyMu.Unlock()
+	history := a.GetHistory()
+	history = slices.DeleteFunc(history, func(record TranslationResponse) bool { return record.RequestID == requestID })
+	return a.saveHistory(history)
+}
+
+// trimHistory 按已保存的保留上限移除最旧记录，与新增和删除操作串行执行。
+func (a *GlideService) trimHistory() error {
+	a.historyMu.Lock()
+	defer a.historyMu.Unlock()
+	a.mu.RLock()
+	limit := a.settings.HistoryLimit
+	a.mu.RUnlock()
+	history := a.GetHistory()
+	if len(history) <= limit {
+		return nil
+	}
+	return a.saveHistory(history[:limit])
+}
+
+// saveHistory 先持久化再替换内存快照；调用方须持有 historyMu。
+func (a *GlideService) saveHistory(history []TranslationResponse) error {
+	if err := writeJSON(filepath.Join(a.dir, "history.json"), history); err != nil {
+		return err
+	}
+	a.mu.Lock()
+	a.history = history
+	a.mu.Unlock()
+	return nil
+}
+
+// shortcutIdentity 统一修饰键别名及顺序，用于检测重复绑定。
+func shortcutIdentity(shortcut string) string {
+	key := strings.ToLower(strings.TrimSpace(shortcut))
+	command := "ctrl"
+	if runtime.GOOS == "darwin" {
+		command = "super"
+	}
+	key = strings.NewReplacer("cmdorctrl", command, "command", "super", "cmd", "super", "control", "ctrl", "option", "alt", "win", "super").Replace(key)
+	parts := strings.Split(key, "+")
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+	slices.Sort(parts)
+	return strings.Join(parts, "+")
+}

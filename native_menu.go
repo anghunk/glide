@@ -26,7 +26,6 @@ func newNativeTrayMenu(a *GlideService) (*nativeTrayMenu, error) {
 	a.mu.RUnlock()
 	t := &nativeTrayMenu{shortcut: shortcut}
 	t.updateItem = &mygo.MenuItem{ID: "check-updates", Label: "检查更新…", Click: func(*mygo.MenuItem, *mygo.Window) {
-		a.showSettingsCategory("about")
 		a.CheckForUpdates()
 	}}
 	t.selectionItem = &mygo.MenuItem{ID: "translate-selection", Label: "划词翻译", Accelerator: shortcut,
@@ -45,7 +44,11 @@ func newNativeTrayMenu(a *GlideService) (*nativeTrayMenu, error) {
 			}()
 		}}
 	t.menu = mygo.NewMenu([]*mygo.MenuItem{
-		{Label: "Glide " + mygo.App.Version(), Disabled: true},
+		{Label: "Glide " + mygo.App.Version(), Click: func(*mygo.MenuItem, *mygo.Window) {
+			if err := a.OpenExternal("https://github.com/anghunk/glide"); err != nil {
+				log.Printf("打开 GitHub 仓库失败：%v", err)
+			}
+		}},
 		mygo.Separator(),
 		{Label: "输入翻译", Click: func(*mygo.MenuItem, *mygo.Window) { a.OpenPanel() }},
 		t.selectionItem,
@@ -60,19 +63,30 @@ func newNativeTrayMenu(a *GlideService) (*nativeTrayMenu, error) {
 			{Label: "快捷键设置…", Click: func(*mygo.MenuItem, *mygo.Window) { a.showSettingsCategory("shortcut") }},
 			{Label: "取词权限说明…", Click: func(*mygo.MenuItem, *mygo.Window) { a.showSettingsCategory("general") }},
 		}},
-		{Label: "关于 Glide", Click: func(*mygo.MenuItem, *mygo.Window) { a.showSettingsCategory("about") }},
+		{Label: "关于", Click: func(*mygo.MenuItem, *mygo.Window) { a.showAbout() }},
 		mygo.Separator(),
-		{Label: "退出 Glide", Role: mygo.RoleQuit, Accelerator: "CmdOrCtrl+Q"},
+		{Label: "退出", Role: mygo.RoleQuit, Accelerator: "CmdOrCtrl+Q"},
 	})
 	tray, err := mygo.NewTray(mygo.TrayOptions{
-		ID: "glide-main", Icon: trayIcon(), IconIsTemplate: trayIconIsTemplate(), ToolTip: "Glide · 划词翻译", Menu: t.menu,
+		ID: "glide-main", Icon: trayIcon(), IconIsTemplate: trayIconIsTemplate(), ToolTip: "Glide · 划词翻译",
 	})
 	if err != nil {
 		return nil, err
 	}
 	t.tray = tray
-	tray.OnClick(a.OpenPanel)
-	tray.OnRightClick(func() { t.selectionSource = captureTraySelectionSource() })
+	tray.OnClick(func() {
+		a.mu.RLock()
+		showSettings := a.settings.TrayClickShowsPanel
+		a.mu.RUnlock()
+		if showSettings {
+			a.ShowMain()
+		}
+	})
+	// 不绑定原生托盘菜单，确保 macOS 左键事件到达 OnClick；仅右键主动弹出菜单。
+	tray.OnRightClick(func() {
+		t.selectionSource = captureTraySelectionSource()
+		t.menu.Popup(nil)
+	})
 	return t, nil
 }
 
@@ -89,18 +103,12 @@ func (a *GlideService) refreshTrayMenu() {
 		if quitting {
 			return
 		}
-		changed := false
 		if shortcut != t.shortcut {
 			t.shortcut = shortcut
 			t.selectionItem.SetAccelerator(shortcut)
-			changed = true
 		}
 		if label := a.updateMenuLabel(); label != t.updateItem.Label {
 			t.updateItem.SetLabel(label)
-			changed = true
-		}
-		if changed {
-			t.tray.SetMenu(t.menu)
 		}
 	})
 }
@@ -139,6 +147,59 @@ func (a *GlideService) showUsageHelp() {
 		})
 		if err != nil {
 			log.Printf("打开使用说明失败：%v", err)
+		}
+	}()
+}
+
+// configureApplicationMenu 为 macOS 菜单栏提供中文系统操作和应用设置入口。
+func (a *GlideService) configureApplicationMenu() {
+	if runtime.GOOS != "darwin" {
+		return
+	}
+	mygo.App.SetMenu(mygo.NewMenu([]*mygo.MenuItem{
+		{Label: "Glide", Submenu: []*mygo.MenuItem{
+			{Label: "关于 Glide", Click: func(*mygo.MenuItem, *mygo.Window) { a.showAbout() }},
+			{Label: "检查更新…", Disabled: mygo.IsDev(), Click: func(*mygo.MenuItem, *mygo.Window) { a.CheckForUpdates() }},
+			mygo.Separator(),
+			{Label: "偏好设置…", Accelerator: "CmdOrCtrl+,", Click: func(*mygo.MenuItem, *mygo.Window) { a.ShowMain() }},
+			mygo.Separator(),
+			{Label: "服务", Role: mygo.RoleServices},
+			mygo.Separator(),
+			{Label: "隐藏 Glide", Role: mygo.RoleHide},
+			{Label: "隐藏其他", Role: mygo.RoleHideOthers},
+			{Label: "全部显示", Role: mygo.RoleUnhide},
+			mygo.Separator(),
+			{Label: "退出 Glide", Role: mygo.RoleQuit},
+		}},
+		{Label: "文件", Role: mygo.RoleFileMenu},
+		{Label: "编辑", Role: mygo.RoleEditMenu},
+		{Label: "显示", Role: mygo.RoleViewMenu},
+		{Label: "窗口", Role: mygo.RoleWindowMenu},
+		{Label: "帮助", Role: mygo.RoleHelp, Submenu: []*mygo.MenuItem{
+			{Label: "Glide 使用说明", Click: func(*mygo.MenuItem, *mygo.Window) { a.showUsageHelp() }},
+		}},
+	}))
+}
+
+// showAbout 打开独立的关于窗口，不改变偏好设置的当前页面。
+func (a *GlideService) showAbout() {
+	if runtime.GOOS == "darwin" {
+		mygo.App.ShowAboutPanel(mygo.AboutPanelOptions{
+			ApplicationName: "Glide", ApplicationVersion: mygo.App.Version(), Credits: "原生桌面划词翻译工具",
+		})
+		return
+	}
+	a.showAppMessage("关于 Glide", "Glide "+mygo.App.Version(), "原生桌面划词翻译工具")
+}
+
+// showAppMessage 显示独立消息弹窗，失败时记录日志。
+func (a *GlideService) showAppMessage(title, message, detail string) {
+	go func() {
+		_, err := mygo.Dialog.Message(mygo.MessageOptions{
+			Type: mygo.MessageInfo, Title: title, Message: message, Detail: detail, Buttons: []string{"好"},
+		})
+		if err != nil {
+			log.Printf("打开%s失败：%v", title, err)
 		}
 	}()
 }

@@ -38,7 +38,7 @@ func Definitions() []Definition {
 			{Key: "secretKey", Label: "密钥", Secret: true, Required: true},
 			{Key: "endpoint", Label: "服务地址", Placeholder: "https://fanyi-api.baidu.com/api/trans/vip/translate"},
 		}},
-		{Kind: "openai", Name: "AI 翻译", Description: "兼容 OpenAI Chat Completions 协议，可接入云端模型或自建服务。", Fields: []Field{
+		{Kind: "openai", Name: "AI 翻译", Description: "支持 OpenAI、Anthropic 与 Gemini 协议，可获取模型列表。", Fields: []Field{
 			{Key: "endpoint", Label: "API 地址", Placeholder: "https://api.openai.com/v1"},
 			{Key: "apiKey", Label: "API Key", Placeholder: "无认证的本地服务可留空", Secret: true},
 			{Key: "model", Label: "模型名称", Placeholder: "填写服务支持的完整模型名称", Required: true},
@@ -107,7 +107,7 @@ func Translate(ctx context.Context, config Config, request Request) (result Resu
 	case "baidu":
 		text, detected, err = baidu(ctx, config, request)
 	case "openai":
-		text, detected, err = openAI(ctx, config, request)
+		text, detected, err = aiTranslate(ctx, config, request)
 	case "ollama":
 		text, detected, err = ollama(ctx, config, request)
 	default:

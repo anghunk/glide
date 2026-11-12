@@ -1,9 +1,10 @@
-name: 发布桌面版本
+name: Publish Release
 
 on:
   push:
     paths:
       - mygo.json
+      - CHANGELOG.md
       - .github/workflows/release.yml
       - scripts/release.py
       - scripts/release_verify.go

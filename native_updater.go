@@ -133,7 +133,7 @@ func (a *GlideService) refreshUpdaterState() {
 // 后台检查共用同一会话；重复调用只会将正在进行的更新窗口带到前台。
 func (a *GlideService) CheckForUpdates() {
 	if mygo.IsDev() {
-		a.showSettingsCategory("about")
+		a.showAppMessage("检查更新", "开发版本不检查更新", "请使用正式安装包检查更新。")
 		return
 	}
 	updater.CheckForUpdates()
@@ -188,18 +188,19 @@ func (a *GlideService) renderUpdateSettings(c *ui.Context, p pnPalette) {
 		ui.Column(c).Background(p.Group).Radius(12).Padding(13, 14).Gap(11).Children(func() {
 			ui.Row(c).Gap(12).Children(func() {
 				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
-					title, detail := "保持 Glide 为最新版本", "更新来自 GitHub Releases，安装前会验证签名。"
+					title, detail := "保持 Glide 为最新版本", ""
 					if state.AvailableVersion != "" {
 						title = "发现新版本 " + state.AvailableVersion
-						detail = "查看发布说明，选择安装或稍后提醒。"
 					}
 					if mygo.IsDev() {
-						detail = "开发版本不检查更新，请使用正式安装包。"
+						detail = "开发版本不检查更新"
 					} else if state.Loaded && !state.Enabled {
-						detail = "此构建未启用更新，或安装目录不可写。请使用正式安装包并放在可写目录。"
+						detail = "更新不可用，请使用正式安装包并确认安装目录可写"
 					}
 					ui.Text(c, title).FontSize(13.5).FontWeight(600)
-					ui.Text(c, detail).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+					if detail != "" {
+						ui.Text(c, detail).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+					}
 				})
 				label := "检查更新"
 				if state.AvailableVersion != "" {
@@ -216,17 +217,14 @@ func (a *GlideService) renderUpdateSettings(c *ui.Context, p pnPalette) {
 					}
 				})
 				ui.Row(c).Gap(12).Children(func() {
-					ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-						ui.Text(c, "自动下载并安装").FontSize(13)
-						ui.Text(c, "下次启动时生效，不会自动重启。").FontSize(11.5).TextColor(p.Muted)
-					})
+					ui.Text(c, "自动下载并安装").Grow(1).FontSize(13)
 					if ui.Switch(c, &downloads).Label("自动下载并安装更新").Size(38, 22).Disabled(!state.Enabled || state.Saving).Changed() {
 						a.setUpdatePreference(true, downloads)
 					}
 				})
 			}
 			if !state.LastCheck.IsZero() {
-				ui.Text(c, "上次成功检查："+state.LastCheck.Local().Format("2006-01-02 15:04")).FontSize(11.5).TextColor(p.Muted)
+				ui.Text(c, "上次检查："+state.LastCheck.Local().Format("2006-01-02 15:04")).FontSize(11.5).TextColor(p.Muted)
 			}
 		})
 	})

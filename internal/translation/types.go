@@ -1,8 +1,9 @@
 // Package translation 统一管理翻译渠道、认证配置与请求结果。
 package translation
 
-// Config 描述一个可独立启用的翻译渠道；密钥应由应用的安全存储保管。
+// Config 描述一个可独立启用的翻译渠道；密钥随应用配置保存在本机。
 type Config struct {
+	Format    string `json:"format,omitempty"`
 	ID        string `json:"id"`
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`

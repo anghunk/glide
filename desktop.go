@@ -17,10 +17,14 @@ import (
 func (a *GlideService) createWindows() {
 	a.settingsUI = newSettingsUI(a)
 	a.panelUI = newPanelUI(a)
+	settingsTitleBar := mygo.TitleBarHidden
+	if runtime.GOOS == "darwin" {
+		settingsTitleBar = mygo.TitleBarHiddenInset
+	}
 	a.mainWindow = mygo.NewWindow(mygo.WindowOptions{
 		Title: "Glide 偏好设置", Content: ui.View(a.settingsUI.view), Width: 840, Height: 620, MinWidth: 780, MinHeight: 540,
 		BackgroundColor: "#f6f7f8", StateKey: "preferences-compact-v2", Hidden: true,
-		TitleBarStyle: mygo.TitleBarHidden, HideWindowButtons: true,
+		TitleBarStyle: settingsTitleBar, HideWindowButtons: runtime.GOOS != "darwin",
 	})
 	a.mainWindow.OnShow(func() {
 		if runtime.GOOS == "darwin" {
@@ -79,6 +83,7 @@ func (a *GlideService) createWindows() {
 		a.trayMenu = trayMenu
 	}
 	go a.configureTriggers()
+	a.configureApplicationMenu()
 	a.startUpdater()
 }
 
@@ -93,7 +98,6 @@ func (a *GlideService) configureTriggers() {
 		return
 	}
 	settings := cloneSettings(a.settings)
-	oldHotkey := a.hotkey
 	if a.watchCancel != nil {
 		a.watchCancel()
 		a.watchCancel = nil
@@ -104,22 +108,7 @@ func (a *GlideService) configureTriggers() {
 	}
 	a.watchError = ""
 	a.mu.Unlock()
-	if oldHotkey != settings.Shortcut {
-		err := mygo.GlobalShortcut.Register(settings.Shortcut, func() { go a.translateSelection() })
-		if err == nil && oldHotkey != "" {
-			mygo.GlobalShortcut.Unregister(oldHotkey)
-		}
-		a.mu.Lock()
-		if err != nil {
-			a.hotkeyError = "快捷键注册失败，请更换组合：" + err.Error()
-			log.Printf("%s", a.hotkeyError)
-		} else {
-			a.hotkey = settings.Shortcut
-			a.hotkeyError = ""
-			log.Printf("已注册全局翻译快捷键：%s", settings.Shortcut)
-		}
-		a.mu.Unlock()
-	}
+	a.configureShortcuts(settings)
 	if !settings.AutoSelection {
 		return
 	}
@@ -305,4 +294,63 @@ func (a *GlideService) shutdown() {
 	}
 	a.mu.Unlock()
 	mygo.GlobalShortcut.UnregisterAll()
+}
+
+// configureShortcuts 整体更新全局快捷键；任一注册失败时恢复旧绑定。
+// 调用方须持有 triggersMu。
+func (a *GlideService) configureShortcuts(settings Settings) {
+	a.mu.RLock()
+	previous := map[string]string{"划词翻译": a.hotkey, "输入翻译": a.extraHotkeys["输入翻译"], "剪贴板翻译": a.extraHotkeys["剪贴板翻译"]}
+	a.mu.RUnlock()
+	desired := map[string]string{"划词翻译": settings.Shortcut, "输入翻译": settings.InputShortcut, "剪贴板翻译": settings.ClipboardShortcut}
+	actions := map[string]func(){
+		"划词翻译":  func() { go a.translateSelection() },
+		"输入翻译":  a.OpenPanel,
+		"剪贴板翻译": func() { a.showTranslation(mygo.Clipboard.ReadText()) },
+	}
+	unchanged := true
+	for name, key := range desired {
+		if previous[name] != key {
+			unchanged = false
+		}
+	}
+	if unchanged {
+		return
+	}
+	for _, key := range previous {
+		if key != "" {
+			mygo.GlobalShortcut.Unregister(key)
+		}
+	}
+	registered := []string{}
+	for _, name := range []string{"划词翻译", "输入翻译", "剪贴板翻译"} {
+		key := desired[name]
+		if key == "" {
+			continue
+		}
+		if err := mygo.GlobalShortcut.Register(key, actions[name]); err != nil {
+			for _, added := range registered {
+				mygo.GlobalShortcut.Unregister(added)
+			}
+			message := name + "快捷键注册失败：" + err.Error()
+			for oldName, oldKey := range previous {
+				if oldKey == "" {
+					continue
+				}
+				if restoreErr := mygo.GlobalShortcut.Register(oldKey, actions[oldName]); restoreErr != nil {
+					previous[oldName] = ""
+					message += "；恢复" + oldName + "失败：" + restoreErr.Error()
+				}
+			}
+			a.mu.Lock()
+			a.hotkey, a.extraHotkeys, a.hotkeyError = previous["划词翻译"], previous, message
+			a.mu.Unlock()
+			log.Print(message)
+			return
+		}
+		registered = append(registered, key)
+	}
+	a.mu.Lock()
+	a.hotkey, a.extraHotkeys, a.hotkeyError = settings.Shortcut, desired, ""
+	a.mu.Unlock()
 }

@@ -31,12 +31,9 @@ func openAI(ctx context.Context, config Config, input Request) (string, string, 
 	if err := require("模型名称", config.Model); err != nil {
 		return "", "", err
 	}
-	endpoint, err := serviceURL(config.Endpoint, "https://api.openai.com/v1", "/v1")
+	endpoint, err := aiEndpoint(config, "chat/completions")
 	if err != nil {
 		return "", "", err
-	}
-	if !strings.HasSuffix(strings.TrimRight(endpoint.Path, "/"), "/chat/completions") {
-		endpoint.Path = strings.TrimRight(endpoint.Path, "/") + "/chat/completions"
 	}
 	request, err := jsonRequest(ctx, http.MethodPost, endpoint, map[string]any{
 		"model": config.Model, "messages": translationMessages(input), "stream": false,

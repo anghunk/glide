@@ -58,6 +58,22 @@ def config():
     return data
 
 
+def release_notes(data):
+    """提取当前版本日志，与 MyGo 的二级版本标题格式保持一致。"""
+    path = Path(data["updates"].get("changelog", "CHANGELOG.md"))
+    content = path.read_text(encoding="utf-8")
+    sections = list(re.finditer(r"^##[ \t]+(.+?)[ \t]*$", content, re.MULTILINE))
+    matches = [i for i, section in enumerate(sections) if section[1] == data["version"]]
+    if len(matches) != 1:
+        raise ValueError(f"{path} 必须包含唯一的 ## {data['version']} 版本标题")
+    index = matches[0]
+    end = sections[index + 1].start() if index + 1 < len(sections) else len(content)
+    notes = content[sections[index].end():end].strip()
+    if not notes:
+        raise ValueError(f"{path} 中 {data['version']} 的更新日志不能为空")
+    return notes
+
+
 def repository(value):
     """校验仓库名，命令参数从不拼接为 shell 脚本。"""
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", value):
@@ -121,6 +137,8 @@ def plan(args):
     allowed, reason = release_decision(data["version"], items)
     values = {"publish": str(allowed).lower(), "version": data["version"],
               "tag": "v" + data["version"], "prerelease": str("-" in data["version"]).lower()}
+    if allowed:
+        release_notes(data)
     if args.output:
         with Path(args.output).open("a", encoding="utf-8") as out:
             out.write("".join(f"{key}={value}\n" for key, value in values.items()))
@@ -131,13 +149,15 @@ def prepare(args):
     """将 CI 的当前仓库写入构建配置，私钥仅从环境读取且不落进源码。"""
     data = config()
     repo = repository(args.repository)
+    release_notes(data)
     secret = os.environ.get("MYGO_UPDATER_PRIVATE_KEY", "").strip()
     if not secret:
         raise ValueError("缺少 Repository Secret：MYGO_UPDATER_PRIVATE_KEY")
     if len(base64.b64decode(secret, validate=True)) != 64:
         raise ValueError("MYGO_UPDATER_PRIVATE_KEY 不是 MyGo Ed25519 私钥")
     data["updates"] = {"github": repo, "publicKey": data["updates"]["publicKey"],
-                       "tagPrefix": "v", "deltas": 0}
+                       "tagPrefix": "v", "deltas": 0,
+                       "changelog": data["updates"].get("changelog", "CHANGELOG.md")}
     Path("mygo.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"已配置 {data['version']} 的发布源：{repo}")
 
@@ -146,6 +166,7 @@ def collect(args):
     """仅复制安装包、更新包与安装脚本，Windows 便携包从相同更新归档生成。"""
     data = config()
     version, slug = data["version"], data.get("slug", "glide")
+    notes = release_notes(data)
     source = Path("build") / args.target
     destination = Path(args.output)
     destination.mkdir(parents=True, exist_ok=True)
@@ -155,6 +176,9 @@ def collect(args):
         required += [f"{slug}-{version}.dmg", "install.sh"]
     else:
         required += [f"{slug}-setup-{version}-{args.target.split('-')[1]}.exe", "install.ps1"]
+    manifest = json.loads((source / f"update-{args.target}.json").read_text(encoding="utf-8"))
+    if manifest.get("notes") != notes:
+        raise ValueError(f"{args.target} 更新清单的日志与 CHANGELOG 不一致")
     for name in required:
         path = source / name
         if not path.is_file() or not path.stat().st_size:
@@ -206,6 +230,7 @@ def publish(args):
     if not re.fullmatch(r"[0-9a-f]{40}", args.sha):
         raise ValueError("发布必须固定到完整提交 SHA")
     tag = "v" + version
+    notes = release_notes(data)
     marker = f"<!-- glide-release:{args.sha} -->"
     allowed, reason = release_decision(version, releases(repo))
     if not allowed:
@@ -225,11 +250,10 @@ def publish(args):
             raise ValueError("标签对应已有发布或其他草稿，拒绝覆盖")
     else:
         prerelease = "-" in version
-        notes = api(f"repos/{repo}/releases/generate-notes", "POST", {"tag_name": tag, "target_commitish": args.sha})
         release = api(f"repos/{repo}/releases", "POST", {
-            "tag_name": tag, "target_commitish": args.sha, "name": f"Glide {version}",
+            "tag_name": tag, "target_commitish": args.sha, "name": tag,
             "draft": True, "prerelease": prerelease, "make_latest": "false",
-            "body": marker + "\n\n" + notes["body"],
+            "body": marker + "\n\n" + notes,
         })
     files = sorted(path for path in Path(args.input).iterdir() if path.is_file())
     if not files or not any(path.name == "SHA256SUMS" for path in files):
@@ -248,6 +272,7 @@ def publish(args):
         if digest and digest != "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest():
             raise ValueError(f"上传文件散列不一致：{path.name}")
     api(f"repos/{repo}/releases/{release['id']}", "PATCH", {
+        "name": tag, "body": marker + "\n\n" + notes,
         "draft": False, "prerelease": "-" in version, "make_latest": "false" if "-" in version else "true"})
     print(f"已发布 https://github.com/{repo}/releases/tag/{tag}")
 

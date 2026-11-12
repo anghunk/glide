@@ -31,7 +31,8 @@ var httpClient = &http.Client{
 				if original.Method != http.MethodGet && original.Method != http.MethodHead ||
 					original.Header.Get("Authorization") != "" ||
 					original.Header.Get("Ocp-Apim-Subscription-Key") != "" ||
-					original.Header.Get("X-Goog-Api-Key") != "" {
+					original.Header.Get("X-Goog-Api-Key") != "" ||
+					original.Header.Get("X-Api-Key") != "" {
 					return errors.New("已阻止携带认证或正文的跨站重定向，请直接配置最终服务地址")
 				}
 			}

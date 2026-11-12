@@ -1,22 +1,17 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/egoist/mygo"
 )
 
-// diskSettings 仅保存普通配置及凭据引用，密钥交由系统凭据库保管。
+// diskSettings 保存完整本地配置；Secrets 仅用于识别并迁移旧版凭据引用。
 type diskSettings struct {
 	Settings Settings                     `json:"settings"`
-	Secrets  map[string]map[string]string `json:"secrets"`
+	Secrets  map[string]map[string]string `json:"secrets,omitempty"`
 }
 
 // readSettings 恢复设置；首次启动使用默认渠道，损坏的配置返回错误以免覆盖。
@@ -32,103 +27,32 @@ func readSettings(dir string) (Settings, error) {
 	if err := json.Unmarshal(data, &disk); err != nil {
 		return Settings{}, fmt.Errorf("读取设置失败：%w", err)
 	}
-	for i := range disk.Settings.Providers {
-		p := &disk.Settings.Providers[i]
-		for field, reference := range disk.Secrets[p.ID] {
-			value, err := mygo.Secrets.Get(reference)
-			if err != nil {
-				return Settings{}, fmt.Errorf("读取 %s 的凭据失败：%w", p.Name, err)
-			}
-			switch field {
-			case "apiKey":
-				p.APIKey = string(value)
-			case "secretKey":
-				p.SecretKey = string(value)
-			}
+	if disk.Settings.HistoryLimit != 10 && disk.Settings.HistoryLimit != 50 && disk.Settings.HistoryLimit != 100 {
+		disk.Settings.HistoryLimit = 50
+	}
+	if len(disk.Secrets) > 0 {
+		if err := migrateLegacySecrets(dir, &disk, mygoLegacySecretStore{}); err != nil {
+			return Settings{}, err
 		}
 	}
+
 	return disk.Settings, nil
 }
 
-// writeSettings 先写入独立版本的凭据，再原子切换 JSON 引用；失败不会修改旧配置的密钥。
+// writeSettings 原子保存完整配置及密钥，保留对损坏原文件的覆盖保护。
 func writeSettings(dir string, settings Settings) error {
 	path := filepath.Join(dir, "settings.json")
-	var previous diskSettings
 	data, err := os.ReadFile(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	if err == nil {
+		var previous diskSettings
 		if err := json.Unmarshal(data, &previous); err != nil {
 			return fmt.Errorf("原设置无法读取，已取消保存：%w", err)
 		}
 	}
-	var version [16]byte
-	if _, err := rand.Read(version[:]); err != nil {
-		return err
-	}
-	prefix := "provider." + hex.EncodeToString(version[:]) + "."
-	disk := diskSettings{Settings: cloneSettings(settings), Secrets: make(map[string]map[string]string)}
-	staged := []string{}
-	committed := false
-	defer func() {
-		if !committed {
-			for _, reference := range staged {
-				if err := mygo.Secrets.Delete(reference); err != nil {
-					log.Printf("清理未提交凭据失败：%v", err)
-				}
-			}
-		}
-	}()
-	for i := range disk.Settings.Providers {
-		p := &disk.Settings.Providers[i]
-		for field, value := range map[string]string{"apiKey": p.APIKey, "secretKey": p.SecretKey} {
-			if value == "" {
-				continue
-			}
-			reference := prefix + p.ID + "." + field
-			if err := mygo.Secrets.Set(reference, []byte(value)); err != nil {
-				return fmt.Errorf("保存 %s 的凭据失败：%w", p.Name, err)
-			}
-			staged = append(staged, reference)
-			if disk.Secrets[p.ID] == nil {
-				disk.Secrets[p.ID] = make(map[string]string)
-			}
-			disk.Secrets[p.ID][field] = reference
-		}
-		p.APIKey, p.SecretKey = "", ""
-	}
-	if err := writeJSON(path, disk); err != nil {
-		return err
-	}
-	committed = true
-	for _, fields := range previous.Secrets {
-		for _, reference := range fields {
-			if err := mygo.Secrets.Delete(reference); err != nil {
-				log.Printf("清理旧版本凭据失败：%v", err)
-			}
-		}
-	}
-	return nil
-}
-
-// writeLanguageSettings 保留已提交的凭据引用，语言切换不重复访问系统密钥库。
-func writeLanguageSettings(dir string, settings Settings) error {
-	path := filepath.Join(dir, "settings.json")
-	data, err := os.ReadFile(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return writeSettings(dir, settings)
-	}
-	if err != nil {
-		return err
-	}
-	var disk diskSettings
-	if err := json.Unmarshal(data, &disk); err != nil {
-		return err
-	}
-	disk.Settings.SourceLang = settings.SourceLang
-	disk.Settings.TargetLang = settings.TargetLang
-	return writeJSON(path, disk)
+	return writeJSON(path, diskSettings{Settings: cloneSettings(settings)})
 }
 
 // writeJSON 通过同目录临时文件替换数据，避免中断时留下半份 JSON。

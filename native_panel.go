@@ -64,12 +64,8 @@ func (p *panelUI) view(c *ui.Context) {
 		}
 	}
 	providers := make(map[string]translation.Config, len(settings.Providers))
-	enabled := 0
 	for _, provider := range settings.Providers {
 		providers[provider.ID] = provider
-		if provider.Enabled {
-			enabled++
-		}
 	}
 	c.Root().Background(colors.Surface)
 	ui.Column(c.Key("translation-panel")).Fill().Background(colors.Surface).TextColor(colors.Text).Radius(11).Border(1, colors.Divider).Clip().Children(func() {
@@ -106,7 +102,7 @@ func (p *panelUI) view(c *ui.Context) {
 					Tooltip("重新翻译原文（⌘ / Ctrl + Enter）").Disabled(strings.TrimSpace(p.draft) == "").OnClick(p.submit)
 			})
 		})
-		ui.Divider(c).Background(colors.Divider)
+		ui.Divider(c).Height(.5).Background(colors.Divider)
 		ui.Scroll(c.Key("panel-results")).Grow(1).MinHeight(50).Padding(10, 12).Gap(8).Children(func() {
 			if state.Error != "" {
 				p.notice(c, state.Error, colors.Danger, colors)
@@ -131,7 +127,6 @@ func (p *panelUI) view(c *ui.Context) {
 				})
 			}
 		})
-		p.footer(c, state, enabled, colors)
 	})
 	if c.Shortcut(ui.Cmd, ui.KeyEnter) {
 		p.submit()
@@ -177,7 +172,7 @@ func (p *panelUI) iconButton(c *ui.Context, name, label string, selected bool, c
 
 // resultCard 展示单个真实翻译渠道，折叠与复制互不影响其他渠道。
 func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider translation.Config, colors pnPalette) {
-	ui.Column(c).Shrink(0).Radius(8).Background(colors.Group).Border(1, colors.Divider).Clip().Children(func() {
+	ui.Column(c).Shrink(0).Radius(8).Background(colors.Group).Border(.5, colors.Divider).Clip().Children(func() {
 		ui.Row(c).Height(38).Padding(5, 8, 5, 10).Gap(7).Children(func() {
 			ui.Box(c).Size(21, 21).Radius(5).Background(colors.Surface).Center().Children(func() {
 				pnProviderIcon(c, provider.Kind, 16, colors.Text)
@@ -241,28 +236,8 @@ func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider trans
 
 // notice 显示权限、请求或输入错误，保留文本选择以便复制诊断信息。
 func (p *panelUI) notice(c *ui.Context, message string, color ui.Color, colors pnPalette) {
-	ui.Column(c).Shrink(0).Padding(10).Radius(7).Background(colors.Group).Border(1, colors.Divider).Children(func() {
+	ui.Column(c).Shrink(0).Padding(10).Radius(7).Background(colors.Group).Border(.5, colors.Divider).Children(func() {
 		ui.Text(c, message).Selectable().FontSize(11).LineHeight(1.5).TextColor(color)
-	})
-}
-
-// footer 说明渠道数量和请求状态，管理入口只打开偏好设置。
-func (p *panelUI) footer(c *ui.Context, state PanelState, enabled int, colors pnPalette) {
-	count := enabled
-	if state.Response != nil {
-		count = len(state.Response.Results)
-	}
-	ui.Column(c).Shrink(0).Children(func() {
-		ui.Divider(c).Background(colors.Divider)
-		ui.Row(c).Height(31).Padding(3, 12).Gap(5).Children(func() {
-			ui.Text(c, fmt.Sprintf("%d 个翻译渠道", count)).FontSize(10).TextColor(colors.Faint)
-			if state.Pinned {
-				ui.Text(c, "· 已固定").FontSize(10).TextColor(colors.Accent)
-			}
-			ui.Spacer(c)
-			ui.ButtonBase(c.Key("manage-providers")).Label("管理翻译渠道").Padding(4, 0).TextColor(colors.Muted).
-				Children(func() { ui.Text(c, "管理渠道").FontSize(10) }).OnClick(p.app.ShowMain)
-		})
 	})
 }
 
