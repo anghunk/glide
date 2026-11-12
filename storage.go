@@ -10,6 +10,7 @@ import (
 
 // diskSettings 保存完整本地配置；Secrets 仅用于识别并迁移旧版凭据引用。
 type diskSettings struct {
+	Version  int                          `json:"version,omitempty"`
 	Settings Settings                     `json:"settings"`
 	Secrets  map[string]map[string]string `json:"secrets,omitempty"`
 }
@@ -26,6 +27,10 @@ func readSettings(dir string) (Settings, error) {
 	disk := diskSettings{Settings: defaultSettings()}
 	if err := json.Unmarshal(data, &disk); err != nil {
 		return Settings{}, fmt.Errorf("读取设置失败：%w", err)
+	}
+	// 将旧版自动识别搭配默认中文的配置升级为智能互译，保留其他手动目标语言。
+	if disk.Version < 2 && disk.Settings.SourceLang == "auto" && disk.Settings.TargetLang == "zh-CN" {
+		disk.Settings.TargetLang = "smart"
 	}
 	if disk.Settings.HistoryLimit != 0 && disk.Settings.HistoryLimit != 10 && disk.Settings.HistoryLimit != 50 && disk.Settings.HistoryLimit != 100 {
 		disk.Settings.HistoryLimit = 50
@@ -52,7 +57,7 @@ func writeSettings(dir string, settings Settings) error {
 			return fmt.Errorf("原设置无法读取，已取消保存：%w", err)
 		}
 	}
-	return writeJSON(path, diskSettings{Settings: cloneSettings(settings)})
+	return writeJSON(path, diskSettings{Version: 2, Settings: cloneSettings(settings)})
 }
 
 // writeJSON 通过同目录临时文件替换数据，避免中断时留下半份 JSON。

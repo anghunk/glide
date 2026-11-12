@@ -46,7 +46,7 @@ func (a *GlideService) startOCR(screenshot bool) {
 	}()
 }
 
-// readOCR 截图期间隐藏本应用窗口，取消时恢复；临时截图始终在识别后删除。
+// readOCR 保持本应用窗口可见状态，截图或选择图片后识别文字；临时截图始终在识别后删除。
 func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, error) {
 	var path string
 	if screenshot {
@@ -56,29 +56,7 @@ func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, er
 		}
 		defer os.RemoveAll(dir)
 		path = filepath.Join(dir, "capture.png")
-		mainVisible, panelVisible := a.mainWindow.IsVisible(), a.panelWindow.IsVisible()
-		a.mainWindow.Hide()
-		a.panelWindow.Hide()
-		// 等待窗口退出合成后再启动交互截图，防止应用自身遮挡目标。
-		timer := time.NewTimer(180 * time.Millisecond)
-		defer timer.Stop()
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		case <-timer.C:
-		}
 		if err := ocr.Capture(ctx, path); err != nil {
-			a.mu.RLock()
-			quitting := a.quitting
-			a.mu.RUnlock()
-			if !quitting {
-				if mainVisible {
-					a.mainWindow.Show()
-				}
-				if panelVisible {
-					a.panelWindow.ShowInactive()
-				}
-			}
 			return "", err
 		}
 	} else {

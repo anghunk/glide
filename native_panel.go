@@ -11,18 +11,22 @@ import (
 
 // panelUI 只保存主线程上的编辑与展开状态；后台结果由服务快照提供。
 type panelUI struct {
-	app          *GlideService
-	initialized  bool
-	requestID    string
-	inputSession uint64
-	inputFocus   ui.Handle
-	draft        string
-	sourceLang   string
-	targetLang   string
-	collapsed    map[string]bool
-	copiedID     string
-	copiedUntil  time.Time
-	message      string
+	app           *GlideService
+	initialized   bool
+	requestID     string
+	inputSession  uint64
+	inputFocus    ui.Handle
+	sizeSignature uint64
+	contentHeight int
+	resizePending bool
+	heightLimit   int
+	draft         string
+	sourceLang    string
+	targetLang    string
+	collapsed     map[string]bool
+	copiedID      string
+	copiedUntil   time.Time
+	message       string
 }
 
 // newPanelUI 创建紧凑浮窗状态，不发起网络请求或读取文件。
@@ -39,6 +43,9 @@ func (p *panelUI) syncSnapshot(state PanelState, settings Settings) {
 	if response := state.Response; response != nil && response.RequestID != "" && response.RequestID != p.requestID {
 		p.requestID = response.RequestID
 		p.draft, p.sourceLang, p.targetLang = response.Text, response.SourceLang, response.TargetLang
+		if response.TargetMode == "smart" {
+			p.targetLang = "smart"
+		}
 		p.inputSession++
 		p.message, p.copiedID = "", ""
 	}
@@ -46,7 +53,7 @@ func (p *panelUI) syncSnapshot(state PanelState, settings Settings) {
 		p.sourceLang = "auto"
 	}
 	if p.targetLang == "" || p.targetLang == "auto" {
-		p.targetLang = "zh-CN"
+		p.targetLang = "smart"
 	}
 }
 
@@ -68,10 +75,11 @@ func (p *panelUI) view(c *ui.Context) {
 	for _, provider := range settings.Providers {
 		providers[provider.ID] = provider
 	}
+	var composer, resultContent ui.Element
 	c.Root().Background(colors.Surface)
 	ui.Column(c.Key("translation-panel")).Fill().Background(colors.Surface).TextColor(colors.Text).Radius(11).Border(1, colors.Divider).Clip().Children(func() {
 		p.toolbar(c, state, colors)
-		ui.Column(c.Key("panel-composer")).Shrink(0).Padding(0, 12, 10).Gap(8).Children(func() {
+		composer = ui.Column(c.Key("panel-composer")).Shrink(0).Padding(0, 12, 10).Gap(8).Children(func() {
 			if settings.ShowSourceInput {
 				var input ui.Element
 				frame := ui.Box(c.Key("panel-source-frame")).Height(104).FillWidth().Shrink(0).Radius(8).Background(colors.Group).Padding(1).Border(1, panelInputBorder(c)).Children(func() {
@@ -114,34 +122,37 @@ func (p *panelUI) view(c *ui.Context) {
 			})
 		})
 		ui.Divider(c).Height(.5).Background(colors.Divider)
-		ui.Scroll(c.Key("panel-results")).Grow(1).MinHeight(50).Padding(10, 12).Gap(8).Children(func() {
-			if state.Error != "" {
-				p.notice(c, state.Error, colors.Danger, colors)
-			}
-			if p.message != "" {
-				p.notice(c, p.message, colors.Attention, colors)
-			}
-			if state.Response != nil {
-				for _, result := range state.Response.Results {
-					p.resultCard(c.Key(result.ProviderID), result, providers[result.ProviderID], colors)
+		ui.Scroll(c.Key("panel-results")).Grow(1).MinHeight(50).Padding(10, 12).Children(func() {
+			resultContent = ui.Column(c.Key("panel-result-content")).FillWidth().Shrink(0).Gap(8).Children(func() {
+				if state.Error != "" {
+					p.notice(c, state.Error, colors.Danger, colors)
 				}
-			} else if state.Loading {
-				ui.Row(c).Gap(8).Padding(16, 4).Children(func() {
-					ui.Spinner(c).Size(14, 14)
-					message := "正在准备翻译…"
-					if p.app.ocrRunning() {
-						message = "正在识别图片文字…"
+				if p.message != "" {
+					p.notice(c, p.message, colors.Attention, colors)
+				}
+				if state.Response != nil {
+					for _, result := range state.Response.Results {
+						p.resultCard(c.Key(result.ProviderID), result, providers[result.ProviderID], colors)
 					}
-					ui.Text(c, message).TextColor(colors.Muted).FontSize(12)
-				})
-			} else if state.Error == "" {
-				ui.Column(c).Padding(24, 12).Gap(9).AlignItems(ui.Center).Children(func() {
-					pnIcon(c, "globe", 26, colors.Faint)
-					ui.Text(c, "选中文字，即刻翻译").FontSize(11).TextColor(colors.Muted).TextAlign(ui.Center)
-				})
-			}
+				} else if state.Loading {
+					ui.Row(c).Gap(8).Padding(16, 4).Children(func() {
+						ui.Spinner(c).Size(14, 14)
+						message := "正在准备翻译…"
+						if p.app.ocrRunning() {
+							message = "正在识别图片文字…"
+						}
+						ui.Text(c, message).TextColor(colors.Muted).FontSize(12)
+					})
+				} else if state.Error == "" {
+					ui.Column(c).Padding(24, 12).Gap(9).AlignItems(ui.Center).Children(func() {
+						pnIcon(c, "globe", 26, colors.Faint)
+						ui.Text(c, "选中文字，即刻翻译").FontSize(11).TextColor(colors.Muted).TextAlign(ui.Center)
+					})
+				}
+			})
 		})
 	})
+	p.fitContent(c, state, settings, composer, resultContent)
 	if mods, key, ok := parsePanelShortcut(settings.PanelTranslateShortcut); ok && c.Shortcut(mods, key) {
 		p.submit()
 	}
@@ -185,7 +196,7 @@ func (p *panelUI) iconButton(c *ui.Context, name, label string, selected bool, c
 	return button.Children(func() { pnIcon(c, name, 15, color) })
 }
 
-// resultCard 展示单个真实翻译渠道，折叠与复制互不影响其他渠道。
+// resultCard 展示单个渠道，支持折叠、复制及独立重新翻译。
 func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider translation.Config, colors pnPalette) {
 	ui.Column(c).Shrink(0).Radius(8).Background(colors.Group).Border(.5, colors.Divider).Clip().Children(func() {
 		ui.Row(c).Height(38).Padding(5, 8, 5, 10).Gap(7).Children(func() {
@@ -231,6 +242,10 @@ func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider trans
 						metadata = "检测到" + pnLanguageName(panelLanguageCode(result.DetectedLang)) + " · " + metadata
 					}
 					ui.Text(c, metadata).Grow(1).MinWidth(0).SingleLine().FontSize(10).TextColor(colors.Faint)
+					p.iconButton(c.Key("retry-result"), "refresh", "重新翻译此渠道", false, colors).Size(24, 23).OnClick(func() {
+						p.copiedID = ""
+						p.app.RetryPanelChannel(result.ProviderID)
+					})
 					if result.Text != "" {
 						copied := p.copiedID == result.ProviderID
 						label := "复制译文"
@@ -288,7 +303,11 @@ func (p *panelUI) swapLanguages() {
 			}
 		}
 	}
-	p.sourceLang, p.targetLang = p.targetLang, source
+	target := p.targetLang
+	if target == "smart" {
+		target = smartTargetLanguage(p.draft, p.sourceLang)
+	}
+	p.sourceLang, p.targetLang = target, source
 }
 
 // panelLanguageCode 统一不同渠道返回的常见中文代码，保证交换后仍可在语言栏选择。

@@ -39,7 +39,7 @@ func pnApplyTheme(c *ui.Context) pnPalette {
 var lucideAssets embed.FS
 
 var pnIcons = func() map[string]*ui.SVG {
-	files := map[string]string{"screenshot": "screenshot", "home": "home", "eye": "eye", "eye-off": "eye-off", "settings": "settings", "globe": "globe", "keyboard": "keyboard", "history": "history", "shield": "shield-check", "info": "info", "search": "search", "plus": "plus", "minus": "minus", "trash": "trash-2", "check": "check", "pin": "pin", "close": "x", "copy": "copy", "chevron-down": "chevron-down", "chevron-right": "chevron-right", "swap": "arrow-right-left", "bolt": "zap"}
+	files := map[string]string{"screenshot": "screenshot", "home": "home", "eye": "eye", "eye-off": "eye-off", "settings": "settings", "globe": "globe", "keyboard": "keyboard", "history": "history", "shield": "shield-check", "info": "info", "search": "search", "plus": "plus", "minus": "minus", "trash": "trash-2", "check": "check", "pin": "pin", "close": "x", "copy": "copy", "refresh": "refresh-cw", "chevron-down": "chevron-down", "chevron-right": "chevron-right", "swap": "arrow-right-left", "bolt": "zap"}
 	icons := make(map[string]*ui.SVG, len(files))
 	for name, file := range files {
 		data, err := lucideAssets.ReadFile("assets/lucide/" + file + ".svg")
@@ -72,6 +72,9 @@ var pnLanguages = []pnLanguage{{"zh-CN", "简体中文"}, {"zh-TW", "繁體中�
 
 // pnLanguageName 将服务代码显示为语言名称，未知代码保留原值。
 func pnLanguageName(code string) string {
+	if code == "smart" {
+		return "智能互译"
+	}
 	if code == "auto" {
 		return "自动识别"
 	}
@@ -88,6 +91,8 @@ func pnLanguageSelect(c *ui.Context, code *string, includeAuto bool, width float
 	options := make([]string, 0, len(pnLanguages)+1)
 	if includeAuto {
 		options = append(options, "自动识别")
+	} else {
+		options = append(options, "智能互译")
 	}
 	for _, language := range pnLanguages {
 		options = append(options, language.Name)
@@ -95,7 +100,9 @@ func pnLanguageSelect(c *ui.Context, code *string, includeAuto bool, width float
 	chosen := pnLanguageName(*code)
 	changed := ui.Select(c, &chosen, options).Width(width).Height(28).Radius(14).FontSize(12.5).Changed()
 	if changed {
-		if chosen == "自动识别" {
+		if chosen == "智能互译" {
+			*code = "smart"
+		} else if chosen == "自动识别" {
 			*code = "auto"
 		} else {
 			for _, language := range pnLanguages {

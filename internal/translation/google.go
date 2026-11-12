@@ -7,11 +7,14 @@ import (
 	"html"
 	"net/http"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
 // google 调用无需密钥的网页接口；接口变更、网络限制或验证码均直接返回错误。
 func google(ctx context.Context, config Config, input Request) (string, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
 	if utf8.RuneCountInString(input.Text) > 5000 {
 		return "", "", errors.New("谷歌内置渠道单次最多翻译 5000 个字符，请分段翻译")
 	}
@@ -32,6 +35,9 @@ func google(ctx context.Context, config Config, input Request) (string, string, 
 	}
 	body, err := send(request)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return "", "", errors.New("谷歌翻译请求超时，请检查网络及系统代理设置后重试")
+		}
 		return "", "", err
 	}
 	var response []json.RawMessage

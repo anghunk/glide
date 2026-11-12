@@ -144,7 +144,7 @@ func (a *GlideService) showUsageHelp() {
 	go func() {
 		_, err := mygo.Dialog.Message(mygo.MessageOptions{
 			Parent: a.mainWindow, Type: mygo.MessageInfo, Title: "Glide 使用说明", Message: "选中文字，即刻翻译",
-			Detail:  fmt.Sprintf("1. 在其他应用中选中文字，按 %s 呼出译文。\n2. 也可从托盘选择“输入翻译”或“剪贴板翻译”。\n3. 在“设置 → 翻译服务”配置并启用渠道。\n4. 图钉可保留浮窗；未固定时，进入浮窗再切换应用会将它收起。\n\n无法取词时，请检查“通用”中的系统权限，或复制文字后使用剪贴板翻译。", shortcut),
+			Detail:  fmt.Sprintf("1. 在其他应用中选中文字，按 %s 呼出译文。\n2. 也可从托盘选择“输入翻译”或“剪贴板翻译”。\n3. 在“设置 → 翻译服务”配置并启用渠道。\n4. 图钉可保留浮窗；未固定时，进入浮窗再切换应用会将它收起。\n\n快捷键无法取词时自动使用最新的剪贴板文字，也可在“通用”中检查系统权限。", shortcut),
 			Buttons: []string{"知道了"},
 		})
 		if err != nil {

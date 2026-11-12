@@ -45,9 +45,10 @@ func (a *GlideService) createWindows() {
 		}
 	})
 	a.panelWindow = mygo.NewWindow(mygo.WindowOptions{
-		Title: "Glide", Content: ui.View(a.panelUI.view), Width: 400, Height: 420, MinWidth: 360, MinHeight: 240, MaxWidth: 420, MaxHeight: 560,
+		Title: "Glide", Content: ui.View(a.panelUI.view), Width: 400, Height: 420, MinWidth: 360, MinHeight: 1, MaxWidth: 420,
 		Panel: true, Frameless: true, CornerRadius: 12, Hidden: true, BackgroundColor: "#ffffff", DisableMaximize: true,
 	})
+	a.panelWindow.OnMove(a.notifyPanel)
 	a.panelWindow.OnBlur(func() {
 		a.mu.RLock()
 		pinned, quitting := a.panel.Pinned, a.quitting
@@ -152,14 +153,13 @@ func (a *GlideService) OpenPanel() {
 	a.notifyPanel()
 }
 
-// translateSelection 在原应用仍保持焦点时读取选区；失败不会误用旧剪贴板。
+// translateSelection 优先读取当前选区，读取失败或为空时使用此刻的剪贴板文本。
 func (a *GlideService) translateSelection() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	s, err := selection.Read(ctx)
-	if err != nil {
-		a.showPanelError(err.Error())
-		return
+	if err != nil || strings.TrimSpace(s.Text) == "" {
+		s.Text = mygo.Clipboard.ReadText()
 	}
 	a.showTranslation(s.Text)
 }
@@ -181,8 +181,11 @@ func (a *GlideService) positionPanel() {
 	area := mygo.Screen.DisplayNearestPoint(point).WorkArea
 	bounds := a.panelWindow.Bounds()
 	width, height := bounds.Width, bounds.Height
-	if width > area.Width-16 || height > area.Height-16 {
-		a.panelWindow.SetSize(min(width, max(1, area.Width-16)), min(height, max(1, area.Height-16)))
+	minimum, maximum := panelHeightLimits(area.Height)
+	a.panelWindow.SetMinimumSize(min(360, max(1, area.Width-16)), minimum)
+	a.panelWindow.SetMaximumSize(min(420, max(1, area.Width-16)), maximum)
+	if width > area.Width-16 || height > maximum {
+		a.panelWindow.SetSize(min(width, max(1, area.Width-16)), min(height, maximum))
 		bounds = a.panelWindow.Bounds()
 		width, height = bounds.Width, bounds.Height
 	}
@@ -208,10 +211,7 @@ func (a *GlideService) positionPanel() {
 func (a *GlideService) showPanelError(message string) {
 	a.mu.Lock()
 	a.panelGeneration++
-	if a.panelCancel != nil {
-		a.panelCancel()
-		a.panelCancel = nil
-	}
+	a.cancelPanelRequestsLocked()
 	a.panel = PanelState{Error: message, Pinned: a.panel.Pinned}
 	a.mu.Unlock()
 	a.positionPanel()
@@ -232,13 +232,11 @@ func (a *GlideService) showTranslationRequest(req TranslateRequest) {
 func (a *GlideService) runPanelTranslation(req TranslateRequest, reposition bool) {
 	req.Text = strings.TrimSpace(req.Text)
 	if req.Text == "" {
-		a.showPanelError("没有读到文字。请先选中文字，或复制后使用“翻译剪贴板”。")
+		a.showPanelError("剪贴板中没有文字，请复制文字或输入原文后翻译。")
 		return
 	}
 	a.mu.Lock()
-	if a.panelCancel != nil {
-		a.panelCancel()
-	}
+	a.cancelPanelRequestsLocked()
 	ctx, cancel := context.WithCancel(context.Background())
 	a.panelCancel = cancel
 	a.panelGeneration++
@@ -256,7 +254,7 @@ func (a *GlideService) runPanelTranslation(req TranslateRequest, reposition bool
 				a.mu.Unlock()
 				return
 			}
-			a.panel.Response = &response
+			a.updatePanelResponseLocked(response)
 			a.mu.Unlock()
 			a.notifyPanel()
 		})
@@ -265,9 +263,10 @@ func (a *GlideService) runPanelTranslation(req TranslateRequest, reposition bool
 			a.mu.Unlock()
 			return
 		}
-		a.panel.Loading = false
 		if response.RequestID != "" {
-			a.panel.Response = &response
+			a.updatePanelResponseLocked(response)
+		} else {
+			a.panel.Loading = false
 		}
 		if err != nil {
 			a.panel.Error = err.Error()
@@ -285,9 +284,7 @@ func (a *GlideService) shutdown() {
 	if a.ocrCancel != nil {
 		a.ocrCancel()
 	}
-	if a.panelCancel != nil {
-		a.panelCancel()
-	}
+	a.cancelPanelRequestsLocked()
 	if a.watchCancel != nil {
 		a.watchCancel()
 	}

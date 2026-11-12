@@ -147,7 +147,7 @@ func (s *settingsUI) scheduleSave() {
 		return
 	}
 	// 服务文本编辑短暂合并，避免每输入一个字符都写入配置文件。
-	textEdit := false
+	textEdit := previous.ProxyAddress != s.draft.ProxyAddress
 	if len(previous.Providers) == len(s.draft.Providers) {
 		for i, after := range s.draft.Providers {
 			before := previous.Providers[i]
@@ -401,6 +401,8 @@ func (s *settingsUI) view(c *ui.Context) {
 					s.home.view(c, p, s.draft)
 				case "advanced":
 					s.advanced(c, p)
+				case "proxy":
+					s.proxy(c, p)
 				case "services":
 					s.services(c, p)
 				case "shortcut":
@@ -422,7 +424,7 @@ func (s *settingsUI) view(c *ui.Context) {
 
 type settingsCategory struct{ ID, Label, Icon, Keywords string }
 
-var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"general", "通用", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "高级", "settings", "导入 导出 WebDAV 同步 备份"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
+var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"general", "通用", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "高级", "settings", "导入 导出 WebDAV 同步 备份"}, {"proxy", "系统代理", "globe", "网络 HTTP HTTPS SOCKS proxy"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
 
 // categoryTitle 返回当前分类标题。
 func (s *settingsUI) categoryTitle() string {
@@ -568,7 +570,7 @@ func (s *settingsUI) general(c *ui.Context, p pnPalette) {
 		})
 		s.group(c, p, "默认语言", func() {
 			s.row(c, p, "源语言", "识别选中文字所使用的语言。", func() { pnLanguageSelect(c, &s.draft.SourceLang, true, 144) })
-			s.row(c, p, "目标语言", "将选中文字翻译为此语言。", func() { pnLanguageSelect(c, &s.draft.TargetLang, false, 144) })
+			s.row(c, p, "目标语言", "智能互译：中文译为英文，其他语言译为中文；也可指定目标语言。", func() { pnLanguageSelect(c, &s.draft.TargetLang, false, 144) })
 		})
 		s.group(c, p, "翻译历史", func() {
 			s.row(c, p, "保留条数", "仅保留最近的记录；选择“不保留”会清空已有历史，并停止记录。", func() {
@@ -997,9 +999,10 @@ func (s *settingsUI) about(c *ui.Context, p pnPalette) {
 		s.group(c, p, "应用信息", func() {
 			s.row(c, p, "版本", "", func() { ui.Text(c, s.state.Version).FontSize(13).TextColor(p.Muted) })
 			s.row(c, p, "GitHub", "", func() {
-				ui.Button(c, "anghunk/glide ↗").Height(28).FontSize(12).OnClick(func() {
-					s.externalAction(func() error { return s.app.OpenExternal("https://github.com/anghunk/glide") })
-				})
+				ui.Link(c, "https://github.com/anghunk/glide", "https://github.com/anghunk/glide").FontSize(12).TextColor(p.Accent)
+			})
+			s.row(c, p, "问题反馈", "", func() {
+				ui.Link(c, "https://github.com/anghunk/glide/issues", "https://github.com/anghunk/glide/issues").FontSize(12).TextColor(p.Accent)
 			})
 		})
 		s.app.renderUpdateSettings(c, p)
@@ -1099,6 +1102,12 @@ func (s *settingsUI) confirmDeletion(title, message string, confirmed func()) {
 
 // mergeSettingsDraft 只合并相对基线有改动的字段，保留外部语言切换等并行修改。
 func mergeSettingsDraft(baseline, edited, latest Settings) Settings {
+	if edited.ProxyAddress == baseline.ProxyAddress {
+		edited.ProxyAddress = latest.ProxyAddress
+	}
+	if edited.UseSystemProxy == baseline.UseSystemProxy {
+		edited.UseSystemProxy = latest.UseSystemProxy
+	}
 	if edited.PanelFollowsMouse == baseline.PanelFollowsMouse {
 		edited.PanelFollowsMouse = latest.PanelFollowsMouse
 	}

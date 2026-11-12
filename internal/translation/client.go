@@ -16,7 +16,8 @@ import (
 const maxResponseBytes = 4 << 20
 
 var httpClient = &http.Client{
-	Timeout: 120 * time.Second,
+	Timeout:   120 * time.Second,
+	Transport: translationTransport(),
 	CheckRedirect: func(request *http.Request, via []*http.Request) error {
 		if len(via) >= 5 {
 			return errors.New("翻译服务重定向过多")
@@ -39,6 +40,13 @@ var httpClient = &http.Client{
 		}
 		return nil
 	},
+}
+
+// translationTransport 保留标准连接池与超时设置，并按请求选择环境或系统代理。
+func translationTransport() *http.Transport {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = translationProxy
+	return transport
 }
 
 // serviceURL 解析绝对 HTTP(S) 地址，为只填写域名的配置补充默认 API 路径。

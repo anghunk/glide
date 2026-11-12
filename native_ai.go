@@ -94,9 +94,11 @@ func (s *settingsUI) fetchModels(config translation.Config) {
 	}
 	state := &modelListState{source: config, loading: true}
 	s.modelLists[config.ID] = state
+	proxySettings := s.app.GetState().Settings
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
+		ctx = translation.WithProxy(ctx, proxySettings.UseSystemProxy, proxySettings.ProxyAddress)
 		models, err := translation.ListModels(ctx, config)
 		s.app.mainWindow.Update(func() {
 			if s.modelLists[config.ID] != state {
@@ -172,9 +174,11 @@ func (s *settingsUI) testAIConnection(config translation.Config) {
 	}
 	state := &aiTestState{source: config, loading: true}
 	s.aiTests[config.ID] = state
+	proxySettings := s.app.GetState().Settings
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+		ctx = translation.WithProxy(ctx, proxySettings.UseSystemProxy, proxySettings.ProxyAddress)
 		started := time.Now()
 		_, err := translation.Translate(ctx, config, translation.Request{Text: "Hello", SourceLang: "en", TargetLang: "zh-CN"})
 		duration := time.Since(started)

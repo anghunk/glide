@@ -35,6 +35,8 @@ func (s *settingsUI) operationScope() string {
 		section = "系统权限"
 	case "services":
 		section = "服务配置"
+	case "proxy":
+		section = "系统代理"
 	case "shortcut":
 		section = "全局快捷键"
 	case "history":

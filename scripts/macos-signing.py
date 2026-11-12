@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import signal
 import shlex
 import subprocess
 import sys
@@ -17,12 +18,37 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCAL = Path.home() / "Library/Application Support/Glide/release-keys/macos-signing"
 
 
-def run(args, *, data=None, env=None):
-    """执行系统命令；失败时不输出可能包含密码的参数或命令输出。"""
-    result = subprocess.run(args, input=data, env=env, capture_output=True)
-    if result.returncode:
-        raise RuntimeError(f"{Path(args[0]).name} {args[1]} 失败（退出码 {result.returncode}）")
-    return result.stdout
+def run(args, *, data=None, env=None, timeout=60):
+    """有界执行系统命令；超时或取消时终止整个进程组，不输出密码或命令输出。"""
+    process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=env, start_new_session=True)
+    try:
+        output, _ = process.communicate(input=data, timeout=timeout)
+    except BaseException as error:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        except PermissionError:
+            # sudo 启动的 security 可能已切换为 root；用同样的非交互权限结束专用进程组。
+            try:
+                subprocess.run(["sudo", "-n", "/bin/kill", "-KILL", "--", f"-{process.pid}"],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        try:
+            process.communicate(timeout=2)
+        except subprocess.TimeoutExpired:
+            # 即使有不可终止的后代持有管道，也不能在回收输出时无限等待。
+            for stream in (process.stdin, process.stdout, process.stderr):
+                if stream is not None:
+                    stream.close()
+        if isinstance(error, subprocess.TimeoutExpired):
+            raise RuntimeError(f"{Path(args[0]).name} {args[1]} 超时（{timeout} 秒）") from None
+        raise
+    if process.returncode:
+        raise RuntimeError(f"{Path(args[0]).name} {args[1]} 失败（退出码 {process.returncode}）")
+    return output
 
 
 def config():
@@ -110,19 +136,29 @@ def sync():
 
 
 def clean():
-    """只清理 CI 创建的专用钥匙串与临时密钥，不操作本机备份。"""
+    """有界清理 CI 专用钥匙串；独立尝试各项清理，始终删除临时密钥，不操作本机备份。"""
     if os.environ.get("GITHUB_ACTIONS") != "true":
         raise RuntimeError("清理命令仅适用于 CI")
     target = folder()
-    cert = target / "certificate.pem"
-    if cert.exists():
-        run(["sudo", "security", "remove-trusted-cert", "-d", str(cert)])
-    keychain = target / "glide-signing.keychain-db"
-    if keychain.exists():
-        run(["security", "delete-keychain", str(keychain)])
-    if target.exists():
+    operations = [
+        (target / "certificate.pem", "移除临时证书信任",
+         ["sudo", "-n", "security", "remove-trusted-cert", "-d"]),
+        (target / "glide-signing.keychain-db", "删除临时签名钥匙串",
+         ["security", "delete-keychain"]),
+    ]
+    try:
+        for path, label, args in operations:
+            if path.exists():
+                print(f"{label}（最多 10 秒）", flush=True)
+                try:
+                    run([*args, str(path)], timeout=10)
+                except (OSError, RuntimeError) as error:
+                    print(f"清理警告：{error}", file=sys.stderr, flush=True)
+    finally:
         import shutil
-        shutil.rmtree(target)
+        if target.exists():
+            shutil.rmtree(target)
+    print("临时 macOS 签名文件已清理", flush=True)
 
 
 def main():
@@ -130,6 +166,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["prepare", "sync", "clean", "identity"])
     args = parser.parse_args()
+    # 让 Actions 的 SIGTERM 进入 run() 的异常清理，终止独立进程组中的 sudo/security。
+    def terminate(signum, frame):
+        """收到取消信号时退出，并触发在途子进程与临时文件的清理。"""
+        raise SystemExit(128 + signum)
+
+    signal.signal(signal.SIGTERM, terminate)
     os.umask(0o077)
     if args.action == "identity":
         print(config()["macos"]["signingIdentity"])

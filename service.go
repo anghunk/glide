@@ -23,6 +23,8 @@ import (
 
 // Settings 描述语言、触发方式及各翻译渠道的独立配置。
 type Settings struct {
+	ProxyAddress           string               `json:"proxyAddress"`
+	UseSystemProxy         bool                 `json:"useSystemProxy"`
 	PanelTranslateShortcut string               `json:"panelTranslateShortcut"`
 	PanelCloseShortcut     string               `json:"panelCloseShortcut"`
 	PanelFollowsMouse      bool                 `json:"panelFollowsMouse"`
@@ -91,6 +93,7 @@ type TranslationResponse struct {
 	Text       string          `json:"text"`
 	SourceLang string          `json:"sourceLang"`
 	TargetLang string          `json:"targetLang"`
+	TargetMode string          `json:"targetMode,omitempty"`
 	Results    []ChannelResult `json:"results"`
 	CreatedAt  string          `json:"createdAt"`
 }
@@ -122,6 +125,7 @@ type GlideService struct {
 	updater         *appUpdater
 	panel           PanelState
 	panelCancel     context.CancelFunc
+	panelRetries    map[string]context.CancelFunc
 	panelGeneration uint64
 	watchCancel     context.CancelFunc
 	watchStop       func()
@@ -136,7 +140,7 @@ type GlideService struct {
 
 // defaultSettings 只默认启用无需付费凭据的渠道，自动划词由用户主动开启。
 func defaultSettings() Settings {
-	return Settings{PanelTranslateShortcut: "CmdOrCtrl+Enter", PanelCloseShortcut: "Escape", OCRShortcut: "CmdOrCtrl+Shift+O", TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "zh-CN", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
+	return Settings{UseSystemProxy: true, PanelTranslateShortcut: "CmdOrCtrl+Enter", PanelCloseShortcut: "Escape", OCRShortcut: "CmdOrCtrl+Shift+O", TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "smart", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
 }
 
 // cloneSettings 复制渠道切片，避免界面快照与运行配置共用可变数据。
@@ -195,6 +199,11 @@ func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 	if settings.TargetLang == "" || settings.TargetLang == "auto" {
 		return AppState{}, fmt.Errorf("请选择目标语言")
 	}
+	normalizedProxy, err := translation.NormalizeProxyAddress(settings.ProxyAddress)
+	if err != nil {
+		return AppState{}, err
+	}
+	settings.ProxyAddress = normalizedProxy
 	if len(settings.Shortcut) > 100 {
 		return AppState{}, fmt.Errorf("请输入有效快捷键")
 	}
@@ -304,11 +313,16 @@ func (a *GlideService) translate(ctx context.Context, req TranslateRequest, prog
 	if req.TargetLang == "" {
 		req.TargetLang = settings.TargetLang
 	}
+	targetMode := ""
+	if req.TargetLang == "smart" {
+		targetMode = "smart"
+		req.TargetLang = smartTargetLanguage(req.Text, req.SourceLang)
+	}
 	var id [12]byte
 	if _, err := rand.Read(id[:]); err != nil {
 		return TranslationResponse{}, err
 	}
-	response := TranslationResponse{RequestID: hex.EncodeToString(id[:]), Text: req.Text, SourceLang: req.SourceLang, TargetLang: req.TargetLang, CreatedAt: time.Now().Format(time.RFC3339), Results: []ChannelResult{}}
+	response := TranslationResponse{RequestID: hex.EncodeToString(id[:]), Text: req.Text, SourceLang: req.SourceLang, TargetLang: req.TargetLang, TargetMode: targetMode, CreatedAt: time.Now().Format(time.RFC3339), Results: []ChannelResult{}}
 	if req.Text == "" {
 		return response, fmt.Errorf("请先输入或选择需要翻译的文字")
 	}
@@ -335,6 +349,7 @@ func (a *GlideService) translate(ctx context.Context, req TranslateRequest, prog
 	}
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
+	ctx = translation.WithProxy(ctx, settings.UseSystemProxy, settings.ProxyAddress)
 	type completion struct {
 		index  int
 		result ChannelResult
@@ -489,10 +504,7 @@ func (a *GlideService) TranslatePanel(req TranslateRequest) { a.runPanelTranslat
 func (a *GlideService) HidePanel() {
 	a.mu.Lock()
 	a.panelGeneration++
-	if a.panelCancel != nil {
-		a.panelCancel()
-		a.panelCancel = nil
-	}
+	a.cancelPanelRequestsLocked()
 	a.mu.Unlock()
 	a.panelWindow.Hide()
 }
