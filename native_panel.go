@@ -57,11 +57,11 @@ func (p *panelUI) syncSnapshot(state PanelState, settings Settings) {
 	}
 }
 
-// view 构建白灰色紧凑浮窗；编辑、切换与复制均直接调用 Go 服务。
+// view 根据全局语言和主题构建紧凑浮窗，保留当前原文、译文及编辑状态。
 func (p *panelUI) view(c *ui.Context) {
-	colors := pnApplyTheme(c)
 	state := p.app.GetPanelState()
 	settings := p.app.GetState().Settings
+	colors := pnApplyTheme(c, settings.ThemeMode)
 	p.syncSnapshot(state, settings)
 	if p.copiedID != "" {
 		remaining := time.Until(p.copiedUntil)
@@ -89,7 +89,7 @@ func (p *panelUI) view(c *ui.Context) {
 					}{"panel-source", p.inputSession}), &p.draft).
 						Fill().Padding(5, 7).Radius(7).FontSize(13).LineHeight(1.6).
 						Background(colors.Group).Border(0, ui.Transparent).FocusRing(false).Bind(&p.inputFocus).AutoFocus().
-						Label("需要翻译的原文").Placeholder("选中文字后按快捷键，或在此输入…").MaxLength(10000).
+						Label(tr("需要翻译的原文")).Placeholder(tr("选中文字后按快捷键，或在此输入…")).MaxLength(10000).
 						OnTextKey(func(key ui.TextKey) bool {
 							if (key.Key == ui.KeyEnter && key.Mods == 0) || panelShortcutMatches(settings.PanelTranslateShortcut, key.Mods, key.Key) {
 								p.draft = key.Text()
@@ -112,13 +112,13 @@ func (p *panelUI) view(c *ui.Context) {
 			}
 			ui.Row(c.Key("panel-language-actions")).Gap(6).Children(func() {
 				if settings.ShowLanguageBar {
-					pnLanguageSelect(c.Key("panel-source-language"), &p.sourceLang, true, 116)
+					pnLanguageSelect(c.Key("panel-source-language"), &p.sourceLang, true, 104, true)
 					p.iconButton(c.Key("panel-swap-languages"), "swap", "交换语言", false, colors).OnClick(p.swapLanguages)
-					pnLanguageSelect(c.Key("panel-target-language"), &p.targetLang, false, 108)
+					pnLanguageSelect(c.Key("panel-target-language"), &p.targetLang, false, 96, true)
 				}
 				ui.Spacer(c)
-				ui.PrimaryButton(c.Key("panel-translate"), "翻译").Height(28).Padding(4, 12).FontSize(12).
-					Tooltip(panelShortcutTooltip("重新翻译原文 · Enter", settings.PanelTranslateShortcut)).Disabled(strings.TrimSpace(p.draft) == "").OnClick(p.submit)
+				ui.PrimaryButton(c.Key("panel-translate"), tr("翻译")).Height(28).Padding(4, 12).FontSize(12).
+					Tooltip(tr(panelShortcutTooltip("重新翻译原文 · Enter", settings.PanelTranslateShortcut))).Disabled(strings.TrimSpace(p.draft) == "").OnClick(p.submit)
 			})
 		})
 		ui.Divider(c).Height(.5).Background(colors.Divider)
@@ -132,7 +132,7 @@ func (p *panelUI) view(c *ui.Context) {
 				}
 				if state.Response != nil {
 					for _, result := range state.Response.Results {
-						p.resultCard(c.Key(result.ProviderID), result, providers[result.ProviderID], colors)
+						p.resultCard(c.Key(result.ProviderID), result, providers[result.ProviderID], colors, p.app.RetryPanelChannel)
 					}
 				} else if state.Loading {
 					ui.Row(c).Gap(8).Padding(16, 4).Children(func() {
@@ -141,12 +141,12 @@ func (p *panelUI) view(c *ui.Context) {
 						if p.app.ocrRunning() {
 							message = "正在识别图片文字…"
 						}
-						ui.Text(c, message).TextColor(colors.Muted).FontSize(12)
+						ui.Text(c, tr(message)).TextColor(colors.Muted).FontSize(12)
 					})
 				} else if state.Error == "" {
 					ui.Column(c).Padding(24, 12).Gap(9).AlignItems(ui.Center).Children(func() {
 						pnIcon(c, "globe", 26, colors.Faint)
-						ui.Text(c, "选中文字，即刻翻译").FontSize(11).TextColor(colors.Muted).TextAlign(ui.Center)
+						ui.Text(c, tr("选中文字，即刻翻译")).FontSize(11).TextColor(colors.Muted).TextAlign(ui.Center)
 					})
 				}
 			})
@@ -184,7 +184,7 @@ func (p *panelUI) toolbar(c *ui.Context, state PanelState, colors pnPalette) {
 
 // iconButton 绘制具备真实可访问名称和悬停反馈的紧凑图标按钮。
 func (p *panelUI) iconButton(c *ui.Context, name, label string, selected bool, colors pnPalette) ui.Element {
-	button := ui.ButtonBase(c).Size(27, 27).Radius(6).Center().Label(label).Tooltip(label)
+	button := ui.ButtonBase(c).Size(27, 27).Radius(6).Center().Label(tr(label)).Tooltip(tr(label))
 	color := colors.Muted
 	if selected {
 		button.Background(colors.Selected)
@@ -197,7 +197,7 @@ func (p *panelUI) iconButton(c *ui.Context, name, label string, selected bool, c
 }
 
 // resultCard 展示单个渠道，支持折叠、复制及独立重新翻译。
-func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider translation.Config, colors pnPalette) {
+func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider translation.Config, colors pnPalette, retry func(string)) {
 	ui.Column(c).Shrink(0).Radius(8).Background(colors.Group).Border(.5, colors.Divider).Clip().Children(func() {
 		ui.Row(c).Height(38).Padding(5, 8, 5, 10).Gap(7).Children(func() {
 			ui.Box(c).Size(21, 21).Radius(5).Background(colors.Surface).Center().Children(func() {
@@ -205,9 +205,9 @@ func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider trans
 			})
 			name := result.ProviderName
 			if name == "" {
-				name = "翻译渠道"
+				name = tr("翻译渠道")
 			}
-			ui.Text(c, name).Grow(1).MinWidth(0).SingleLine().FontSize(12).FontWeight(600)
+			ui.Text(c, providerDisplayName(name)).Grow(1).MinWidth(0).SingleLine().FontSize(12).FontWeight(600)
 			if provider.Model != "" && (provider.Kind == "openai" || provider.Kind == "ollama") {
 				ui.Text(c, provider.Model).MaxWidth(104).SingleLine().FontSize(10).TextColor(colors.Muted).
 					Padding(3, 5).Radius(4).Background(colors.Surface)
@@ -227,24 +227,24 @@ func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider trans
 			if result.Pending {
 				ui.Row(c).Gap(7).Padding(5, 0).Children(func() {
 					ui.Spinner(c).Size(12, 12)
-					ui.Text(c, "正在翻译…").TextColor(colors.Muted).FontSize(12)
+					ui.Text(c, tr("正在翻译…")).TextColor(colors.Muted).FontSize(12)
 				})
 			} else {
 				if result.Text != "" {
 					ui.Text(c.Key("translated-text"), result.Text).Selectable().FontSize(13).LineHeight(1.55).TextColor(colors.Text)
 				}
 				if result.Error != "" {
-					ui.Text(c, result.Error).Selectable().FontSize(11).LineHeight(1.5).TextColor(colors.Danger)
+					ui.Text(c, tr(result.Error)).Selectable().FontSize(11).LineHeight(1.5).TextColor(colors.Danger)
 				}
 				ui.Row(c).Height(23).Gap(5).Children(func() {
 					metadata := panelDuration(result.DurationMS)
 					if result.DetectedLang != "" && result.DetectedLang != "auto" {
-						metadata = "检测到" + pnLanguageName(panelLanguageCode(result.DetectedLang)) + " · " + metadata
+						metadata = tr("检测到") + tr(pnLanguageName(panelLanguageCode(result.DetectedLang))) + " · " + metadata
 					}
-					ui.Text(c, metadata).Grow(1).MinWidth(0).SingleLine().FontSize(10).TextColor(colors.Faint)
+					ui.Text(c, tr(metadata)).Grow(1).MinWidth(0).SingleLine().FontSize(10).TextColor(colors.Faint)
 					p.iconButton(c.Key("retry-result"), "refresh", "重新翻译此渠道", false, colors).Size(24, 23).OnClick(func() {
 						p.copiedID = ""
-						p.app.RetryPanelChannel(result.ProviderID)
+						retry(result.ProviderID)
 					})
 					if result.Text != "" {
 						copied := p.copiedID == result.ProviderID
@@ -267,7 +267,7 @@ func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider trans
 // notice 显示权限、请求或输入错误，保留文本选择以便复制诊断信息。
 func (p *panelUI) notice(c *ui.Context, message string, color ui.Color, colors pnPalette) {
 	ui.Column(c).Shrink(0).Padding(10).Radius(7).Background(colors.Group).Border(.5, colors.Divider).Children(func() {
-		ui.Text(c, message).Selectable().FontSize(11).LineHeight(1.5).TextColor(color)
+		ui.Text(c, tr(message)).Selectable().FontSize(11).LineHeight(1.5).TextColor(color)
 	})
 }
 
@@ -327,7 +327,7 @@ func panelDuration(milliseconds int64) string {
 	if milliseconds < 1000 {
 		return fmt.Sprintf("%d ms", milliseconds)
 	}
-	return fmt.Sprintf("%.1f 秒", float64(milliseconds)/1000)
+	return fmt.Sprintf(tr("%.1f 秒"), float64(milliseconds)/1000)
 }
 
 // panelInputBorder 只为浮窗原文框提供低对比度静态边框。

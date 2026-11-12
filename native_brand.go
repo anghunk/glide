@@ -21,7 +21,7 @@ var brandLogo = func() ui.ImageSource {
 
 // pnBrandLogo 在界面中显示带圆角的原始品牌图案，尺寸使用逻辑像素。
 func pnBrandLogo(c *ui.Context, size float32) ui.Element {
-	return ui.Image(c, brandLogo).Size(size, size).Radius(size * .22).Clip().Label("Glide 标志")
+	return ui.Image(c, brandLogo).Size(size, size).Radius(size * .22).Clip().Label(tr("Glide 标志"))
 }
 
 // trayIcon 为 macOS 提供 Retina 单色模板，为 Windows 提供彩色圆角图案。

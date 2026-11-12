@@ -23,6 +23,8 @@ import (
 
 // Settings 描述语言、触发方式及各翻译渠道的独立配置。
 type Settings struct {
+	ThemeMode              string               `json:"themeMode"`
+	UILanguage             string               `json:"uiLanguage"`
 	ProxyAddress           string               `json:"proxyAddress"`
 	UseSystemProxy         bool                 `json:"useSystemProxy"`
 	PanelTranslateShortcut string               `json:"panelTranslateShortcut"`
@@ -140,7 +142,7 @@ type GlideService struct {
 
 // defaultSettings 只默认启用无需付费凭据的渠道，自动划词由用户主动开启。
 func defaultSettings() Settings {
-	return Settings{UseSystemProxy: true, PanelTranslateShortcut: "CmdOrCtrl+Enter", PanelCloseShortcut: "Escape", OCRShortcut: "CmdOrCtrl+Shift+O", TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "smart", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
+	return Settings{ThemeMode: "system", UseSystemProxy: true, PanelTranslateShortcut: "CmdOrCtrl+Enter", PanelCloseShortcut: "Escape", OCRShortcut: "CmdOrCtrl+Shift+O", TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "smart", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
 }
 
 // cloneSettings 复制渠道切片，避免界面快照与运行配置共用可变数据。
@@ -190,6 +192,19 @@ func (a *GlideService) GetState() AppState {
 func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
+	if settings.ThemeMode == "" {
+		settings.ThemeMode = "system"
+	}
+	switch settings.ThemeMode {
+	case "system", "light", "dark":
+	default:
+		return AppState{}, fmt.Errorf("%s", tr("不支持的主题风格"))
+	}
+	switch settings.UILanguage {
+	case "", "zh-Hans", "zh-Hant", "en":
+	default:
+		return AppState{}, fmt.Errorf("不支持的界面语言")
+	}
 	if settings.HistoryLimit != 0 && settings.HistoryLimit != 10 && settings.HistoryLimit != 50 && settings.HistoryLimit != 100 {
 		return AppState{}, fmt.Errorf("历史保留条数仅支持不保留、10、50 或 100")
 	}
@@ -261,8 +276,12 @@ func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 		return AppState{}, err
 	}
 	a.mu.Lock()
+	previousLanguage := a.settings.UILanguage
 	a.settings = cloneSettings(settings)
 	a.mu.Unlock()
+	if previousLanguage != settings.UILanguage {
+		mygo.App.SetLocale(settings.UILanguage)
+	}
 	a.configureTriggers()
 	a.notifySettings()
 	if err := a.trimHistory(); err != nil {

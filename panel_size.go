@@ -20,6 +20,7 @@ func panelHeightLimits(workHeight int) (minimum, maximum int) {
 func (p *panelUI) layoutSignature(state PanelState, settings Settings, width float32) uint64 {
 	hash := fnv.New64a()
 	fmt.Fprintf(hash, "%g/%t/%t/%t/%q/%q", width, settings.ShowSourceInput, settings.ShowLanguageBar, state.Loading, state.Error, p.message)
+	fmt.Fprintf(hash, "/%q/%q", mygo.App.Locale(), settings.ThemeMode)
 	if state.Response != nil {
 		for _, result := range state.Response.Results {
 			fmt.Fprintf(hash, "/%q/%t/%t/%q/%q", result.ProviderID, p.collapsed[result.ProviderID], result.Pending, result.Text, result.Error)

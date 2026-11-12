@@ -36,8 +36,8 @@ func (s *settingsUI) aiFormatField(c *ui.Context, p pnPalette, config *translati
 		}
 	}
 	ui.Column(c.Key("ai-format")).Shrink(0).Gap(6).Children(func() {
-		ui.Text(c, "上游格式").FontSize(12).TextColor(p.Muted)
-		if ui.Select(c, &chosen, labels).FillWidth().Height(28).FontSize(12.5).Changed() {
+		ui.Text(c, tr("上游格式")).FontSize(12).TextColor(p.Muted)
+		if localizedSelect(c, &chosen, labels).FillWidth().Height(28).FontSize(12.5).Changed() {
 			for i, label := range labels {
 				if chosen == label {
 					config.Format = formats[i]
@@ -55,13 +55,13 @@ func (s *settingsUI) aiModelField(c *ui.Context, p pnPalette, config *translatio
 	}
 	ui.Column(c.Key("ai-model")).Shrink(0).Gap(6).Children(func() {
 		ui.Row(c).Gap(8).Children(func() {
-			ui.Text(c, "模型名称 *").Grow(1).FontSize(12).TextColor(p.Muted)
+			ui.Text(c, tr("模型名称 *")).Grow(1).FontSize(12).TextColor(p.Muted)
 			label := "获取模型"
 			if state != nil && state.loading {
 				label = "获取中…"
 			}
 			snapshot := *config
-			ui.Button(c, label).Height(26).FontSize(12).Disabled(state != nil && state.loading).OnClick(func() { s.fetchModels(snapshot) })
+			ui.Button(c, tr(label)).Height(26).FontSize(12).Disabled(state != nil && state.loading).OnClick(func() { s.fetchModels(snapshot) })
 		})
 		if state != nil && len(state.models) > 0 {
 			chosen := config.Model
@@ -69,20 +69,20 @@ func (s *settingsUI) aiModelField(c *ui.Context, p pnPalette, config *translatio
 				chosen = "自定义模型…"
 			}
 			options := append(slices.Clone(state.models), "自定义模型…")
-			if ui.Select(c, &chosen, options).FillWidth().Height(28).FontSize(12.5).Label("选择模型").Changed() {
+			if localizedSelect(c, &chosen, options).FillWidth().Height(28).FontSize(12.5).Label(tr("选择模型")).Changed() {
 				state.custom = chosen == "自定义模型…"
 				if !state.custom {
 					config.Model = chosen
 				}
 			}
 			if state.custom || !slices.Contains(state.models, config.Model) {
-				ui.TextInput(c, &config.Model).FillWidth().Height(28).FontSize(12.5).Label("自定义模型名称").Placeholder("输入完整模型名称")
+				ui.TextInput(c, &config.Model).FillWidth().Height(28).FontSize(12.5).Label(tr("自定义模型名称")).Placeholder(tr("输入完整模型名称"))
 			}
 		} else {
-			ui.TextInput(c, &config.Model).FillWidth().Height(28).FontSize(12.5).Label("模型名称").Placeholder("获取模型列表，或输入自定义模型名称")
+			ui.TextInput(c, &config.Model).FillWidth().Height(28).FontSize(12.5).Label(tr("模型名称")).Placeholder(tr("获取模型列表，或输入自定义模型名称"))
 		}
 		if state != nil && state.errorText != "" {
-			ui.Text(c, state.errorText).FontSize(12).TextColor(p.Danger).MaxLines(3)
+			ui.Text(c, tr(state.errorText)).FontSize(12).TextColor(p.Danger).MaxLines(3)
 		}
 	})
 }
@@ -138,29 +138,47 @@ func sameAITestSource(a, b translation.Config) bool {
 	return sameModelSource(a, b) && a.Model == b.Model
 }
 
-// aiConnectionTest 提供独立测试入口，展示真实模型调用的结果与耗时。
+// aiConnectionTest 在按钮内展示加载动画和结果图标，悬停时可查看耗时或失败原因。
 func (s *settingsUI) aiConnectionTest(c *ui.Context, p pnPalette, config *translation.Config) {
 	state := s.aiTests[config.ID]
 	if state != nil && !sameAITestSource(state.source, *config) {
 		state = nil
 	}
 	ui.Column(c.Key("ai-connection-test")).Shrink(0).Gap(6).Children(func() {
-		label := "测试连通性"
-		if state != nil && state.loading {
-			label = "测试中…"
+		label, tooltip := tr("测试连通性"), ""
+		if state != nil {
+			label = tr("测试中…")
+			if !state.loading {
+				label = fmt.Sprintf(tr("连接成功 · %.1f 秒"), state.duration.Seconds())
+				if state.errorText != "" {
+					label = tr("连接失败：") + state.errorText
+				}
+			}
+			tooltip = label
 		}
 		snapshot := *config
-		ui.Button(c, label).Height(28).FontSize(12.5).AlignSelf(ui.Start).
+		ui.Button(c, "").Height(28).FontSize(12.5).AlignSelf(ui.Start).Label(label).Tooltip(tooltip).
 			Disabled(strings.TrimSpace(config.Model) == "" || state != nil && state.loading).
+			Children(func() {
+				opacity := float32(1)
+				if state != nil {
+					opacity = 0
+				}
+				// 保留默认文案的布局宽度，切换图标时按钮和周围内容不会跳动。
+				ui.Text(c, tr("测试连通性")).SingleLine().Opacity(opacity)
+				if state != nil {
+					ui.Box(c).Absolute().Left(0).Top(0).FillWidth().FillHeight().Center().Children(func() {
+						if state.loading {
+							ui.Spinner(c).Size(14, 14).TextColor(p.Accent)
+						} else if state.errorText != "" {
+							pnIcon(c, "close", 16, p.Danger)
+						} else {
+							pnIcon(c, "check", 16, c.Theme().Success)
+						}
+					})
+				}
+			}).
 			OnClick(func() { s.testAIConnection(snapshot) })
-		if state == nil || state.loading {
-			return
-		}
-		text, color := fmt.Sprintf("连接成功 · %.1f 秒", state.duration.Seconds()), c.Theme().Success
-		if state.errorText != "" {
-			text, color = "连接失败："+state.errorText, p.Danger
-		}
-		ui.Text(c, text).FontSize(12).TextColor(color).MaxLines(3).Tooltip(text)
 	})
 }
 
@@ -201,6 +219,13 @@ func (s *settingsUI) testAIConnection(config translation.Config) {
 			if err != nil {
 				state.errorText = err.Error()
 			}
+			time.AfterFunc(2*time.Second, func() {
+				s.app.mainWindow.Update(func() {
+					if s.aiTests[config.ID] == state {
+						delete(s.aiTests, config.ID)
+					}
+				})
+			})
 		})
 	}()
 }

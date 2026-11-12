@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -64,7 +63,7 @@ func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, er
 		if !parent.IsVisible() {
 			parent = nil
 		}
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: parent, Title: "选择图片并识别翻译", ButtonLabel: "打开", Filters: []mygo.FileFilter{{Name: "图片", Extensions: []string{"png", "jpg", "jpeg", "bmp", "tif", "tiff"}}}})
+		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: parent, Title: tr("选择图片并识别翻译"), ButtonLabel: tr("打开"), Filters: []mygo.FileFilter{{Name: tr("图片"), Extensions: []string{"png", "jpg", "jpeg", "bmp", "tif", "tiff"}}}})
 		if err != nil {
 			return "", err
 		}
@@ -103,7 +102,7 @@ func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, er
 		return "", ocr.ErrCanceled
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return "", fmt.Errorf("截图或文字识别超时，请缩小范围后重试")
+		return "", errors.New(tr("截图或文字识别超时，请缩小范围后重试"))
 	}
 	return text, err
 }

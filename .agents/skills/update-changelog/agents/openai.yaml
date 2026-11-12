@@ -1,0 +1,4 @@
+interface:
+  display_name: "更新版本日志"
+  short_description: "结合当前版本、代码变化与 Git 提交，按类型生成简短准确的更新日志"
+  default_prompt: "使用 $update-changelog，根据 mygo.json 的当前版本、代码变化和 Git 提交，更新对应版本的更新日志。"

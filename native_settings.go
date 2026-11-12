@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -13,6 +14,7 @@ import (
 
 // settingsUI 的可编辑状态仅由主线程访问；磁盘与系统操作在后台执行。
 type settingsUI struct {
+	generalTab                           int
 	iconPickerOpen                       bool
 	iconPickerProviderID                 string
 	visibleSecrets                       map[string]bool
@@ -51,7 +53,7 @@ func newSettingsUI(app *GlideService) *settingsUI {
 	s.home = newHomeUI(app)
 	s.observedSettings = cloneSettings(s.draft)
 	s.providerList.Key = func(row int) any { return s.draft.Providers[row].ID }
-	s.providerList.Label = func(row int) string { return s.draft.Providers[row].Name }
+	s.providerList.Label = func(row int) string { return providerDisplayName(s.draft.Providers[row].Name) }
 	s.providerList.Reorder = s.reorderProviders
 	return s
 }
@@ -106,7 +108,7 @@ func (s *settingsUI) runTask(task func() (AppState, error)) {
 		s.app.mainWindow.Update(func() {
 			s.autoSaving = false
 			if err != nil {
-				s.showNotice(scope, "", fmt.Errorf("自动保存失败：%w", err))
+				s.showNotice(scope, "", fmt.Errorf(tr("自动保存失败：%w"), err))
 				if !reflect.DeepEqual(s.draft, submitted) && s.saveTimer == nil {
 					s.save()
 				}
@@ -280,7 +282,7 @@ func (s *settingsUI) addProvider(definition translation.Definition) {
 		return
 	}
 	if len(s.draft.Providers) >= 24 {
-		s.showNotice("services/服务配置", "", fmt.Errorf("最多配置 24 个翻译服务"))
+		s.showNotice("services/服务配置", "", errors.New(tr("最多配置 24 个翻译服务")))
 		return
 	}
 	var p translation.Config
@@ -304,6 +306,37 @@ func (s *settingsUI) addProvider(definition translation.Definition) {
 	s.providerID, s.query = p.ID, ""
 }
 
+// duplicateProvider 按 ID 复制完整服务配置，使用独立 ID 和不重名的名称并选中新副本。
+// 达到服务数量上限或源服务已移除时，不修改草稿。
+func (s *settingsUI) duplicateProvider(id string) {
+	if s.saving {
+		return
+	}
+	if len(s.draft.Providers) >= 24 {
+		s.showNotice("services/服务配置", "", errors.New(tr("最多配置 24 个翻译服务")))
+		return
+	}
+	for _, provider := range s.draft.Providers {
+		if provider.ID != id {
+			continue
+		}
+		copy := provider
+		copy.ID = fmt.Sprintf("%s-%d", provider.Kind, time.Now().UnixNano())
+		baseName := providerDisplayName(provider.Name) + tr(" 副本")
+		names := make(map[string]bool, len(s.draft.Providers))
+		for _, item := range s.draft.Providers {
+			names[item.Name] = true
+		}
+		copy.Name = baseName
+		for n := 2; names[copy.Name]; n++ {
+			copy.Name = fmt.Sprintf("%s %d", baseName, n)
+		}
+		s.draft.Providers = append(s.draft.Providers, copy)
+		s.providerID, s.query = copy.ID, ""
+		return
+	}
+}
+
 // removeProvider 确认后移除选中的服务实例，自动保存并生效。
 func (s *settingsUI) removeProvider() {
 	if s.saving {
@@ -314,7 +347,7 @@ func (s *settingsUI) removeProvider() {
 			continue
 		}
 		id := provider.ID
-		s.confirmDeletion("删除服务", "确定删除“"+provider.Name+"”？", func() {
+		s.confirmDeletion("删除服务", tr("确定删除“")+provider.Name+"”？", func() {
 			if s.saving {
 				return
 			}
@@ -371,31 +404,32 @@ func (s *settingsUI) reorderProviders(rows []int, to int) {
 
 // view 构建 PaneNest 风格的侧栏与圆角主面板，所有业务操作均来自真实服务。
 func (s *settingsUI) view(c *ui.Context) {
-	p := pnApplyTheme(c)
 	s.reload()
+	p := pnApplyTheme(c, s.draft.ThemeMode)
 	ui.Row(c).Fill().Padding(8).Gap(8).TextColor(p.Text).Children(func() {
 		s.sidebar(c, p)
 		ui.Column(c).Grow(1).MinWidth(0).FillHeight().Background(p.Surface).Radius(14).Border(.5, p.Divider).Clip().Children(func() {
 			ui.Row(c).Height(40).Shrink(0).Padding(0, 9, 0, 18).Gap(8).BorderWidth(0, 0, .5, 0).BorderColor(p.Divider).Children(func() {
 				ui.Row(c).Grow(1).FillHeight().Gap(8).DragWindow().Children(func() {
-					ui.Text(c, s.categoryTitle()).FontSize(15).FontWeight(650).Grow(1)
+					ui.Text(c, tr(s.categoryTitle())).FontSize(15).FontWeight(650).Grow(1)
 				})
 				if s.state.Platform.OS == "windows" {
-					minimize := ui.ButtonBase(c.Key("minimize-settings")).Size(25, 25).Radius(7).Center().Label("最小化设置").Tooltip("最小化")
+					minimize := ui.ButtonBase(c.Key("minimize-settings")).Size(25, 25).Radius(7).Center().Label(tr("最小化设置")).Tooltip(tr("最小化"))
 					if minimize.Hovered() {
 						minimize.Background(p.Hover)
 					}
 					minimize.Children(func() { pnIcon(c, "minus", 15, p.Muted) }).OnClick(s.app.mainWindow.Minimize)
 				}
 				if s.state.Platform.OS != "darwin" {
-					close := ui.ButtonBase(c.Key("close-settings")).Size(25, 25).Radius(7).Center().Label("关闭设置").Tooltip("关闭设置")
+					close := ui.ButtonBase(c.Key("close-settings")).Size(25, 25).Radius(7).Center().Label(tr("关闭设置")).Tooltip(tr("关闭设置"))
 					if close.Hovered() {
 						close.Background(p.Hover)
 					}
 					close.Children(func() { pnIcon(c, "close", 15, p.Muted) }).OnClick(s.app.HideMain)
 				}
 			})
-			ui.Column(c).Grow(1).FillWidth().Disabled(s.saving).Children(func() {
+			ui.Column(c.Key("settings-page-" + s.category)).Grow(1).MinHeight(0).FillWidth().Disabled(s.saving).
+				Transition(settingsPageTransition()).Children(func() {
 				switch s.category {
 				case "home":
 					s.home.view(c, p, s.draft)
@@ -424,7 +458,7 @@ func (s *settingsUI) view(c *ui.Context) {
 
 type settingsCategory struct{ ID, Label, Icon, Keywords string }
 
-var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"general", "通用", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "高级", "settings", "导入 导出 WebDAV 同步 备份"}, {"proxy", "系统代理", "globe", "网络 HTTP HTTPS SOCKS proxy"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
+var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"general", "设置", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "备份同步", "refresh", "导入 导出 WebDAV 同步 备份"}, {"proxy", "系统代理", "globe", "网络 HTTP HTTPS SOCKS proxy"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
 
 // categoryTitle 返回当前分类标题。
 func (s *settingsUI) categoryTitle() string {
@@ -433,13 +467,16 @@ func (s *settingsUI) categoryTitle() string {
 			return item.Label
 		}
 	}
-	return "通用"
+	return "设置"
 }
 
 // categoryMatches 搜索设置分类及已配置的服务名称，不生成无效入口。
 func (s *settingsUI) categoryMatches(item settingsCategory) bool {
 	query := strings.ToLower(strings.TrimSpace(s.query))
-	if query == "" || strings.Contains(strings.ToLower(item.Label+" "+item.Keywords), query) {
+	if _, matched := matchingGeneralTab(query); item.ID == "general" && matched {
+		return true
+	}
+	if query == "" || strings.Contains(strings.ToLower(item.Label+" "+item.Keywords+" "+tr(item.Label)+" "+tr(item.Keywords)), query) {
 		return true
 	}
 	if item.ID == "services" {
@@ -463,10 +500,15 @@ func (s *settingsUI) sidebar(c *ui.Context, p pnPalette) {
 			pnBrandLogo(c, 28)
 			ui.Text(c, "Glide").FontSize(16)
 		})
-		if ui.SearchField(c.Key("settings-search"), &s.query).Placeholder("搜索设置").Height(29).FontSize(12.5).Changed() {
+		if ui.SearchField(c.Key("settings-search"), &s.query).Placeholder(tr("搜索设置")).Height(29).FontSize(12.5).Changed() {
 			for _, item := range settingsCategories {
 				if s.categoryMatches(item) {
 					s.category = item.ID
+					if item.ID == "general" {
+						if tab, matched := matchingGeneralTab(s.query); matched {
+							s.generalTab = tab
+						}
+					}
 					if item.ID == "services" && strings.TrimSpace(s.query) != "" {
 						query := strings.ToLower(strings.TrimSpace(s.query))
 						for _, provider := range s.draft.Providers {
@@ -492,7 +534,8 @@ func (s *settingsUI) sidebar(c *ui.Context, p pnPalette) {
 			matched++
 			item := item
 			// 各状态保留相同边框宽度，避免切换选中项时图标和文字位移。
-			b := ui.ButtonBase(c.Key(item.ID)).FillWidth().Height(32).Padding(0, 10).Gap(10).Justify(ui.Start).AlignItems(ui.Center).Radius(8).Border(.5, ui.RGBA(0, 0, 0, 0)).Disabled(s.saving)
+			b := ui.ButtonBase(c.Key(item.ID)).FillWidth().Height(32).Padding(0, 10).Gap(10).Justify(ui.Start).AlignItems(ui.Center).Radius(8).Border(.5, ui.RGBA(0, 0, 0, 0)).Disabled(s.saving).
+				Transition(ui.ElementTransition{Colors: true, Shadows: true, Duration: 140 * time.Millisecond})
 			if item.ID == s.category {
 				b.Background(p.Selected).Shadow(0, .5, 2, 0, ui.RGBA(0, 0, 0, .05)).BorderColor(p.Divider)
 			} else if b.Hovered() {
@@ -504,27 +547,31 @@ func (s *settingsUI) sidebar(c *ui.Context, p pnPalette) {
 					color = p.Accent
 				}
 				pnIcon(c, item.Icon, 16, color).Shrink(0)
-				ui.Text(c, item.Label).FontSize(13).TextAlign(ui.Start)
+				ui.Text(c, tr(item.Label)).FontSize(13).TextAlign(ui.Start)
 			})
 			b.OnClick(func() {
 				s.category, s.clearConfirm = item.ID, false
+				if item.ID == "general" {
+					if tab, matched := matchingGeneralTab(s.query); matched {
+						s.generalTab = tab
+					}
+				}
 				if item.ID == "history" {
 					s.loadHistory()
 				}
 			})
 		}
 		if matched == 0 {
-			ui.Text(c, "没有匹配的设置").FontSize(12).TextColor(p.Muted).Padding(10, 8)
+			ui.Text(c, tr("没有匹配的设置")).FontSize(12).TextColor(p.Muted).Padding(10, 8)
 		}
 		ui.Spacer(c)
-		ui.Text(c, "Glide · 划词翻译").FontSize(11).TextColor(p.Muted).Padding(4, 7)
 	})
 }
 
 // group 为同一主题设置提供一致的圆角分组和细分隔线。
 func (s *settingsUI) group(c *ui.Context, p pnPalette, title string, content func()) {
 	ui.Column(c).Shrink(0).Gap(7).Children(func() {
-		ui.Text(c, title).FontSize(12).FontWeight(600).TextColor(p.Muted).Padding(0, 4)
+		ui.Text(c, tr(title)).FontSize(12).FontWeight(600).TextColor(p.Muted).Padding(0, 4)
 		ui.Column(c).Background(p.Group).Radius(12).Padding(3, 13).Dividers(.5, p.Divider).Children(content)
 		s.inlineNotice(c, p, title)
 	})
@@ -534,81 +581,215 @@ func (s *settingsUI) group(c *ui.Context, p pnPalette, title string, content fun
 func (s *settingsUI) row(c *ui.Context, p pnPalette, title, detail string, control func()) {
 	ui.Row(c).Padding(9, 0).Gap(12).Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-			ui.Text(c, title).FontSize(13.5)
+			ui.Text(c, tr(title)).FontSize(13.5)
 			if detail != "" {
-				ui.Text(c, detail).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+				ui.Text(c, tr(detail)).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
 			}
 		})
 		control()
 	})
 }
 
-// general 展示浮窗偏好、默认语言和平台实际取词权限。
-func (s *settingsUI) general(c *ui.Context, p pnPalette) {
-	ui.Scroll(c.Key("general-scroll")).Grow(1).FillWidth().Padding(18).Gap(17).Children(func() {
-		s.group(c, p, "托盘", func() {
-			s.row(c, p, "左键点击托盘显示设置面板", "", func() {
-				ui.Switch(c, &s.draft.TrayClickShowsPanel).Label("左键点击托盘显示设置面板").Size(38, 22)
-			})
-		})
-		s.group(c, p, "翻译浮窗", func() {
-			s.row(c, p, "打开翻译浮窗", "也可以直接输入原文进行翻译。", func() {
-				ui.Button(c, "打开浮窗").Height(28).FontSize(12.5).OnClick(s.app.OpenPanel)
-			})
-			s.row(c, p, "浮窗随鼠标显示", "开启后在鼠标附近弹出；关闭时在鼠标所在屏幕居中显示。固定的浮窗保留当前位置。", func() { ui.Switch(c, &s.draft.PanelFollowsMouse).Label("浮窗随鼠标显示").Size(38, 22) })
-			s.row(c, p, "显示原文输入框", "允许在浮窗中修改原文并重新翻译。", func() { ui.Switch(c, &s.draft.ShowSourceInput).Label("显示原文输入框").Size(38, 22) })
-			s.row(c, p, "显示语言栏", "在浮窗中选择源语言和目标语言。", func() { ui.Switch(c, &s.draft.ShowLanguageBar).Label("显示语言栏").Size(38, 22) })
-		})
-		s.group(c, p, "取词方式", func() {
-			detail := "划选文字后自动显示翻译；关闭时使用快捷键触发。"
-			if !s.state.Platform.AutomaticSelectionSupported {
-				detail = "当前系统暂不支持自动划词，可以使用快捷键取词。"
+// generalSettingsTabs 集中维护页签及搜索词，新增设置时可扩展对应分组。
+var generalSettingsTabs = []struct {
+	Label       string
+	SearchTerms []string
+}{
+	{"外观", []string{"主题风格", "明亮", "黑夜", "跟随系统", "界面语言", "托盘", "左键点击托盘显示设置面板", "外观"}},
+	{"翻译偏好", []string{"取词方式", "自动划词翻译", "默认语言", "源语言", "目标语言", "智能互译", "翻译历史", "保留条数", "不保留"}},
+	{"翻译浮窗", []string{"打开翻译浮窗", "浮窗随鼠标显示", "显示原文输入框", "显示语言栏"}},
+	{"系统权限", []string{"跨应用取词已获授权", "需要允许跨应用取词", "打开辅助功能设置", "刷新权限"}},
+}
+
+// matchingGeneralTab 返回搜索命中的页签；空查询或无匹配时保留当前选择。
+func matchingGeneralTab(query string) (int, bool) {
+	query = strings.ToLower(strings.TrimSpace(query))
+	if query == "" {
+		return 0, false
+	}
+	for i, tab := range generalSettingsTabs {
+		terms := append([]string{tab.Label}, tab.SearchTerms...)
+		for _, term := range terms {
+			if strings.Contains(strings.ToLower(term+" "+tr(term)), query) {
+				return i, true
 			}
-			s.row(c, p, "自动划词翻译", detail, func() {
-				ui.Switch(c, &s.draft.AutoSelection).Label("自动划词翻译").Size(38, 22).Disabled(!s.state.Platform.AutomaticSelectionSupported)
-			})
+		}
+	}
+	return 0, false
+}
+
+// general 固定显示页签栏，各页签独立滚动并保留当前选择。
+func (s *settingsUI) general(c *ui.Context, p pnPalette) {
+	labels := make([]string, len(generalSettingsTabs))
+	for i, tab := range generalSettingsTabs {
+		labels[i] = tr(tab.Label)
+	}
+	ui.Column(c).Grow(1).MinHeight(0).FillWidth().Children(func() {
+		ui.Row(c).Shrink(0).FillWidth().Padding(8, 18, 0).BorderWidth(0, 0, .5, 0).BorderColor(p.Divider).Children(func() {
+			ui.Tabs(c.Key("general-tabs"), &s.generalTab, labels...).FontSize(12.5)
 		})
-		s.group(c, p, "默认语言", func() {
-			s.row(c, p, "源语言", "识别选中文字所使用的语言。", func() { pnLanguageSelect(c, &s.draft.SourceLang, true, 144) })
-			s.row(c, p, "目标语言", "智能互译：中文译为英文，其他语言译为中文；也可指定目标语言。", func() { pnLanguageSelect(c, &s.draft.TargetLang, false, 144) })
+		ui.Scroll(c.Key(fmt.Sprintf("general-scroll-%d", s.generalTab))).Grow(1).MinHeight(0).FillWidth().Padding(18).Gap(17).
+			Transition(settingsPageTransition()).Children(func() {
+			switch s.generalTab {
+			case 1:
+				s.generalTranslation(c, p)
+			case 2:
+				s.generalPanel(c, p)
+			case 3:
+				s.generalPermissions(c, p)
+			default:
+				s.generalBasics(c, p)
+			}
 		})
-		s.group(c, p, "翻译历史", func() {
-			s.row(c, p, "保留条数", "仅保留最近的记录；选择“不保留”会清空已有历史，并停止记录。", func() {
-				chosen := fmt.Sprintf("%d 条", s.draft.HistoryLimit)
-				if s.draft.HistoryLimit == 0 {
-					chosen = "不保留"
+	})
+}
+
+// settingsPageTransition 为分类、页签和服务表单提供短促的淡入位移，系统减少动态效果时自动简化。
+func settingsPageTransition() ui.ElementTransition {
+	return ui.ElementTransition{
+		Duration: 180 * time.Millisecond, Ease: ui.EaseOut, Colors: true,
+		Enter: &ui.Motion{Y: 6}, Exit: &ui.Motion{Y: -3}, ExitDuration: 100 * time.Millisecond,
+	}
+}
+
+// themeSegments 在等宽选项下绘制独立滑块，快速切换时从当前动画位置继续移动。
+// 选项沿用原生分段控件的键盘与无障碍语义，首次显示直接定位到已保存的主题。
+func (s *settingsUI) themeSegments(c *ui.Context, p pnPalette, selected *int, labels []string) ui.Element {
+	segmentWidth := float32(76)
+	if strings.HasPrefix(mygo.App.Locale(), "en") {
+		segmentWidth = 94
+	}
+	parts := ui.SegmentedBase(c, selected, len(labels))
+	track := parts.Track.Height(32).Padding(3).Radius(9).Background(p.Group).Border(.5, p.FieldBorder).Label(tr("主题风格"))
+	position := track.AnimateTo("selection", float32(*selected), ui.Animation{Duration: 220 * time.Millisecond, Ease: ui.EaseOut})
+	track.Children(func() {
+		ui.Box(c.Key("thumb")).Absolute().Left(3).Top(3).Size(segmentWidth, 26).Radius(6).
+			Background(p.Selected).Border(.5, p.FieldBorder).Shadow(0, 1, 3, 0, ui.RGBA(0, 0, 0, .1)).TranslatePercent(position*100, 0)
+		for i, label := range labels {
+			// 绝对定位的滑块默认绘制在普通内容之上，选项需提高层级以免文字被遮挡。
+			segment := parts.Segment(i).Width(segmentWidth).Height(26).Radius(6).FontSize(12.5).TextColor(p.Muted).ZIndex(1)
+			if i == *selected {
+				segment.TextColor(p.Accent)
+			} else if segment.Hovered() {
+				segment.Background(p.Hover)
+			}
+			segment.Children(func() { ui.Text(c, label).SingleLine() })
+		}
+	})
+	return track
+}
+
+// generalBasics 展示主题、界面语言和托盘交互。
+func (s *settingsUI) generalBasics(c *ui.Context, p pnPalette) {
+	s.group(c, p, "主题风格", func() {
+		s.row(c, p, "主题风格", "选择明亮、黑夜或跟随系统，修改后立即生效。", func() {
+			modes := []string{"light", "dark", "system"}
+			labels := []string{tr("明亮"), tr("黑夜"), tr("跟随系统")}
+			chosen := 2
+			for i, mode := range modes {
+				if mode == s.draft.ThemeMode {
+					chosen = i
 				}
-				if ui.Select(c, &chosen, []string{"不保留", "10 条", "50 条", "100 条"}).Width(100).Height(28).FontSize(12.5).Changed() {
-					switch chosen {
-					case "不保留":
-						s.draft.HistoryLimit = 0
-					case "10 条":
-						s.draft.HistoryLimit = 10
-					case "50 条":
-						s.draft.HistoryLimit = 50
-					case "100 条":
-						s.draft.HistoryLimit = 100
+			}
+			if s.themeSegments(c.Key("theme-mode"), p, &chosen, labels).Changed() {
+				s.draft.ThemeMode = modes[chosen]
+			}
+		})
+	})
+	s.group(c, p, "界面语言", func() {
+		s.row(c, p, "界面语言", "选择应用显示语言，修改后立即生效。", func() {
+			codes := []string{"", "zh-Hans", "zh-Hant", "en"}
+			names := []string{tr("跟随系统"), "简体中文", "繁體中文", "English"}
+			chosen := names[0]
+			for i, code := range codes {
+				if code == s.draft.UILanguage {
+					chosen = names[i]
+				}
+			}
+			if ui.Select(c.Key("ui-language"), &chosen, names).Width(160).Height(28).Changed() {
+				for i, name := range names {
+					if chosen == name {
+						s.draft.UILanguage = codes[i]
+						break
 					}
 				}
-			})
+			}
 		})
-		s.group(c, p, "系统权限", func() {
-			ui.Column(c).Padding(10, 0).Gap(9).Children(func() {
-				ui.Row(c).Gap(8).Children(func() {
-					color, title := p.Accent, "跨应用取词已获授权"
-					if !s.state.Platform.PermissionGranted {
-						color, title = p.Attention, "需要允许跨应用取词"
-					}
-					pnIcon(c, "shield", 17, color)
-					ui.Text(c, title).FontSize(13.5)
-				})
-				ui.Text(c, s.state.Platform.Message).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
-				ui.Row(c).Gap(8).Children(func() {
-					if s.state.Platform.OS == "darwin" {
-						ui.Button(c, "打开辅助功能设置").Height(28).FontSize(12.5).OnClick(func() { s.externalAction(s.app.OpenSelectionSettings) })
-					}
-					ui.Button(c, "刷新权限").Height(28).FontSize(12.5).OnClick(s.refreshPermission)
-				})
+	})
+	s.group(c, p, "托盘", func() {
+		s.row(c, p, "左键点击托盘显示设置面板", "", func() {
+			ui.Switch(c, &s.draft.TrayClickShowsPanel).Label(tr("左键点击托盘显示设置面板")).Size(38, 22)
+		})
+	})
+}
+
+// generalTranslation 展示取词方式、默认翻译语言和历史保留偏好。
+func (s *settingsUI) generalTranslation(c *ui.Context, p pnPalette) {
+	s.group(c, p, "取词方式", func() {
+		detail := "划选文字后自动显示翻译；关闭时使用快捷键触发。"
+		if !s.state.Platform.AutomaticSelectionSupported {
+			detail = "当前系统暂不支持自动划词，可以使用快捷键取词。"
+		}
+		s.row(c, p, "自动划词翻译", detail, func() {
+			ui.Switch(c, &s.draft.AutoSelection).Label(tr("自动划词翻译")).Size(38, 22).Disabled(!s.state.Platform.AutomaticSelectionSupported)
+		})
+	})
+	s.group(c, p, "默认语言", func() {
+		s.row(c, p, "源语言", "识别选中文字所使用的语言。", func() { pnLanguageSelect(c, &s.draft.SourceLang, true, 144, false) })
+		s.row(c, p, "目标语言", "智能互译：中文译为英文，其他语言译为中文；也可指定目标语言。", func() { pnLanguageSelect(c, &s.draft.TargetLang, false, 144, false) })
+	})
+	s.group(c, p, "翻译历史", func() {
+		s.row(c, p, "保留条数", "仅保留最近的记录；选择“不保留”会清空已有历史，并停止记录。", func() {
+			chosen := fmt.Sprintf("%d 条", s.draft.HistoryLimit)
+			if s.draft.HistoryLimit == 0 {
+				chosen = "不保留"
+			}
+			if localizedSelect(c, &chosen, []string{"不保留", "10 条", "50 条", "100 条"}).Width(100).Height(28).FontSize(12.5).Changed() {
+				switch chosen {
+				case "不保留":
+					s.draft.HistoryLimit = 0
+				case "10 条":
+					s.draft.HistoryLimit = 10
+				case "50 条":
+					s.draft.HistoryLimit = 50
+				case "100 条":
+					s.draft.HistoryLimit = 100
+				}
+			}
+		})
+	})
+}
+
+// generalPanel 展示翻译浮窗的位置与内容选项。
+func (s *settingsUI) generalPanel(c *ui.Context, p pnPalette) {
+	s.group(c, p, "翻译浮窗", func() {
+		s.row(c, p, "打开翻译浮窗", "也可以直接输入原文进行翻译。", func() {
+			ui.Button(c, tr("打开浮窗")).Height(28).FontSize(12.5).OnClick(s.app.OpenPanel)
+		})
+		s.row(c, p, "浮窗随鼠标显示", "开启后在鼠标附近弹出；关闭时在鼠标所在屏幕居中显示。固定的浮窗保留当前位置。", func() { ui.Switch(c, &s.draft.PanelFollowsMouse).Label(tr("浮窗随鼠标显示")).Size(38, 22) })
+		s.row(c, p, "显示原文输入框", "允许在浮窗中修改原文并重新翻译。", func() { ui.Switch(c, &s.draft.ShowSourceInput).Label(tr("显示原文输入框")).Size(38, 22) })
+		s.row(c, p, "显示语言栏", "在浮窗中选择源语言和目标语言。", func() { ui.Switch(c, &s.draft.ShowLanguageBar).Label(tr("显示语言栏")).Size(38, 22) })
+	})
+}
+
+// generalPermissions 展示平台取词权限及授权操作。
+func (s *settingsUI) generalPermissions(c *ui.Context, p pnPalette) {
+	s.group(c, p, "系统权限", func() {
+		ui.Column(c).Padding(10, 0).Gap(9).Children(func() {
+			ui.Row(c).Gap(8).Children(func() {
+				color, title := p.Accent, "跨应用取词已获授权"
+				if !s.state.Platform.PermissionGranted {
+					color, title = p.Attention, "需要允许跨应用取词"
+				}
+				pnIcon(c, "shield", 17, color)
+				ui.Text(c, tr(title)).FontSize(13.5)
+			})
+			ui.Text(c, tr(s.state.Platform.Message)).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+			ui.Row(c).Gap(8).Children(func() {
+				if s.state.Platform.OS == "darwin" {
+					ui.Button(c, tr("打开辅助功能设置")).Height(28).FontSize(12.5).OnClick(func() { s.externalAction(s.app.OpenSelectionSettings) })
+				}
+				ui.Button(c, tr("刷新权限")).Height(28).FontSize(12.5).OnClick(s.refreshPermission)
 			})
 		})
 	})
@@ -619,41 +800,49 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 	ui.Row(c).Grow(1).MinWidth(0).FillWidth().Padding(12).Gap(12).Children(func() {
 		ui.Column(c).Width(176).Shrink(0).FillHeight().Gap(8).Children(func() {
 			if len(s.draft.Providers) == 0 {
-				ui.Text(c, "尚未配置服务").Grow(1).FontSize(12).TextColor(p.Muted).Padding(12, 4)
+				ui.Text(c, tr("尚未配置服务")).Grow(1).FontSize(12).TextColor(p.Muted).Padding(12, 4)
 			} else {
 				ui.List(c.Key("services-list"), &s.providerList, len(s.draft.Providers)).Grow(1).FillWidth().Gap(3).Rows(func(row ui.ListRow) {
 					provider := &s.draft.Providers[row.Index]
+					id := provider.ID
 					ui.Row(row.Context.Key(provider.ID)).Height(38).Padding(5, 5).Gap(5).Radius(8).Background(s.serviceBackground(p, provider.ID)).Children(func() {
-						ui.Box(c).Size(8, 20).Shrink(0).Tooltip("拖动调整服务顺序").Draw(func(painter *ui.Painter, rect ui.Rect) {
+						ui.Box(c).Size(8, 20).Shrink(0).Tooltip(tr("拖动调整服务顺序")).Draw(func(painter *ui.Painter, rect ui.Rect) {
 							for y := 0; y < 3; y++ {
 								for x := 0; x < 2; x++ {
 									painter.Fill(ui.Rect{X: rect.X + 1 + float32(x)*4, Y: rect.Y + 5 + float32(y)*4, W: 2, H: 2}, p.Faint, 1)
 								}
 							}
 						})
-						id := provider.ID
 						ui.ButtonBase(c).Grow(1).MinWidth(0).Gap(5).Justify(ui.Start).AlignItems(ui.Center).Tooltip(provider.Name).Children(func() {
 							ui.Box(c).Size(22, 22).Shrink(0).Radius(6).Background(p.Surface).Center().Children(func() { pnProviderIcon(c, providerIconKind(*provider), 17, p.Text) })
-							ui.Text(c, provider.Name).Grow(1).MinWidth(0).FontSize(12).SingleLine().TextAlign(ui.Start)
+							ui.Text(c, providerDisplayName(provider.Name)).Grow(1).MinWidth(0).FontSize(12).SingleLine().TextAlign(ui.Start)
 						}).OnClick(func() { s.providerID = id })
-						toggle := ui.Switch(c, &provider.Enabled).Size(28, 17).Shrink(0).Label("启用" + provider.Name)
+						toggle := ui.Switch(c, &provider.Enabled).Size(28, 17).Shrink(0).Label(tr("启用" + provider.Name))
 						// 开关保留自己的指针操作，拖动时不会被列表接管为排序。
 						toggle.PressedPointer()
+					}).ContextMenu(func(menu *ui.Menu) {
+						s.providerID = id
+						if menu.Item(tr("复制当前服务")).Disabled(s.saving || len(s.draft.Providers) >= 24).Chosen() {
+							s.duplicateProvider(id)
+						}
+						if menu.Item(tr("删除")).Disabled(s.saving).Chosen() {
+							s.removeProvider()
+						}
 					})
 				})
 			}
 			ui.Row(c).Gap(7).AlignItems(ui.Center).Children(func() {
-				ui.MenuButton(c, "添加服务", func(menu *ui.Menu) {
+				ui.MenuButton(c, tr("添加服务"), func(menu *ui.Menu) {
 					for _, definition := range s.state.Definitions {
-						if menu.Item(definition.Name).Chosen() {
+						if menu.Item(tr(definition.Name)).Chosen() {
 							s.addProvider(definition)
 						}
 					}
 				}).Grow(1).Height(29).AlignItems(ui.Center).FontSize(12)
-				ui.ButtonBase(c).Size(29, 29).Center().Radius(7).Border(.5, p.FieldBorder).Label("删除选中服务").Tooltip("删除选中服务").Disabled(s.providerID == "").Children(func() { pnIcon(c, "trash", 14, p.Muted) }).OnClick(s.removeProvider)
+				ui.ButtonBase(c).Size(29, 29).Center().Radius(7).Border(.5, p.FieldBorder).Label(tr("删除选中服务")).Tooltip(tr("删除选中服务")).Disabled(s.providerID == "").Children(func() { pnIcon(c, "trash", 14, p.Muted) }).OnClick(s.removeProvider)
 			})
 		})
-		ui.Box(c).Width(.5).Shrink(0).FillHeight().Background(p.Divider)
+		ui.Box(c).Width(1).Shrink(0).FillHeight().Background(p.FieldBorder)
 		ui.Scroll(c.Key("service-editor")).Grow(1).MinWidth(0).FillHeight().Gap(14).Padding(4, 2, 4, 0).Children(func() {
 			var selected *translation.Config
 			for i := range s.draft.Providers {
@@ -663,15 +852,15 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 				}
 			}
 			if selected == nil {
-				ui.Text(c, "选择一个服务，设置连接方式。").FontSize(13).TextColor(p.Muted).Padding(30, 0)
+				ui.Text(c, tr("选择一个服务，设置连接方式。")).FontSize(13).TextColor(p.Muted).Padding(30, 0)
 				s.inlineNotice(c, p, "服务配置")
 				return
 			}
-			ui.Column(c.Key(selected.ID)).Shrink(0).Gap(14).Children(func() {
+			ui.Column(c.Key(selected.ID)).Shrink(0).Gap(14).Transition(settingsPageTransition()).Children(func() {
 				ui.Row(c).Gap(9).Children(func() {
 					ui.Box(c).Size(32, 32).Shrink(0).Radius(9).Background(p.Group).Center().Children(func() { pnProviderIcon(c, providerIconKind(*selected), 23, p.Text) })
 					ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-						ui.Text(c, selected.Name).FontSize(15).FontWeight(650)
+						ui.Text(c, providerDisplayName(selected.Name)).FontSize(15).FontWeight(650)
 					})
 				})
 				s.field(c, p, "服务名称", &selected.Name, "为此服务起个名字", false)
@@ -692,7 +881,7 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 						if value == nil {
 							continue
 						}
-						label := field.Label
+						label := tr(field.Label)
 						if field.Required {
 							label += " *"
 						}
@@ -703,19 +892,19 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 					s.aiConnectionTest(c, p, selected)
 				}
 				if selected.Kind == "google" || selected.Kind == "bing" {
-					ui.Text(c, "内置服务无需密钥，可用性受网络及服务调整影响。遇到限制时，可以改用官方 API。").FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+					ui.Text(c, tr("内置服务无需密钥，可用性受网络及服务调整影响。遇到限制时，可以改用官方 API。")).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
 				}
 				if selected.Kind == "deepl" {
-					ui.Text(c, "服务地址留空时自动选择 Free 或 Pro。也可填写域名、/v2 基础地址或完整翻译接口地址。").FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+					ui.Text(c, tr("服务地址留空时自动选择 Free 或 Pro。也可填写域名、/v2 基础地址或完整翻译接口地址。")).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
 				}
 				if selected.Kind == "deeplx" {
-					ui.Text(c, "请先启动 DeepLX 服务。地址可填写域名或完整 /translate 接口地址；访问令牌按需填写。").FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+					ui.Text(c, tr("请先启动 DeepLX 服务。地址可填写域名或完整 /translate 接口地址；访问令牌按需填写。")).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
 				}
 				if selected.Kind == "ollama" {
-					ui.Text(c, "请先启动 Ollama，填写已下载的模型名称。可以连接本机或自定义服务地址。").FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+					ui.Text(c, tr("请先启动 Ollama，填写已下载的模型名称。可以连接本机或自定义服务地址。")).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
 				}
 				url := s.serviceDocs(selected.Kind)
-				ui.Button(c, "查看服务说明 ↗").Height(28).AlignSelf(ui.Start).FontSize(12).OnClick(func() { s.externalAction(func() error { return s.app.OpenExternal(url) }) })
+				ui.Link(c, tr("查看服务说明 ↗"), "").AlignSelf(ui.Start).FontSize(12).TextColor(p.Accent).OnClick(func() { s.externalAction(func() error { return s.app.OpenExternal(url) }) })
 				s.inlineNotice(c, p, "服务配置")
 			})
 		})
@@ -734,19 +923,19 @@ func (s *settingsUI) serviceBackground(p pnPalette, id string) ui.Color {
 func (s *settingsUI) field(c *ui.Context, p pnPalette, label string, value *string, placeholder string, secret bool) {
 	key := s.category + ":" + s.providerID + ":" + label
 	ui.Column(c.Key(label)).Shrink(0).Gap(6).Children(func() {
-		ui.Text(c, label).FontSize(12).TextColor(p.Muted)
+		ui.Text(c, tr(label)).FontSize(12).TextColor(p.Muted)
 		ui.Row(c).Gap(6).Children(func() {
-			input := ui.TextInput(c, value).Placeholder(placeholder).Label(label).Height(28).Radius(7).FontSize(12.5).Grow(1).MinWidth(0)
+			input := ui.TextInput(c, value).Placeholder(tr(placeholder)).Label(tr(label)).Height(28).Radius(7).FontSize(12.5).Grow(1).MinWidth(0)
 			if secret {
 				visible := s.visibleSecrets[key]
 				if !visible {
 					input.Password()
 				}
-				icon, action := "eye", "显示"+label
+				icon, action := "eye", tr("显示")+label
 				if visible {
-					icon, action = "eye-off", "隐藏"+label
+					icon, action = "eye-off", tr("隐藏")+label
 				}
-				ui.ButtonBase(c.Key("visibility")).Size(28, 28).Radius(6).Center().Label(action).Tooltip(action).Children(func() {
+				ui.ButtonBase(c.Key("visibility")).Size(28, 28).Radius(6).Center().Label(tr(action)).Tooltip(tr(action)).Children(func() {
 					pnIcon(c, icon, 15, p.Muted)
 				}).OnClick(func() { s.visibleSecrets[key] = !visible })
 			}
@@ -796,7 +985,7 @@ func (s *settingsUI) shortcut(c *ui.Context, p pnPalette) {
 			s.shortcutRow(c, p, "重新翻译", &s.draft.PanelTranslateShortcut, true)
 			s.shortcutRow(c, p, "关闭浮窗", &s.draft.PanelCloseShortcut, true)
 		})
-		ui.Text(c, "点击录入快捷键，设置后自动生效。全局录入按 Esc 取消；浮窗支持 Enter、Esc 等按键，仅在浮窗中生效。").FontSize(12).TextColor(p.Muted)
+		ui.Text(c, tr("点击录入快捷键，设置后自动生效。全局录入按 Esc 取消；浮窗支持 Enter、Esc 等按键，仅在浮窗中生效。")).FontSize(12).TextColor(p.Muted)
 	})
 }
 
@@ -831,8 +1020,8 @@ func (s *settingsUI) shortcutRow(c *ui.Context, p pnPalette, title string, value
 			if s.recordingShortcut == title {
 				color = p.Accent
 			}
-			button := ui.ButtonBase(c.Key(title)).Grow(1).MinWidth(0).FillHeight().Radius(5).Padding(0, 5).Justify(ui.Start).AlignItems(ui.Center).Label(title + "快捷键").Children(func() {
-				ui.Text(c, label).FontSize(12.5).TextColor(color).SingleLine()
+			button := ui.ButtonBase(c.Key(title)).Grow(1).MinWidth(0).FillHeight().Radius(5).Padding(0, 5).Justify(ui.Start).AlignItems(ui.Center).Label(tr(title + "快捷键")).Children(func() {
+				ui.Text(c, tr(label)).FontSize(12.5).TextColor(color).SingleLine()
 			})
 			button.OnClick(func() { s.recordingShortcut = title })
 			button.HandleInput(func(event ui.InputEvent) bool {
@@ -873,12 +1062,12 @@ func (s *settingsUI) shortcutRow(c *ui.Context, p pnPalette, title string, value
 				return true
 			})
 			if *value != "" {
-				clear := ui.ButtonBase(c.Key(title+"-clear")).Size(20, 20).Shrink(0).Center().Radius(10).Label("清除" + title + "快捷键").Tooltip("清除快捷键")
+				clear := ui.ButtonBase(c.Key(title+"-clear")).Size(20, 20).Shrink(0).Center().Radius(10).Label(tr("清除" + title + "快捷键")).Tooltip(tr("清除快捷键"))
 				if clear.Hovered() {
 					clear.Background(p.Hover)
 				}
 				clear.Children(func() { pnIcon(c, "close", 12, p.Muted) }).OnClick(func() {
-					s.confirmDeletion("清除快捷键", "确定清除“"+title+"”的快捷键？", func() { *value = ""; s.recordingShortcut = "" })
+					s.confirmDeletion("清除快捷键", tr("确定清除“")+title+tr("”的快捷键？"), func() { *value = ""; s.recordingShortcut = "" })
 				})
 			}
 		})
@@ -889,18 +1078,18 @@ func (s *settingsUI) shortcutRow(c *ui.Context, p pnPalette, title string, value
 func (s *settingsUI) historyView(c *ui.Context, p pnPalette) {
 	ui.Column(c).Grow(1).FillWidth().Padding(18).Gap(13).Children(func() {
 		ui.Row(c).Gap(10).Children(func() {
-			ui.SearchField(c, &s.historyQuery).Placeholder("搜索原文或译文").Grow(1).Height(30)
-			ui.Button(c, "刷新").Height(30).Disabled(s.loadingHistory || s.saving).OnClick(s.loadHistory)
+			ui.SearchField(c, &s.historyQuery).Placeholder(tr("搜索原文或译文")).Grow(1).Height(30)
+			ui.Button(c, tr("刷新")).Height(30).Disabled(s.loadingHistory || s.saving).OnClick(s.loadHistory)
 			label := "清空历史"
 			if s.clearConfirm {
 				label = "确认清空"
 			}
-			ui.Button(c, label).Height(30).TextColor(p.Muted).Disabled(s.saving || s.loadingHistory || len(s.history) == 0).OnClick(s.clearHistory)
+			ui.Button(c, tr(label)).Height(30).TextColor(p.Muted).Disabled(s.saving || s.loadingHistory || len(s.history) == 0).OnClick(s.clearHistory)
 		})
 		s.inlineNotice(c, p, "翻译历史")
 		ui.Scroll(c.Key("history-scroll")).Grow(1).FillWidth().Gap(12).Children(func() {
 			if s.loadingHistory {
-				ui.Text(c, "正在读取历史…").FontSize(12).TextColor(p.Muted)
+				ui.Text(c, tr("正在读取历史…")).FontSize(12).TextColor(p.Muted)
 			}
 			shown := 0
 			for _, record := range s.history {
@@ -923,25 +1112,25 @@ func (s *settingsUI) historyView(c *ui.Context, p pnPalette) {
 							}
 							pnIcon(c, icon, 14, p.Muted)
 							ui.Text(c, record.Text).Grow(1).FontSize(13).MaxLines(2)
-							ui.Text(c, s.historyDate(record.CreatedAt)).FontSize(11).TextColor(p.Muted)
+							ui.Text(c, tr(s.historyDate(record.CreatedAt))).FontSize(11).TextColor(p.Muted)
 						}).OnClick(func() { s.expanded[record.RequestID] = !s.expanded[record.RequestID] })
-						ui.ButtonBase(c.Key("delete-history")).Size(24, 24).Center().Radius(6).Label("删除记录").Tooltip("删除记录").Disabled(s.saving || s.loadingHistory).Children(func() {
+						ui.ButtonBase(c.Key("delete-history")).Size(24, 24).Center().Radius(6).Label(tr("删除记录")).Tooltip(tr("删除记录")).Disabled(s.saving || s.loadingHistory).Children(func() {
 							pnIcon(c, "close", 14, p.Muted)
 						}).OnClick(func() { s.deleteHistory(record.RequestID) })
 					})
 					if s.expanded[record.RequestID] {
-						ui.Text(c, pnLanguageName(record.SourceLang)+" → "+pnLanguageName(record.TargetLang)).FontSize(11).TextColor(p.Muted)
+						ui.Text(c, tr(pnLanguageName(record.SourceLang)+" → "+pnLanguageName(record.TargetLang))).FontSize(11).TextColor(p.Muted)
 						for _, result := range record.Results {
 							result := result
 							ui.Column(c).Gap(7).Padding(10, 0).BorderWidth(.5, 0, 0, 0).BorderColor(p.Divider).Children(func() {
 								ui.Row(c).Children(func() {
-									ui.Text(c, result.ProviderName).FontSize(12).FontWeight(600).Grow(1)
+									ui.Text(c, tr(result.ProviderName)).FontSize(12).FontWeight(600).Grow(1)
 									if result.Text != "" {
-										ui.Button(c, "复制").Height(25).FontSize(11).OnClick(func() { s.app.CopyText(result.Text); s.showNotice("history/翻译历史", "译文已复制", nil) })
+										ui.Button(c, tr("复制")).Height(25).FontSize(11).OnClick(func() { s.app.CopyText(result.Text); s.showNotice("history/翻译历史", "译文已复制", nil) })
 									}
 								})
 								if result.Error != "" {
-									ui.Text(c, result.Error).FontSize(12).TextColor(p.Danger).Selectable()
+									ui.Text(c, tr(result.Error)).FontSize(12).TextColor(p.Danger).Selectable()
 								} else {
 									ui.Text(c, result.Text).FontSize(13).LineHeight(1.5).Selectable()
 								}
@@ -958,7 +1147,7 @@ func (s *settingsUI) historyView(c *ui.Context, p pnPalette) {
 				})
 			}
 			if shown == 0 && !s.loadingHistory {
-				ui.Text(c, "暂无匹配的翻译记录").FontSize(13).TextColor(p.Muted).Padding(35, 0)
+				ui.Text(c, tr("暂无匹配的翻译记录")).FontSize(13).TextColor(p.Muted).Padding(35, 0)
 			}
 		})
 	})
@@ -970,7 +1159,7 @@ func (s *settingsUI) privacyContent(c *ui.Context, p pnPalette) {
 		s.group(c, p, "隐私与数据", func() {
 			s.row(c, p, "服务密钥", "密钥保存在本机 settings.json 中；导出或上传配置时会包含服务密钥。", func() {})
 			s.row(c, p, "翻译请求", "原文只发送至当前启用的翻译服务。Ollama 使用本机地址时，翻译请求无需离开本机。", func() {})
-			detail := fmt.Sprintf("最多保留 %d 条记录，存储在本机。", s.state.Settings.HistoryLimit)
+			detail := fmt.Sprintf(tr("最多保留 %d 条记录，存储在本机。"), s.state.Settings.HistoryLimit)
 			if s.state.Settings.HistoryLimit == 0 {
 				detail = "当前不保留翻译历史。"
 			}
@@ -979,11 +1168,11 @@ func (s *settingsUI) privacyContent(c *ui.Context, p pnPalette) {
 				if s.clearConfirm {
 					label = "确认清空"
 				}
-				ui.Button(c, label).Height(29).FontSize(12.5).TextColor(p.Muted).OnClick(s.clearHistory)
+				ui.Button(c, tr(label)).Height(29).FontSize(12.5).TextColor(p.Muted).OnClick(s.clearHistory)
 			})
 		})
 		if s.clearConfirm {
-			ui.Text(c, "再次点击“确认清空”将删除本机全部翻译记录。").FontSize(12).TextColor(p.Attention)
+			ui.Text(c, tr("再次点击“确认清空”将删除本机全部翻译记录。")).FontSize(12).TextColor(p.Attention)
 		}
 	})
 }
@@ -994,11 +1183,11 @@ func (s *settingsUI) about(c *ui.Context, p pnPalette) {
 		ui.Column(c).AlignItems(ui.Center).Gap(8).Padding(18, 0, 12).Children(func() {
 			pnBrandLogo(c, 58).Shadow(0, 2, 5, 0, ui.RGBA(0, 0, 0, .20))
 			ui.Text(c, "Glide").FontSize(22).FontWeight(650)
-			ui.Text(c, "划词翻译").FontSize(13).TextColor(p.Muted)
+			ui.Text(c, tr("划词翻译")).FontSize(13).TextColor(p.Muted)
 		})
 		s.group(c, p, "应用信息", func() {
-			s.row(c, p, "版本", "", func() { ui.Text(c, s.state.Version).FontSize(13).TextColor(p.Muted) })
-			s.row(c, p, "GitHub", "", func() {
+			s.row(c, p, "当前版本", "", func() { ui.Text(c, tr(s.state.Version)).FontSize(13).TextColor(p.Muted) })
+			s.row(c, p, "开源仓库", "", func() {
 				ui.Link(c, "https://github.com/anghunk/glide", "https://github.com/anghunk/glide").FontSize(12).TextColor(p.Accent)
 			})
 			s.row(c, p, "问题反馈", "", func() {
@@ -1013,7 +1202,7 @@ func (s *settingsUI) about(c *ui.Context, p pnPalette) {
 // historyDate 将历史时间显示为便于扫描的本地时间。
 func (s *settingsUI) historyDate(value string) string {
 	if date, err := time.Parse(time.RFC3339, value); err == nil {
-		return date.Local().Format("01月02日 15:04")
+		return date.Local().Format(tr("01月02日 15:04"))
 	}
 	return value
 }
@@ -1084,8 +1273,8 @@ func (s *settingsUI) confirmDeletion(title, message string, confirmed func()) {
 	scope := s.operationScope()
 	go func() {
 		result, err := mygo.Dialog.Message(mygo.MessageOptions{
-			Parent: s.app.mainWindow, Type: mygo.MessageWarning, Title: title, Message: message,
-			Buttons: []string{"取消", "确认"}, DefaultButton: 0, CancelButton: 0, DestructiveButtons: []int{1},
+			Parent: s.app.mainWindow, Type: mygo.MessageWarning, Title: tr(title), Message: tr(message),
+			Buttons: []string{tr("取消"), tr("确认")}, DefaultButton: 0, CancelButton: 0, DestructiveButtons: []int{1},
 		})
 		s.app.mainWindow.Update(func() {
 			s.confirmingDelete = false
@@ -1102,6 +1291,12 @@ func (s *settingsUI) confirmDeletion(title, message string, confirmed func()) {
 
 // mergeSettingsDraft 只合并相对基线有改动的字段，保留外部语言切换等并行修改。
 func mergeSettingsDraft(baseline, edited, latest Settings) Settings {
+	if edited.ThemeMode == baseline.ThemeMode {
+		edited.ThemeMode = latest.ThemeMode
+	}
+	if edited.UILanguage == baseline.UILanguage {
+		edited.UILanguage = latest.UILanguage
+	}
 	if edited.ProxyAddress == baseline.ProxyAddress {
 		edited.ProxyAddress = latest.ProxyAddress
 	}

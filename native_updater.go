@@ -41,7 +41,6 @@ func configureUpdater() {
 	mygo.Use(updaterui.New(updater.Options{
 		Interval: 6 * time.Hour,
 		Icon:     icon,
-		Language: "zh-CN",
 	}))
 }
 
@@ -142,9 +141,9 @@ func (a *GlideService) CheckForUpdates() {
 // updateMenuLabel 显示已发现的新版本；下载或安装行为仍需进入更新窗口操作。
 func (a *GlideService) updateMenuLabel() string {
 	if version := a.updateState().AvailableVersion; version != "" {
-		return "查看新版本 " + version + "…"
+		return tr("查看新版本 ") + version + "…"
 	}
-	return "检查更新…"
+	return tr("检查更新…")
 }
 
 // setUpdatePreference 将可逆偏好写入官方插件的 updater.json，不阻塞设置窗口。
@@ -184,47 +183,47 @@ func (a *GlideService) setUpdatePreference(downloads, on bool) {
 func (a *GlideService) renderUpdateSettings(c *ui.Context, p pnPalette) {
 	state := a.updateState()
 	ui.Column(c.Key("application-updates")).Gap(8).Children(func() {
-		ui.Text(c, "软件更新").FontSize(12).FontWeight(600).TextColor(p.Muted).Padding(0, 4)
+		ui.Text(c, tr("软件更新")).FontSize(12).FontWeight(600).TextColor(p.Muted).Padding(0, 4)
 		ui.Column(c).Background(p.Group).Radius(12).Padding(13, 14).Gap(11).Children(func() {
 			ui.Row(c).Gap(12).Children(func() {
 				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 					title, detail := "保持 Glide 为最新版本", ""
 					if state.AvailableVersion != "" {
-						title = "发现新版本 " + state.AvailableVersion
+						title = tr("发现新版本 ") + state.AvailableVersion
 					}
 					if mygo.IsDev() {
 						detail = "开发版本不检查更新"
 					} else if state.Loaded && !state.Enabled {
 						detail = "更新不可用，请使用正式安装包并确认安装目录可写"
 					}
-					ui.Text(c, title).FontSize(13.5).FontWeight(600)
+					ui.Text(c, tr(title)).FontSize(13.5).FontWeight(600)
 					if detail != "" {
-						ui.Text(c, detail).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+						ui.Text(c, tr(detail)).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
 					}
 				})
 				label := "检查更新"
 				if state.AvailableVersion != "" {
 					label = "查看更新"
 				}
-				ui.Button(c, label).Height(29).FontSize(12.5).Disabled(mygo.IsDev()).OnClick(a.CheckForUpdates)
+				ui.Button(c, tr(label)).Height(29).FontSize(12.5).Disabled(mygo.IsDev()).OnClick(a.CheckForUpdates)
 			})
 			if !mygo.IsDev() {
 				checks, downloads := state.AutomaticChecks, state.AutomaticDownloads
 				ui.Row(c).Gap(12).Children(func() {
-					ui.Text(c, "自动检查更新").Grow(1).FontSize(13)
-					if ui.Switch(c, &checks).Label("自动检查更新").Size(38, 22).Disabled(!state.Enabled || state.Saving).Changed() {
+					ui.Text(c, tr("自动检查更新")).Grow(1).FontSize(13)
+					if ui.Switch(c, &checks).Label(tr("自动检查更新")).Size(38, 22).Disabled(!state.Enabled || state.Saving).Changed() {
 						a.setUpdatePreference(false, checks)
 					}
 				})
 				ui.Row(c).Gap(12).Children(func() {
-					ui.Text(c, "自动下载并安装").Grow(1).FontSize(13)
-					if ui.Switch(c, &downloads).Label("自动下载并安装更新").Size(38, 22).Disabled(!state.Enabled || state.Saving).Changed() {
+					ui.Text(c, tr("自动下载并安装")).Grow(1).FontSize(13)
+					if ui.Switch(c, &downloads).Label(tr("自动下载并安装更新")).Size(38, 22).Disabled(!state.Enabled || state.Saving).Changed() {
 						a.setUpdatePreference(true, downloads)
 					}
 				})
 			}
 			if !state.LastCheck.IsZero() {
-				ui.Text(c, "上次检查："+state.LastCheck.Local().Format("2006-01-02 15:04")).FontSize(11.5).TextColor(p.Muted)
+				ui.Text(c, tr("上次检查："+state.LastCheck.Local().Format("2006-01-02 15:04"))).FontSize(11.5).TextColor(p.Muted)
 			}
 		})
 	})

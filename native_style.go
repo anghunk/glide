@@ -2,7 +2,9 @@ package main
 
 import (
 	"embed"
+	"github.com/egoist/mygo"
 	"log"
+	"strings"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -14,17 +16,23 @@ type pnPalette struct {
 }
 
 // pnColors 按当前主题给出独立的深浅配色，避免在暗色模式直接反转浅色层级。
-func pnColors(c *ui.Context) pnPalette {
-	if c.Theme().Dark {
+func pnColors(dark bool) pnPalette {
+	if dark {
 		return pnPalette{Window: ui.Hex("#141418"), Surface: ui.Hex("#232328"), Group: ui.Hex("#323237"), Text: ui.Hex("#ececf0"), Muted: ui.Hex("#a9a9b4"), Faint: ui.Hex("#83838f"), Accent: ui.Hex("#6b93ff"), Hover: ui.RGBA(255, 255, 255, .05), Selected: ui.Hex("#303036"), Divider: ui.RGBA(255, 255, 255, .045), FieldBorder: ui.RGBA(255, 255, 255, .13), Attention: ui.Hex("#f0a33a"), Danger: ui.Hex("#ff6961")}
 	}
 	return pnPalette{Window: ui.Hex("#eceef4"), Surface: ui.Hex("#ffffff"), Group: ui.Hex("#f3f3f4"), Text: ui.Hex("#1d1d1f"), Muted: ui.Hex("#6e6e78"), Faint: ui.Hex("#a3a3ad"), Accent: ui.Hex("#3b6cf6"), Hover: ui.RGBA(0, 0, 0, .04), Selected: ui.Hex("#ffffff"), Divider: ui.RGBA(0, 0, 0, .04), FieldBorder: ui.RGBA(0, 0, 0, .13), Attention: ui.Hex("#c27b0f"), Danger: ui.Hex("#d93a35")}
 }
 
-// pnApplyTheme 为当前窗口配置系统字体、紧凑控件和蓝色焦点，返回可用于自绘容器的颜色。
-func pnApplyTheme(c *ui.Context) pnPalette {
-	p := pnColors(c)
+// pnApplyTheme 根据主题偏好配置控件与配色；跟随系统时使用每帧的系统主题。
+func pnApplyTheme(c *ui.Context, mode string) pnPalette {
 	t := *c.Theme()
+	switch mode {
+	case "light":
+		t = *ui.LightTheme()
+	case "dark":
+		t = *ui.DarkTheme()
+	}
+	p := pnColors(t.Dark)
 	t.Background, t.Surface, t.Text, t.TextMuted = p.Window, p.Surface, p.Text, p.Muted
 	t.SurfaceHover, t.SurfacePressed, t.Border = p.Group, p.Hover, p.FieldBorder
 	t.Accent, t.AccentHover, t.AccentPressed = p.Accent, p.Accent, p.Accent
@@ -86,8 +94,12 @@ func pnLanguageName(code string) string {
 	return code
 }
 
-// pnLanguageSelect 显示语言名称并写回代码，返回本帧是否发生选择变化。
-func pnLanguageSelect(c *ui.Context, code *string, includeAuto bool, width float32) bool {
+// pnLanguageSelect 显示语言名称并写回代码；compact 保持给定宽度，适用于紧凑浮窗。
+// 返回本帧是否发生选择变化，显示文字截断时可通过悬停查看完整名称。
+func pnLanguageSelect(c *ui.Context, code *string, includeAuto bool, width float32, compact bool) bool {
+	if !compact && strings.HasPrefix(mygo.App.Locale(), "en") {
+		width = max(width, 160)
+	}
 	options := make([]string, 0, len(pnLanguages)+1)
 	if includeAuto {
 		options = append(options, "自动识别")
@@ -98,7 +110,7 @@ func pnLanguageSelect(c *ui.Context, code *string, includeAuto bool, width float
 		options = append(options, language.Name)
 	}
 	chosen := pnLanguageName(*code)
-	changed := ui.Select(c, &chosen, options).Width(width).Height(28).Radius(14).FontSize(12.5).Changed()
+	changed := localizedSelect(c, &chosen, options).Width(width).MinWidth(0).Height(28).Radius(14).FontSize(12.5).Tooltip(tr(chosen)).Changed()
 	if changed {
 		if chosen == "智能互译" {
 			*code = "smart"

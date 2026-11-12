@@ -90,11 +90,11 @@ func panelShortcutMatches(shortcut string, mods ui.Modifiers, key ui.Key) bool {
 // panelShortcutTooltip 仅为已启用的快捷键追加当前平台的组合提示。
 func panelShortcutTooltip(label, shortcut string) string {
 	if shortcut == "" {
-		return label
+		return tr(label)
 	}
 	modifier := "Ctrl"
 	if runtime.GOOS == "darwin" {
 		modifier = "⌘"
 	}
-	return label + "（" + strings.ReplaceAll(shortcut, "CmdOrCtrl", modifier) + "）"
+	return tr(label) + "（" + strings.ReplaceAll(shortcut, "CmdOrCtrl", modifier) + "）"
 }

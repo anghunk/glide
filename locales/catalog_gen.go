@@ -9,13 +9,14 @@ import (
 
 	// MyGo's own strings in the app's languages.
 	_ "github.com/egoist/mygo/locales/zh-Hans"
+	_ "github.com/egoist/mygo/locales/zh-Hant"
 )
 
 //go:embed *.json
 var files embed.FS
 
-// Catalog holds the messages in zh-Hans, the source language, and no other
-// language. It is registered with package i18n, which makes its languages
+// Catalog holds the messages in zh-Hans, the source language, and en and
+// zh-Hant. It is registered with package i18n, which makes its languages
 // the app's.
 var Catalog *i18n.Catalog
 
@@ -34,3 +35,3467 @@ type Messages struct{ locale string }
 // "zh-Hant", or of the catalog's language that suits it best, "" for the
 // source language.
 func In(locale string) Messages { return Messages{locale} }
+
+// SavesAutomatically says " · 选择后自动保存"
+// in the language the app shows.
+func SavesAutomatically() string { return In(i18n.Locale()).SavesAutomatically() }
+
+// SavesAutomatically says " · 选择后自动保存"
+// in the language of msgs.
+func (msgs Messages) SavesAutomatically() string {
+	return Catalog.Format(msgs.locale, "saves_automatically", nil)
+}
+
+// Text1fS says "%.1f 秒"
+// in the language the app shows.
+func Text1fS() string { return In(i18n.Locale()).Text1fS() }
+
+// Text1fS says "%.1f 秒"
+// in the language of msgs.
+func (msgs Messages) Text1fS() string {
+	return Catalog.Format(msgs.locale, "text_1f_s", nil)
+}
+
+// DEntries says "%d 条"
+// in the language the app shows.
+func DEntries() string { return In(i18n.Locale()).DEntries() }
+
+// DEntries says "%d 条"
+// in the language of msgs.
+func (msgs Messages) DEntries() string {
+	return Catalog.Format(msgs.locale, "d_entries", nil)
+}
+
+// Jan021504 says "01月02日 15:04"
+// in the language the app shows.
+func Jan021504() string { return In(i18n.Locale()).Jan021504() }
+
+// Jan021504 says "01月02日 15:04"
+// in the language of msgs.
+func (msgs Messages) Jan021504() string {
+	return Catalog.Format(msgs.locale, "jan_02_15_04", nil)
+}
+
+// Text1SelectTextInAnotherAppAnd says "1. 在其他应用中选中文字，按 %s 呼出译文。\n2. …"
+// in the language the app shows.
+func Text1SelectTextInAnotherAppAnd() string {
+	return In(i18n.Locale()).Text1SelectTextInAnotherAppAnd()
+}
+
+// Text1SelectTextInAnotherAppAnd says "1. 在其他应用中选中文字，按 %s 呼出译文。\n2. …"
+// in the language of msgs.
+func (msgs Messages) Text1SelectTextInAnotherAppAnd() string {
+	return Catalog.Format(msgs.locale, "text_1_select_text_in_another_app_and", nil)
+}
+
+// Text10Entries says "10 条"
+// in the language the app shows.
+func Text10Entries() string { return In(i18n.Locale()).Text10Entries() }
+
+// Text10Entries says "10 条"
+// in the language of msgs.
+func (msgs Messages) Text10Entries() string {
+	return Catalog.Format(msgs.locale, "text_10_entries", nil)
+}
+
+// Text100Entries says "100 条"
+// in the language the app shows.
+func Text100Entries() string { return In(i18n.Locale()).Text100Entries() }
+
+// Text100Entries says "100 条"
+// in the language of msgs.
+func (msgs Messages) Text100Entries() string {
+	return Catalog.Format(msgs.locale, "text_100_entries", nil)
+}
+
+// Text50Entries says "50 条"
+// in the language the app shows.
+func Text50Entries() string { return In(i18n.Locale()).Text50Entries() }
+
+// Text50Entries says "50 条"
+// in the language of msgs.
+func (msgs Messages) Text50Entries() string {
+	return Catalog.Format(msgs.locale, "text_50_entries", nil)
+}
+
+// EnterToTranslateUpTo10000 says "Enter 翻译 · 最多 10,000 字"
+// in the language the app shows.
+func EnterToTranslateUpTo10000() string { return In(i18n.Locale()).EnterToTranslateUpTo10000() }
+
+// EnterToTranslateUpTo10000 says "Enter 翻译 · 最多 10,000 字"
+// in the language of msgs.
+func (msgs Messages) EnterToTranslateUpTo10000() string {
+	return Catalog.Format(msgs.locale, "enter_to_translate_up_to_10_000", nil)
+}
+
+// GlideSelectionTranslator says "Glide · 划词翻译"
+// in the language the app shows.
+func GlideSelectionTranslator() string { return In(i18n.Locale()).GlideSelectionTranslator() }
+
+// GlideSelectionTranslator says "Glide · 划词翻译"
+// in the language of msgs.
+func (msgs Messages) GlideSelectionTranslator() string {
+	return Catalog.Format(msgs.locale, "glide_selection_translator", nil)
+}
+
+// GlideHelp says "Glide 使用说明"
+// in the language the app shows.
+func GlideHelp() string { return In(i18n.Locale()).GlideHelp() }
+
+// GlideHelp says "Glide 使用说明"
+// in the language of msgs.
+func (msgs Messages) GlideHelp() string {
+	return Catalog.Format(msgs.locale, "glide_help", nil)
+}
+
+// GlidePreferences says "Glide 偏好设置"
+// in the language the app shows.
+func GlidePreferences() string { return In(i18n.Locale()).GlidePreferences() }
+
+// GlidePreferences says "Glide 偏好设置"
+// in the language of msgs.
+func (msgs Messages) GlidePreferences() string {
+	return Catalog.Format(msgs.locale, "glide_preferences", nil)
+}
+
+// GlideLogo says "Glide 标志"
+// in the language the app shows.
+func GlideLogo() string { return In(i18n.Locale()).GlideLogo() }
+
+// GlideLogo says "Glide 标志"
+// in the language of msgs.
+func (msgs Messages) GlideLogo() string {
+	return Catalog.Format(msgs.locale, "glide_logo", nil)
+}
+
+// GlideConfiguration says "Glide 配置"
+// in the language the app shows.
+func GlideConfiguration() string { return In(i18n.Locale()).GlideConfiguration() }
+
+// GlideConfiguration says "Glide 配置"
+// in the language of msgs.
+func (msgs Messages) GlideConfiguration() string {
+	return Catalog.Format(msgs.locale, "glide_configuration", nil)
+}
+
+// GlideBackupDBackups says "Glide-backup · %d 份备份"
+// in the language the app shows.
+func GlideBackupDBackups() string { return In(i18n.Locale()).GlideBackupDBackups() }
+
+// GlideBackupDBackups says "Glide-backup · %d 份备份"
+// in the language of msgs.
+func (msgs Messages) GlideBackupDBackups() string {
+	return Catalog.Format(msgs.locale, "glide_backup_d_backups", nil)
+}
+
+// WebdavSync says "WebDAV 同步"
+// in the language the app shows.
+func WebdavSync() string { return In(i18n.Locale()).WebdavSync() }
+
+// WebdavSync says "WebDAV 同步"
+// in the language of msgs.
+func (msgs Messages) WebdavSync() string {
+	return Catalog.Format(msgs.locale, "webdav_sync", nil)
+}
+
+// WebdavBackups says "WebDAV 备份列表"
+// in the language the app shows.
+func WebdavBackups() string { return In(i18n.Locale()).WebdavBackups() }
+
+// WebdavBackups says "WebDAV 备份列表"
+// in the language of msgs.
+func (msgs Messages) WebdavBackups() string {
+	return Catalog.Format(msgs.locale, "webdav_backups", nil)
+}
+
+// WebdavPassword says "WebDAV 密码"
+// in the language the app shows.
+func WebdavPassword() string { return In(i18n.Locale()).WebdavPassword() }
+
+// WebdavPassword says "WebDAV 密码"
+// in the language of msgs.
+func (msgs Messages) WebdavPassword() string {
+	return Catalog.Format(msgs.locale, "webdav_password", nil)
+}
+
+// WebdavUsername says "WebDAV 用户名"
+// in the language the app shows.
+func WebdavUsername() string { return In(i18n.Locale()).WebdavUsername() }
+
+// WebdavUsername says "WebDAV 用户名"
+// in the language of msgs.
+func (msgs Messages) WebdavUsername() string {
+	return Catalog.Format(msgs.locale, "webdav_username", nil)
+}
+
+// WebdavDirectoryUrl says "WebDAV 目录地址"
+// in the language the app shows.
+func WebdavDirectoryUrl() string { return In(i18n.Locale()).WebdavDirectoryUrl() }
+
+// WebdavDirectoryUrl says "WebDAV 目录地址"
+// in the language of msgs.
+func (msgs Messages) WebdavDirectoryUrl() string {
+	return Catalog.Format(msgs.locale, "webdav_directory_url", nil)
+}
+
+// WebdavConnectionChangedRefreshTheBackupList says "WebDAV 连接已改变，请重新获取备份列表"
+// in the language the app shows.
+func WebdavConnectionChangedRefreshTheBackupList() string {
+	return In(i18n.Locale()).WebdavConnectionChangedRefreshTheBackupList()
+}
+
+// WebdavConnectionChangedRefreshTheBackupList says "WebDAV 连接已改变，请重新获取备份列表"
+// in the language of msgs.
+func (msgs Messages) WebdavConnectionChangedRefreshTheBackupList() string {
+	return Catalog.Format(msgs.locale, "webdav_connection_changed_refresh_the_backup_list", nil)
+}
+
+// ConnectedToWebdavTheGlideBackupFolder says "WebDAV 连接成功，Glide-backup 文件夹已就绪"
+// in the language the app shows.
+func ConnectedToWebdavTheGlideBackupFolder() string {
+	return In(i18n.Locale()).ConnectedToWebdavTheGlideBackupFolder()
+}
+
+// ConnectedToWebdavTheGlideBackupFolder says "WebDAV 连接成功，Glide-backup 文件夹已就绪"
+// in the language of msgs.
+func (msgs Messages) ConnectedToWebdavTheGlideBackupFolder() string {
+	return Catalog.Format(msgs.locale, "connected_to_webdav_the_glide_backup_folder", nil)
+}
+
+// Shortcut says "”的快捷键？"
+// in the language the app shows.
+func Shortcut() string { return In(i18n.Locale()).Shortcut() }
+
+// Shortcut says "”的快捷键？"
+// in the language of msgs.
+func (msgs Messages) Shortcut() string {
+	return Catalog.Format(msgs.locale, "shortcut", nil)
+}
+
+// ThisCannotBeUndone says "”？此操作无法撤销。"
+// in the language the app shows.
+func ThisCannotBeUndone() string { return In(i18n.Locale()).ThisCannotBeUndone() }
+
+// ThisCannotBeUndone says "”？此操作无法撤销。"
+// in the language of msgs.
+func (msgs Messages) ThisCannotBeUndone() string {
+	return Catalog.Format(msgs.locale, "this_cannot_be_undone", nil)
+}
+
+// UploadSettings says "上传配置"
+// in the language the app shows.
+func UploadSettings() string { return In(i18n.Locale()).UploadSettings() }
+
+// UploadSettings says "上传配置"
+// in the language of msgs.
+func (msgs Messages) UploadSettings() string {
+	return Catalog.Format(msgs.locale, "upload_settings", nil)
+}
+
+// LastChecked says "上次检查："
+// in the language the app shows.
+func LastChecked() string { return In(i18n.Locale()).LastChecked() }
+
+// LastChecked says "上次检查："
+// in the language of msgs.
+func (msgs Messages) LastChecked() string {
+	return Catalog.Format(msgs.locale, "last_checked", nil)
+}
+
+// ApiFormat says "上游格式"
+// in the language the app shows.
+func ApiFormat() string { return In(i18n.Locale()).ApiFormat() }
+
+// ApiFormat says "上游格式"
+// in the language of msgs.
+func (msgs Messages) ApiFormat() string {
+	return Catalog.Format(msgs.locale, "api_format", nil)
+}
+
+// DownloadSettings says "下载配置"
+// in the language the app shows.
+func DownloadSettings() string { return In(i18n.Locale()).DownloadSettings() }
+
+// DownloadSettings says "下载配置"
+// in the language of msgs.
+func (msgs Messages) DownloadSettings() string {
+	return Catalog.Format(msgs.locale, "download_settings", nil)
+}
+
+// DoNotKeep says "不保留"
+// in the language the app shows.
+func DoNotKeep() string { return In(i18n.Locale()).DoNotKeep() }
+
+// DoNotKeep says "不保留"
+// in the language of msgs.
+func (msgs Messages) DoNotKeep() string {
+	return Catalog.Format(msgs.locale, "do_not_keep", nil)
+}
+
+// UnsupportedInterfaceLanguage says "不支持的界面语言"
+// in the language the app shows.
+func UnsupportedInterfaceLanguage() string { return In(i18n.Locale()).UnsupportedInterfaceLanguage() }
+
+// UnsupportedInterfaceLanguage says "不支持的界面语言"
+// in the language of msgs.
+func (msgs Messages) UnsupportedInterfaceLanguage() string {
+	return Catalog.Format(msgs.locale, "unsupported_interface_language", nil)
+}
+
+// EnterANameForThisService says "为此服务起个名字"
+// in the language the app shows.
+func EnterANameForThisService() string { return In(i18n.Locale()).EnterANameForThisService() }
+
+// EnterANameForThisService says "为此服务起个名字"
+// in the language of msgs.
+func (msgs Messages) EnterANameForThisService() string {
+	return Catalog.Format(msgs.locale, "enter_a_name_for_this_service", nil)
+}
+
+// YouCanAlsoTypeTextToTranslate says "也可以直接输入原文进行翻译。"
+// in the language the app shows.
+func YouCanAlsoTypeTextToTranslate() string { return In(i18n.Locale()).YouCanAlsoTypeTextToTranslate() }
+
+// YouCanAlsoTypeTextToTranslate says "也可以直接输入原文进行翻译。"
+// in the language of msgs.
+func (msgs Messages) YouCanAlsoTypeTextToTranslate() string {
+	return Catalog.Format(msgs.locale, "you_can_also_type_text_to_translate", nil)
+}
+
+// SwapLanguages says "交换语言"
+// in the language the app shows.
+func SwapLanguages() string { return In(i18n.Locale()).SwapLanguages() }
+
+// SwapLanguages says "交换语言"
+// in the language of msgs.
+func (msgs Messages) SwapLanguages() string {
+	return Catalog.Format(msgs.locale, "swap_languages", nil)
+}
+
+// KeepRecentEntriesOnlyDoNotKeep says "仅保留最近的记录；选择“不保留”会清空已有历史，并停止记录。"
+// in the language the app shows.
+func KeepRecentEntriesOnlyDoNotKeep() string {
+	return In(i18n.Locale()).KeepRecentEntriesOnlyDoNotKeep()
+}
+
+// KeepRecentEntriesOnlyDoNotKeep says "仅保留最近的记录；选择“不保留”会清空已有历史，并停止记录。"
+// in the language of msgs.
+func (msgs Messages) KeepRecentEntriesOnlyDoNotKeep() string {
+	return Catalog.Format(msgs.locale, "keep_recent_entries_only_do_not_keep", nil)
+}
+
+// ProxyAddress says "代理地址"
+// in the language the app shows.
+func ProxyAddress() string { return In(i18n.Locale()).ProxyAddress() }
+
+// ProxyAddress says "代理地址"
+// in the language of msgs.
+func (msgs Messages) ProxyAddress() string {
+	return Catalog.Format(msgs.locale, "proxy_address", nil)
+}
+
+// UseSystemProxy says "使用系统代理"
+// in the language the app shows.
+func UseSystemProxy() string { return In(i18n.Locale()).UseSystemProxy() }
+
+// UseSystemProxy says "使用系统代理"
+// in the language of msgs.
+func (msgs Messages) UseSystemProxy() string {
+	return Catalog.Format(msgs.locale, "use_system_proxy", nil)
+}
+
+// Help says "使用说明"
+// in the language the app shows.
+func Help() string { return In(i18n.Locale()).Help() }
+
+// Help says "使用说明"
+// in the language of msgs.
+func (msgs Messages) Help() string {
+	return Catalog.Format(msgs.locale, "help", nil)
+}
+
+// ForExampleHttp127001 says "例如 http://127.0.0.1:7890"
+// in the language the app shows.
+func ForExampleHttp127001() string { return In(i18n.Locale()).ForExampleHttp127001() }
+
+// ForExampleHttp127001 says "例如 http://127.0.0.1:7890"
+// in the language of msgs.
+func (msgs Messages) ForExampleHttp127001() string {
+	return Catalog.Format(msgs.locale, "for_example_http_127_0_0_1", nil)
+}
+
+// Russian says "俄语"
+// in the language the app shows.
+func Russian() string { return In(i18n.Locale()).Russian() }
+
+// Russian says "俄语"
+// in the language of msgs.
+func (msgs Messages) Russian() string {
+	return Catalog.Format(msgs.locale, "russian", nil)
+}
+
+// Save says "保存"
+// in the language the app shows.
+func Save() string { return In(i18n.Locale()).Save() }
+
+// Save says "保存"
+// in the language of msgs.
+func (msgs Messages) Save() string {
+	return Catalog.Format(msgs.locale, "save", nil)
+}
+
+// KeepGlideUpToDate says "保持 Glide 为最新版本"
+// in the language the app shows.
+func KeepGlideUpToDate() string { return In(i18n.Locale()).KeepGlideUpToDate() }
+
+// KeepGlideUpToDate says "保持 Glide 为最新版本"
+// in the language of msgs.
+func (msgs Messages) KeepGlideUpToDate() string {
+	return Catalog.Format(msgs.locale, "keep_glide_up_to_date", nil)
+}
+
+// HistoryLimit says "保留条数"
+// in the language the app shows.
+func HistoryLimit() string { return In(i18n.Locale()).HistoryLimit() }
+
+// HistoryLimit says "保留条数"
+// in the language of msgs.
+func (msgs Messages) HistoryLimit() string {
+	return Catalog.Format(msgs.locale, "history_limit", nil)
+}
+
+// ChangeServiceIcon says "修改服务图标"
+// in the language the app shows.
+func ChangeServiceIcon() string { return In(i18n.Locale()).ChangeServiceIcon() }
+
+// ChangeServiceIcon says "修改服务图标"
+// in the language of msgs.
+func (msgs Messages) ChangeServiceIcon() string {
+	return Catalog.Format(msgs.locale, "change_service_icon", nil)
+}
+
+// Preferences says "偏好设置"
+// in the language the app shows.
+func Preferences() string { return In(i18n.Locale()).Preferences() }
+
+// Preferences says "偏好设置"
+// in the language of msgs.
+func (msgs Messages) Preferences() string {
+	return Catalog.Format(msgs.locale, "preferences", nil)
+}
+
+// Preferences8b411e says "偏好设置…"
+// in the language the app shows.
+func Preferences8b411e() string { return In(i18n.Locale()).Preferences8b411e() }
+
+// Preferences8b411e says "偏好设置…"
+// in the language of msgs.
+func (msgs Messages) Preferences8b411e() string {
+	return Catalog.Format(msgs.locale, "preferences_8b411e", nil)
+}
+
+// EditTheSourceTextAndTranslateAgain says "允许在浮窗中修改原文并重新翻译。"
+// in the language the app shows.
+func EditTheSourceTextAndTranslateAgain() string {
+	return In(i18n.Locale()).EditTheSourceTextAndTranslateAgain()
+}
+
+// EditTheSourceTextAndTranslateAgain says "允许在浮窗中修改原文并重新翻译。"
+// in the language of msgs.
+func (msgs Messages) EditTheSourceTextAndTranslateAgain() string {
+	return Catalog.Format(msgs.locale, "edit_the_source_text_and_translate_again", nil)
+}
+
+// GlobalShortcuts says "全局快捷键"
+// in the language the app shows.
+func GlobalShortcuts() string { return In(i18n.Locale()).GlobalShortcuts() }
+
+// GlobalShortcuts says "全局快捷键"
+// in the language of msgs.
+func (msgs Messages) GlobalShortcuts() string {
+	return Catalog.Format(msgs.locale, "global_shortcuts", nil)
+}
+
+// ShowAll says "全部显示"
+// in the language the app shows.
+func ShowAll() string { return In(i18n.Locale()).ShowAll() }
+
+// ShowAll says "全部显示"
+// in the language of msgs.
+func (msgs Messages) ShowAll() string {
+	return Catalog.Format(msgs.locale, "show_all", nil)
+}
+
+// About says "关于"
+// in the language the app shows.
+func About() string { return In(i18n.Locale()).About() }
+
+// About says "关于"
+// in the language of msgs.
+func (msgs Messages) About() string {
+	return Catalog.Format(msgs.locale, "about", nil)
+}
+
+// AboutGlide says "关于 Glide"
+// in the language the app shows.
+func AboutGlide() string { return In(i18n.Locale()).AboutGlide() }
+
+// AboutGlide says "关于 Glide"
+// in the language of msgs.
+func (msgs Messages) AboutGlide() string {
+	return Catalog.Format(msgs.locale, "about_glide", nil)
+}
+
+// Close says "关闭"
+// in the language the app shows.
+func Close() string { return In(i18n.Locale()).Close() }
+
+// Close says "关闭"
+// in the language of msgs.
+func (msgs Messages) Close() string {
+	return Catalog.Format(msgs.locale, "close", nil)
+}
+
+// CloseIconPicker says "关闭图标选择"
+// in the language the app shows.
+func CloseIconPicker() string { return In(i18n.Locale()).CloseIconPicker() }
+
+// CloseIconPicker says "关闭图标选择"
+// in the language of msgs.
+func (msgs Messages) CloseIconPicker() string {
+	return Catalog.Format(msgs.locale, "close_icon_picker", nil)
+}
+
+// CloseBackupList says "关闭备份列表"
+// in the language the app shows.
+func CloseBackupList() string { return In(i18n.Locale()).CloseBackupList() }
+
+// CloseBackupList says "关闭备份列表"
+// in the language of msgs.
+func (msgs Messages) CloseBackupList() string {
+	return Catalog.Format(msgs.locale, "close_backup_list", nil)
+}
+
+// ClosePopup says "关闭浮窗"
+// in the language the app shows.
+func ClosePopup() string { return In(i18n.Locale()).ClosePopup() }
+
+// ClosePopup says "关闭浮窗"
+// in the language of msgs.
+func (msgs Messages) ClosePopup() string {
+	return Catalog.Format(msgs.locale, "close_popup", nil)
+}
+
+// CloseSettings says "关闭设置"
+// in the language the app shows.
+func CloseSettings() string { return In(i18n.Locale()).CloseSettings() }
+
+// CloseSettings says "关闭设置"
+// in the language of msgs.
+func (msgs Messages) CloseSettings() string {
+	return Catalog.Format(msgs.locale, "close_settings", nil)
+}
+
+// BuiltInServicesNeedNoKeysAvailability says "内置服务无需密钥，可用性受网络及服务调整影响。遇到限制时，可以改用官方 API。"
+// in the language the app shows.
+func BuiltInServicesNeedNoKeysAvailability() string {
+	return In(i18n.Locale()).BuiltInServicesNeedNoKeysAvailability()
+}
+
+// BuiltInServicesNeedNoKeysAvailability says "内置服务无需密钥，可用性受网络及服务调整影响。遇到限制时，可以改用官方 API。"
+// in the language of msgs.
+func (msgs Messages) BuiltInServicesNeedNoKeysAvailability() string {
+	return Catalog.Format(msgs.locale, "built_in_services_need_no_keys_availability", nil)
+}
+
+// ClickConfirmClearAgainToDeleteAll says "再次点击“确认清空”将删除本机全部翻译记录。"
+// in the language the app shows.
+func ClickConfirmClearAgainToDeleteAll() string {
+	return In(i18n.Locale()).ClickConfirmClearAgainToDeleteAll()
+}
+
+// ClickConfirmClearAgainToDeleteAll says "再次点击“确认清空”将删除本机全部翻译记录。"
+// in the language of msgs.
+func (msgs Messages) ClickConfirmClearAgainToDeleteAll() string {
+	return Catalog.Format(msgs.locale, "click_confirm_clear_again_to_delete_all", nil)
+}
+
+// TranslateSelection says "划词翻译"
+// in the language the app shows.
+func TranslateSelection() string { return In(i18n.Locale()).TranslateSelection() }
+
+// TranslateSelection says "划词翻译"
+// in the language of msgs.
+func (msgs Messages) TranslateSelection() string {
+	return Catalog.Format(msgs.locale, "translate_selection", nil)
+}
+
+// TranslateAutomaticallyAfterSelectingTextWhenDisabled says "划选文字后自动显示翻译；关闭时使用快捷键触发。"
+// in the language the app shows.
+func TranslateAutomaticallyAfterSelectingTextWhenDisabled() string {
+	return In(i18n.Locale()).TranslateAutomaticallyAfterSelectingTextWhenDisabled()
+}
+
+// TranslateAutomaticallyAfterSelectingTextWhenDisabled says "划选文字后自动显示翻译；关闭时使用快捷键触发。"
+// in the language of msgs.
+func (msgs Messages) TranslateAutomaticallyAfterSelectingTextWhenDisabled() string {
+	return Catalog.Format(msgs.locale, "translate_automatically_after_selecting_text_when_disabled", nil)
+}
+
+// TheListHasNotLoadedOrConnection says "列表尚未加载，或连接信息已改变。"
+// in the language the app shows.
+func TheListHasNotLoadedOrConnection() string {
+	return In(i18n.Locale()).TheListHasNotLoadedOrConnection()
+}
+
+// TheListHasNotLoadedOrConnection says "列表尚未加载，或连接信息已改变。"
+// in the language of msgs.
+func (msgs Messages) TheListHasNotLoadedOrConnection() string {
+	return Catalog.Format(msgs.locale, "the_list_has_not_loaded_or_connection", nil)
+}
+
+// DeleteBackup says "删除备份 "
+// in the language the app shows.
+func DeleteBackup() string { return In(i18n.Locale()).DeleteBackup() }
+
+// DeleteBackup says "删除备份 "
+// in the language of msgs.
+func (msgs Messages) DeleteBackup() string {
+	return Catalog.Format(msgs.locale, "delete_backup", nil)
+}
+
+// DeleteService says "删除服务"
+// in the language the app shows.
+func DeleteService() string { return In(i18n.Locale()).DeleteService() }
+
+// DeleteService says "删除服务"
+// in the language of msgs.
+func (msgs Messages) DeleteService() string {
+	return Catalog.Format(msgs.locale, "delete_service", nil)
+}
+
+// DeleteTranslation says "删除翻译记录"
+// in the language the app shows.
+func DeleteTranslation() string { return In(i18n.Locale()).DeleteTranslation() }
+
+// DeleteTranslation says "删除翻译记录"
+// in the language of msgs.
+func (msgs Messages) DeleteTranslation() string {
+	return Catalog.Format(msgs.locale, "delete_translation", nil)
+}
+
+// DeleteEntry says "删除记录"
+// in the language the app shows.
+func DeleteEntry() string { return In(i18n.Locale()).DeleteEntry() }
+
+// DeleteEntry says "删除记录"
+// in the language of msgs.
+func (msgs Messages) DeleteEntry() string {
+	return Catalog.Format(msgs.locale, "delete_entry", nil)
+}
+
+// DeleteRemoteBackup says "删除远程备份"
+// in the language the app shows.
+func DeleteRemoteBackup() string { return In(i18n.Locale()).DeleteRemoteBackup() }
+
+// DeleteRemoteBackup says "删除远程备份"
+// in the language of msgs.
+func (msgs Messages) DeleteRemoteBackup() string {
+	return Catalog.Format(msgs.locale, "delete_remote_backup", nil)
+}
+
+// DeleteSelectedService says "删除选中服务"
+// in the language the app shows.
+func DeleteSelectedService() string { return In(i18n.Locale()).DeleteSelectedService() }
+
+// DeleteSelectedService says "删除选中服务"
+// in the language of msgs.
+func (msgs Messages) DeleteSelectedService() string {
+	return Catalog.Format(msgs.locale, "delete_selected_service", nil)
+}
+
+// Refresh says "刷新"
+// in the language the app shows.
+func Refresh() string { return In(i18n.Locale()).Refresh() }
+
+// Refresh says "刷新"
+// in the language of msgs.
+func (msgs Messages) Refresh() string {
+	return Catalog.Format(msgs.locale, "refresh", nil)
+}
+
+// RefreshList says "刷新列表"
+// in the language the app shows.
+func RefreshList() string { return In(i18n.Locale()).RefreshList() }
+
+// RefreshList says "刷新列表"
+// in the language of msgs.
+func (msgs Messages) RefreshList() string {
+	return Catalog.Format(msgs.locale, "refresh_list", nil)
+}
+
+// RefreshPermissions says "刷新权限"
+// in the language the app shows.
+func RefreshPermissions() string { return In(i18n.Locale()).RefreshPermissions() }
+
+// RefreshPermissions says "刷新权限"
+// in the language of msgs.
+func (msgs Messages) RefreshPermissions() string {
+	return Catalog.Format(msgs.locale, "refresh_permissions", nil)
+}
+
+// TranslateClipboard says "剪贴板翻译"
+// in the language the app shows.
+func TranslateClipboard() string { return In(i18n.Locale()).TranslateClipboard() }
+
+// TranslateClipboard says "剪贴板翻译"
+// in the language of msgs.
+func (msgs Messages) TranslateClipboard() string {
+	return Catalog.Format(msgs.locale, "translate_clipboard", nil)
+}
+
+// IncludesServicesApiKeysAndPreferencesExcludes says "包含翻译服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。"
+// in the language the app shows.
+func IncludesServicesApiKeysAndPreferencesExcludes() string {
+	return In(i18n.Locale()).IncludesServicesApiKeysAndPreferencesExcludes()
+}
+
+// IncludesServicesApiKeysAndPreferencesExcludes says "包含翻译服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。"
+// in the language of msgs.
+func (msgs Messages) IncludesServicesApiKeysAndPreferencesExcludes() string {
+	return Catalog.Format(msgs.locale, "includes_services_api_keys_and_preferences_excludes", nil)
+}
+
+// TheOriginalWindowHasClosedSelectThe says "原应用窗口已关闭，请重新选中文字。"
+// in the language the app shows.
+func TheOriginalWindowHasClosedSelectThe() string {
+	return In(i18n.Locale()).TheOriginalWindowHasClosedSelectThe()
+}
+
+// TheOriginalWindowHasClosedSelectThe says "原应用窗口已关闭，请重新选中文字。"
+// in the language of msgs.
+func (msgs Messages) TheOriginalWindowHasClosedSelectThe() string {
+	return Catalog.Format(msgs.locale, "the_original_window_has_closed_select_the", nil)
+}
+
+// SourceText says "原文"
+// in the language the app shows.
+func SourceText() string { return In(i18n.Locale()).SourceText() }
+
+// SourceText says "原文"
+// in the language of msgs.
+func (msgs Messages) SourceText() string {
+	return Catalog.Format(msgs.locale, "source_text", nil)
+}
+
+// SourceTextIsSentOnlyToEnabled says "原文只发送至当前启用的翻译服务。Ollama 使用本机地址时，翻译请求无需离开本机。"
+// in the language the app shows.
+func SourceTextIsSentOnlyToEnabled() string { return In(i18n.Locale()).SourceTextIsSentOnlyToEnabled() }
+
+// SourceTextIsSentOnlyToEnabled says "原文只发送至当前启用的翻译服务。Ollama 使用本机地址时，翻译请求无需离开本机。"
+// in the language of msgs.
+func (msgs Messages) SourceTextIsSentOnlyToEnabled() string {
+	return Catalog.Format(msgs.locale, "source_text_is_sent_only_to_enabled", nil)
+}
+
+// NativeDesktopSelectionTranslator says "原生桌面划词翻译工具"
+// in the language the app shows.
+func NativeDesktopSelectionTranslator() string {
+	return In(i18n.Locale()).NativeDesktopSelectionTranslator()
+}
+
+// NativeDesktopSelectionTranslator says "原生桌面划词翻译工具"
+// in the language of msgs.
+func (msgs Messages) NativeDesktopSelectionTranslator() string {
+	return Catalog.Format(msgs.locale, "native_desktop_selection_translator", nil)
+}
+
+// NewVersionAvailable says "发现新版本 "
+// in the language the app shows.
+func NewVersionAvailable() string { return In(i18n.Locale()).NewVersionAvailable() }
+
+// NewVersionAvailable says "发现新版本 "
+// in the language of msgs.
+func (msgs Messages) NewVersionAvailable() string {
+	return Catalog.Format(msgs.locale, "new_version_available", nil)
+}
+
+// Cancel says "取消"
+// in the language the app shows.
+func Cancel() string { return In(i18n.Locale()).Cancel() }
+
+// Cancel says "取消"
+// in the language of msgs.
+func (msgs Messages) Cancel() string {
+	return Catalog.Format(msgs.locale, "cancel", nil)
+}
+
+// UnpinPopup says "取消固定"
+// in the language the app shows.
+func UnpinPopup() string { return In(i18n.Locale()).UnpinPopup() }
+
+// UnpinPopup says "取消固定"
+// in the language of msgs.
+func (msgs Messages) UnpinPopup() string {
+	return Catalog.Format(msgs.locale, "unpin_popup", nil)
+}
+
+// TextSelection says "取词方式"
+// in the language the app shows.
+func TextSelection() string { return In(i18n.Locale()).TextSelection() }
+
+// TextSelection says "取词方式"
+// in the language of msgs.
+func (msgs Messages) TextSelection() string {
+	return Catalog.Format(msgs.locale, "text_selection", nil)
+}
+
+// SelectionPermissionsRefreshed says "取词权限已刷新"
+// in the language the app shows.
+func SelectionPermissionsRefreshed() string { return In(i18n.Locale()).SelectionPermissionsRefreshed() }
+
+// SelectionPermissionsRefreshed says "取词权限已刷新"
+// in the language of msgs.
+func (msgs Messages) SelectionPermissionsRefreshed() string {
+	return Catalog.Format(msgs.locale, "selection_permissions_refreshed", nil)
+}
+
+// SelectionPermissions says "取词权限说明…"
+// in the language the app shows.
+func SelectionPermissions() string { return In(i18n.Locale()).SelectionPermissions() }
+
+// SelectionPermissions says "取词权限说明…"
+// in the language of msgs.
+func (msgs Messages) SelectionPermissions() string {
+	return Catalog.Format(msgs.locale, "selection_permissions", nil)
+}
+
+// Enable says "启用"
+// in the language the app shows.
+func Enable() string { return In(i18n.Locale()).Enable() }
+
+// Enable says "启用"
+// in the language of msgs.
+func (msgs Messages) Enable() string {
+	return Catalog.Format(msgs.locale, "enable", nil)
+}
+
+// PinPopup says "固定浮窗"
+// in the language the app shows.
+func PinPopup() string { return In(i18n.Locale()).PinPopup() }
+
+// PinPopup says "固定浮窗"
+// in the language of msgs.
+func (msgs Messages) PinPopup() string {
+	return Catalog.Format(msgs.locale, "pin_popup", nil)
+}
+
+// Images says "图片"
+// in the language the app shows.
+func Images() string { return In(i18n.Locale()).Images() }
+
+// Images says "图片"
+// in the language of msgs.
+func (msgs Messages) Images() string {
+	return Catalog.Format(msgs.locale, "images", nil)
+}
+
+// ImageOcr says "图片 OCR"
+// in the language the app shows.
+func ImageOcr() string { return In(i18n.Locale()).ImageOcr() }
+
+// ImageOcr says "图片 OCR"
+// in the language of msgs.
+func (msgs Messages) ImageOcr() string {
+	return Catalog.Format(msgs.locale, "image_ocr", nil)
+}
+
+// TranslateImageWithOcr says "图片 OCR 翻译…"
+// in the language the app shows.
+func TranslateImageWithOcr() string { return In(i18n.Locale()).TranslateImageWithOcr() }
+
+// TranslateImageWithOcr says "图片 OCR 翻译…"
+// in the language of msgs.
+func (msgs Messages) TranslateImageWithOcr() string {
+	return Catalog.Format(msgs.locale, "translate_image_with_ocr", nil)
+}
+
+// ChooseSourceAndTargetLanguagesInThe says "在浮窗中选择源语言和目标语言。"
+// in the language the app shows.
+func ChooseSourceAndTargetLanguagesInThe() string {
+	return In(i18n.Locale()).ChooseSourceAndTargetLanguagesInThe()
+}
+
+// ChooseSourceAndTargetLanguagesInThe says "在浮窗中选择源语言和目标语言。"
+// in the language of msgs.
+func (msgs Messages) ChooseSourceAndTargetLanguagesInThe() string {
+	return Catalog.Format(msgs.locale, "choose_source_and_target_languages_in_the", nil)
+}
+
+// EnterAWebdavParentDirectoryGlideCreates says "填写 WebDAV 父目录，自动检测并创建 Glide-backup …"
+// in the language the app shows.
+func EnterAWebdavParentDirectoryGlideCreates() string {
+	return In(i18n.Locale()).EnterAWebdavParentDirectoryGlideCreates()
+}
+
+// EnterAWebdavParentDirectoryGlideCreates says "填写 WebDAV 父目录，自动检测并创建 Glide-backup …"
+// in the language of msgs.
+func (msgs Messages) EnterAWebdavParentDirectoryGlideCreates() string {
+	return Catalog.Format(msgs.locale, "enter_a_webdav_parent_directory_glide_creates", nil)
+}
+
+// BackupsContainApiKeysInPlainText says "备份含明文服务密钥，请妥善保存文件并使用可信任的 WebDAV 服务器。"
+// in the language the app shows.
+func BackupsContainApiKeysInPlainText() string {
+	return In(i18n.Locale()).BackupsContainApiKeysInPlainText()
+}
+
+// BackupsContainApiKeysInPlainText says "备份含明文服务密钥，请妥善保存文件并使用可信任的 WebDAV 服务器。"
+// in the language of msgs.
+func (msgs Messages) BackupsContainApiKeysInPlainText() string {
+	return Catalog.Format(msgs.locale, "backups_contain_api_keys_in_plain_text", nil)
+}
+
+// BackupUploaded says "备份已上传："
+// in the language the app shows.
+func BackupUploaded() string { return In(i18n.Locale()).BackupUploaded() }
+
+// BackupUploaded says "备份已上传："
+// in the language of msgs.
+func (msgs Messages) BackupUploaded() string {
+	return Catalog.Format(msgs.locale, "backup_uploaded", nil)
+}
+
+// Copy says "复制"
+// in the language the app shows.
+func Copy() string { return In(i18n.Locale()).Copy() }
+
+// Copy says "复制"
+// in the language of msgs.
+func (msgs Messages) Copy() string {
+	return Catalog.Format(msgs.locale, "copy", nil)
+}
+
+// CopyTranslation says "复制译文"
+// in the language the app shows.
+func CopyTranslation() string { return In(i18n.Locale()).CopyTranslation() }
+
+// CopyTranslation says "复制译文"
+// in the language of msgs.
+func (msgs Messages) CopyTranslation() string {
+	return Catalog.Format(msgs.locale, "copy_translation", nil)
+}
+
+// Ok says "好"
+// in the language the app shows.
+func Ok() string { return In(i18n.Locale()).Ok() }
+
+// Ok says "好"
+// in the language of msgs.
+func (msgs Messages) Ok() string {
+	return Catalog.Format(msgs.locale, "ok", nil)
+}
+
+// PasswordAppPassword says "密码 / 应用专用密码"
+// in the language the app shows.
+func PasswordAppPassword() string { return In(i18n.Locale()).PasswordAppPassword() }
+
+// PasswordAppPassword says "密码 / 应用专用密码"
+// in the language of msgs.
+func (msgs Messages) PasswordAppPassword() string {
+	return Catalog.Format(msgs.locale, "password_app_password", nil)
+}
+
+// KeysAreStoredLocallyInSettingsJson says "密钥保存在本机 settings.json 中；导出或上传配置时会包含服务密钥。"
+// in the language the app shows.
+func KeysAreStoredLocallyInSettingsJson() string {
+	return In(i18n.Locale()).KeysAreStoredLocallyInSettingsJson()
+}
+
+// KeysAreStoredLocallyInSettingsJson says "密钥保存在本机 settings.json 中；导出或上传配置时会包含服务密钥。"
+// in the language of msgs.
+func (msgs Messages) KeysAreStoredLocallyInSettingsJson() string {
+	return Catalog.Format(msgs.locale, "keys_are_stored_locally_in_settings_json", nil)
+}
+
+// ImportGlideSettings says "导入 Glide 配置"
+// in the language the app shows.
+func ImportGlideSettings() string { return In(i18n.Locale()).ImportGlideSettings() }
+
+// ImportGlideSettings says "导入 Glide 配置"
+// in the language of msgs.
+func (msgs Messages) ImportGlideSettings() string {
+	return Catalog.Format(msgs.locale, "import_glide_settings", nil)
+}
+
+// ImportExportWebdavSyncBackup says "导入 导出 WebDAV 同步 备份"
+// in the language the app shows.
+func ImportExportWebdavSyncBackup() string { return In(i18n.Locale()).ImportExportWebdavSyncBackup() }
+
+// ImportExportWebdavSyncBackup says "导入 导出 WebDAV 同步 备份"
+// in the language of msgs.
+func (msgs Messages) ImportExportWebdavSyncBackup() string {
+	return Catalog.Format(msgs.locale, "import_export_webdav_sync_backup", nil)
+}
+
+// Import says "导入…"
+// in the language the app shows.
+func Import() string { return In(i18n.Locale()).Import() }
+
+// Import says "导入…"
+// in the language of msgs.
+func (msgs Messages) Import() string {
+	return Catalog.Format(msgs.locale, "import", nil)
+}
+
+// ImportAndExport says "导入与导出"
+// in the language the app shows.
+func ImportAndExport() string { return In(i18n.Locale()).ImportAndExport() }
+
+// ImportAndExport says "导入与导出"
+// in the language of msgs.
+func (msgs Messages) ImportAndExport() string {
+	return Catalog.Format(msgs.locale, "import_and_export", nil)
+}
+
+// ImportSettings says "导入配置"
+// in the language the app shows.
+func ImportSettings() string { return In(i18n.Locale()).ImportSettings() }
+
+// ImportSettings says "导入配置"
+// in the language of msgs.
+func (msgs Messages) ImportSettings() string {
+	return Catalog.Format(msgs.locale, "import_settings", nil)
+}
+
+// ExportGlideSettings says "导出 Glide 配置"
+// in the language the app shows.
+func ExportGlideSettings() string { return In(i18n.Locale()).ExportGlideSettings() }
+
+// ExportGlideSettings says "导出 Glide 配置"
+// in the language of msgs.
+func (msgs Messages) ExportGlideSettings() string {
+	return Catalog.Format(msgs.locale, "export_glide_settings", nil)
+}
+
+// Export says "导出…"
+// in the language the app shows.
+func Export() string { return In(i18n.Locale()).Export() }
+
+// Export says "导出…"
+// in the language of msgs.
+func (msgs Messages) Export() string {
+	return Catalog.Format(msgs.locale, "export", nil)
+}
+
+// ExportSettings says "导出配置"
+// in the language the app shows.
+func ExportSettings() string { return In(i18n.Locale()).ExportSettings() }
+
+// ExportSettings says "导出配置"
+// in the language of msgs.
+func (msgs Messages) ExportSettings() string {
+	return Catalog.Format(msgs.locale, "export_settings", nil)
+}
+
+// ReplaceLocalSettingsWithDServicesAnd says "将用备份中的 %d 个翻译服务及偏好替换本机配置。WebDAV …"
+// in the language the app shows.
+func ReplaceLocalSettingsWithDServicesAnd() string {
+	return In(i18n.Locale()).ReplaceLocalSettingsWithDServicesAnd()
+}
+
+// ReplaceLocalSettingsWithDServicesAnd says "将用备份中的 %d 个翻译服务及偏好替换本机配置。WebDAV …"
+// in the language of msgs.
+func (msgs Messages) ReplaceLocalSettingsWithDServicesAnd() string {
+	return Catalog.Format(msgs.locale, "replace_local_settings_with_d_services_and", nil)
+}
+
+// PermissionNotGrantedAllowGlideInSystem says "尚未取得授权，请在系统设置中允许 Glide 后重试"
+// in the language the app shows.
+func PermissionNotGrantedAllowGlideInSystem() string {
+	return In(i18n.Locale()).PermissionNotGrantedAllowGlideInSystem()
+}
+
+// PermissionNotGrantedAllowGlideInSystem says "尚未取得授权，请在系统设置中允许 Glide 后重试"
+// in the language of msgs.
+func (msgs Messages) PermissionNotGrantedAllowGlideInSystem() string {
+	return Catalog.Format(msgs.locale, "permission_not_granted_allow_glide_in_system", nil)
+}
+
+// NoServicesConfigured says "尚未配置服务"
+// in the language the app shows.
+func NoServicesConfigured() string { return In(i18n.Locale()).NoServicesConfigured() }
+
+// NoServicesConfigured says "尚未配置服务"
+// in the language of msgs.
+func (msgs Messages) NoServicesConfigured() string {
+	return Catalog.Format(msgs.locale, "no_services_configured", nil)
+}
+
+// ExpandTranslation says "展开译文"
+// in the language the app shows.
+func ExpandTranslation() string { return In(i18n.Locale()).ExpandTranslation() }
+
+// ExpandTranslation says "展开译文"
+// in the language of msgs.
+func (msgs Messages) ExpandTranslation() string {
+	return Catalog.Format(msgs.locale, "expand_translation", nil)
+}
+
+// OpenSettingsOnTrayClick says "左键点击托盘显示设置面板"
+// in the language the app shows.
+func OpenSettingsOnTrayClick() string { return In(i18n.Locale()).OpenSettingsOnTrayClick() }
+
+// OpenSettingsOnTrayClick says "左键点击托盘显示设置面板"
+// in the language of msgs.
+func (msgs Messages) OpenSettingsOnTrayClick() string {
+	return Catalog.Format(msgs.locale, "open_settings_on_tray_click", nil)
+}
+
+// Copied says "已复制"
+// in the language the app shows.
+func Copied() string { return In(i18n.Locale()).Copied() }
+
+// Copied says "已复制"
+// in the language of msgs.
+func (msgs Messages) Copied() string {
+	return Catalog.Format(msgs.locale, "copied", nil)
+}
+
+// Help92e3a8 says "帮助"
+// in the language the app shows.
+func Help92e3a8() string { return In(i18n.Locale()).Help92e3a8() }
+
+// Help92e3a8 says "帮助"
+// in the language of msgs.
+func (msgs Messages) Help92e3a8() string {
+	return Catalog.Format(msgs.locale, "help_92e3a8", nil)
+}
+
+// Application says "应用信息"
+// in the language the app shows.
+func Application() string { return In(i18n.Locale()).Application() }
+
+// Application says "应用信息"
+// in the language of msgs.
+func (msgs Messages) Application() string {
+	return Catalog.Format(msgs.locale, "application", nil)
+}
+
+// UpdatesAreDisabledInDevelopmentBuilds says "开发版本不检查更新"
+// in the language the app shows.
+func UpdatesAreDisabledInDevelopmentBuilds() string {
+	return In(i18n.Locale()).UpdatesAreDisabledInDevelopmentBuilds()
+}
+
+// UpdatesAreDisabledInDevelopmentBuilds says "开发版本不检查更新"
+// in the language of msgs.
+func (msgs Messages) UpdatesAreDisabledInDevelopmentBuilds() string {
+	return Catalog.Format(msgs.locale, "updates_are_disabled_in_development_builds", nil)
+}
+
+// UseHttpProxyHttpsProxyOrThe says "开启后使用 HTTP_PROXY / HTTPS_PROXY 环境代理，也可填写下方地址；关闭后直连。"
+// in the language the app shows.
+func UseHttpProxyHttpsProxyOrThe() string { return In(i18n.Locale()).UseHttpProxyHttpsProxyOrThe() }
+
+// UseHttpProxyHttpsProxyOrThe says "开启后使用 HTTP_PROXY / HTTPS_PROXY 环境代理，也可填写下方地址；关闭后直连。"
+// in the language of msgs.
+func (msgs Messages) UseHttpProxyHttpsProxyOrThe() string {
+	return Catalog.Format(msgs.locale, "use_http_proxy_https_proxy_or_the", nil)
+}
+
+// UseTheSystemProxyDisableToConnect says "开启后使用系统代理；关闭后翻译请求直接连接服务。"
+// in the language the app shows.
+func UseTheSystemProxyDisableToConnect() string {
+	return In(i18n.Locale()).UseTheSystemProxyDisableToConnect()
+}
+
+// UseTheSystemProxyDisableToConnect says "开启后使用系统代理；关闭后翻译请求直接连接服务。"
+// in the language of msgs.
+func (msgs Messages) UseTheSystemProxyDisableToConnect() string {
+	return Catalog.Format(msgs.locale, "use_the_system_proxy_disable_to_connect", nil)
+}
+
+// ShowNearThePointerOrCenteredOn says "开启后在鼠标附近弹出；关闭时在鼠标所在屏幕居中显示。固定的浮窗保留当前位置。"
+// in the language the app shows.
+func ShowNearThePointerOrCenteredOn() string {
+	return In(i18n.Locale()).ShowNearThePointerOrCenteredOn()
+}
+
+// ShowNearThePointerOrCenteredOn says "开启后在鼠标附近弹出；关闭时在鼠标所在屏幕居中显示。固定的浮窗保留当前位置。"
+// in the language of msgs.
+func (msgs Messages) ShowNearThePointerOrCenteredOn() string {
+	return Catalog.Format(msgs.locale, "show_near_the_pointer_or_centered_on", nil)
+}
+
+// TranslationHistoryIsNotBeingSaved says "当前不保留翻译历史。"
+// in the language the app shows.
+func TranslationHistoryIsNotBeingSaved() string {
+	return In(i18n.Locale()).TranslationHistoryIsNotBeingSaved()
+}
+
+// TranslationHistoryIsNotBeingSaved says "当前不保留翻译历史。"
+// in the language of msgs.
+func (msgs Messages) TranslationHistoryIsNotBeingSaved() string {
+	return Catalog.Format(msgs.locale, "translation_history_is_not_being_saved", nil)
+}
+
+// AutomaticSelectionIsUnavailableOnThisSystem says "当前系统暂不支持自动划词，可以使用快捷键取词。"
+// in the language the app shows.
+func AutomaticSelectionIsUnavailableOnThisSystem() string {
+	return In(i18n.Locale()).AutomaticSelectionIsUnavailableOnThisSystem()
+}
+
+// AutomaticSelectionIsUnavailableOnThisSystem says "当前系统暂不支持自动划词，可以使用快捷键取词。"
+// in the language of msgs.
+func (msgs Messages) AutomaticSelectionIsUnavailableOnThisSystem() string {
+	return Catalog.Format(msgs.locale, "automatic_selection_is_unavailable_on_this_system", nil)
+}
+
+// German says "德语"
+// in the language the app shows.
+func German() string { return In(i18n.Locale()).German() }
+
+// German says "德语"
+// in the language of msgs.
+func (msgs Messages) German() string {
+	return Catalog.Format(msgs.locale, "german", nil)
+}
+
+// Bing says "必应"
+// in the language the app shows.
+func Bing() string { return In(i18n.Locale()).Bing() }
+
+// Bing says "必应"
+// in the language of msgs.
+func (msgs Messages) Bing() string {
+	return Catalog.Format(msgs.locale, "bing", nil)
+}
+
+// Shortcuts says "快捷键"
+// in the language the app shows.
+func Shortcuts() string { return In(i18n.Locale()).Shortcuts() }
+
+// Shortcuts says "快捷键"
+// in the language of msgs.
+func (msgs Messages) Shortcuts() string {
+	return Catalog.Format(msgs.locale, "shortcuts", nil)
+}
+
+// ShortcutSettings says "快捷键设置…"
+// in the language the app shows.
+func ShortcutSettings() string { return In(i18n.Locale()).ShortcutSettings() }
+
+// ShortcutSettings says "快捷键设置…"
+// in the language of msgs.
+func (msgs Messages) ShortcutSettings() string {
+	return Catalog.Format(msgs.locale, "shortcut_settings", nil)
+}
+
+// Restore says "恢复"
+// in the language the app shows.
+func Restore() string { return In(i18n.Locale()).Restore() }
+
+// Restore says "恢复"
+// in the language of msgs.
+func (msgs Messages) Restore() string {
+	return Catalog.Format(msgs.locale, "restore", nil)
+}
+
+// ConfirmationIsRequiredBeforeRestoringLocalWebdav says "恢复到本地前会确认，WebDAV 登录信息保留在本机。"
+// in the language the app shows.
+func ConfirmationIsRequiredBeforeRestoringLocalWebdav() string {
+	return In(i18n.Locale()).ConfirmationIsRequiredBeforeRestoringLocalWebdav()
+}
+
+// ConfirmationIsRequiredBeforeRestoringLocalWebdav says "恢复到本地前会确认，WebDAV 登录信息保留在本机。"
+// in the language of msgs.
+func (msgs Messages) ConfirmationIsRequiredBeforeRestoringLocalWebdav() string {
+	return Catalog.Format(msgs.locale, "confirmation_is_required_before_restoring_local_webdav", nil)
+}
+
+// Italian says "意大利语"
+// in the language the app shows.
+func Italian() string { return In(i18n.Locale()).Italian() }
+
+// Italian says "意大利语"
+// in the language of msgs.
+func (msgs Messages) Italian() string {
+	return Catalog.Format(msgs.locale, "italian", nil)
+}
+
+// Screenshot says "截图"
+// in the language the app shows.
+func Screenshot() string { return In(i18n.Locale()).Screenshot() }
+
+// Screenshot says "截图"
+// in the language of msgs.
+func (msgs Messages) Screenshot() string {
+	return Catalog.Format(msgs.locale, "screenshot", nil)
+}
+
+// TranslateScreenshotWithOcr says "截图 OCR 翻译"
+// in the language the app shows.
+func TranslateScreenshotWithOcr() string { return In(i18n.Locale()).TranslateScreenshotWithOcr() }
+
+// TranslateScreenshotWithOcr says "截图 OCR 翻译"
+// in the language of msgs.
+func (msgs Messages) TranslateScreenshotWithOcr() string {
+	return Catalog.Format(msgs.locale, "translate_screenshot_with_ocr", nil)
+}
+
+// ScreenshotOrOcrTimedOutSelectA says "截图或文字识别超时，请缩小范围后重试"
+// in the language the app shows.
+func ScreenshotOrOcrTimedOutSelectA() string {
+	return In(i18n.Locale()).ScreenshotOrOcrTimedOutSelectA()
+}
+
+// ScreenshotOrOcrTimedOutSelectA says "截图或文字识别超时，请缩小范围后重试"
+// in the language of msgs.
+func (msgs Messages) ScreenshotOrOcrTimedOutSelectA() string {
+	return Catalog.Format(msgs.locale, "screenshot_or_ocr_timed_out_select_a", nil)
+}
+
+// Open says "打开"
+// in the language the app shows.
+func Open() string { return In(i18n.Locale()).Open() }
+
+// Open says "打开"
+// in the language of msgs.
+func (msgs Messages) Open() string {
+	return Catalog.Format(msgs.locale, "open", nil)
+}
+
+// OpenPopup says "打开浮窗"
+// in the language the app shows.
+func OpenPopup() string { return In(i18n.Locale()).OpenPopup() }
+
+// OpenPopup says "打开浮窗"
+// in the language of msgs.
+func (msgs Messages) OpenPopup() string {
+	return Catalog.Format(msgs.locale, "open_popup", nil)
+}
+
+// OpenTranslationPopup says "打开翻译浮窗"
+// in the language the app shows.
+func OpenTranslationPopup() string { return In(i18n.Locale()).OpenTranslationPopup() }
+
+// OpenTranslationPopup says "打开翻译浮窗"
+// in the language of msgs.
+func (msgs Messages) OpenTranslationPopup() string {
+	return Catalog.Format(msgs.locale, "open_translation_popup", nil)
+}
+
+// OpenAccessibilitySettings says "打开辅助功能设置"
+// in the language the app shows.
+func OpenAccessibilitySettings() string { return In(i18n.Locale()).OpenAccessibilitySettings() }
+
+// OpenAccessibilitySettings says "打开辅助功能设置"
+// in the language of msgs.
+func (msgs Messages) OpenAccessibilitySettings() string {
+	return Catalog.Format(msgs.locale, "open_accessibility_settings", nil)
+}
+
+// SystemTray says "托盘"
+// in the language the app shows.
+func SystemTray() string { return In(i18n.Locale()).SystemTray() }
+
+// SystemTray says "托盘"
+// in the language of msgs.
+func (msgs Messages) SystemTray() string {
+	return Catalog.Format(msgs.locale, "system_tray", nil)
+}
+
+// DragToReorderServices says "拖动调整服务顺序"
+// in the language the app shows.
+func DragToReorderServices() string { return In(i18n.Locale()).DragToReorderServices() }
+
+// DragToReorderServices says "拖动调整服务顺序"
+// in the language of msgs.
+func (msgs Messages) DragToReorderServices() string {
+	return Catalog.Format(msgs.locale, "drag_to_reorder_services", nil)
+}
+
+// SearchSourceTextOrTranslations says "搜索原文或译文"
+// in the language the app shows.
+func SearchSourceTextOrTranslations() string {
+	return In(i18n.Locale()).SearchSourceTextOrTranslations()
+}
+
+// SearchSourceTextOrTranslations says "搜索原文或译文"
+// in the language of msgs.
+func (msgs Messages) SearchSourceTextOrTranslations() string {
+	return Catalog.Format(msgs.locale, "search_source_text_or_translations", nil)
+}
+
+// SearchSettings says "搜索设置"
+// in the language the app shows.
+func SearchSettings() string { return In(i18n.Locale()).SearchSettings() }
+
+// SearchSettings says "搜索设置"
+// in the language of msgs.
+func (msgs Messages) SearchSettings() string {
+	return Catalog.Format(msgs.locale, "search_settings", nil)
+}
+
+// CollapseTranslation says "收起译文"
+// in the language the app shows.
+func CollapseTranslation() string { return In(i18n.Locale()).CollapseTranslation() }
+
+// CollapseTranslation says "收起译文"
+// in the language of msgs.
+func (msgs Messages) CollapseTranslation() string {
+	return Catalog.Format(msgs.locale, "collapse_translation", nil)
+}
+
+// File says "文件"
+// in the language the app shows.
+func File() string { return In(i18n.Locale()).File() }
+
+// File says "文件"
+// in the language of msgs.
+func (msgs Messages) File() string {
+	return Catalog.Format(msgs.locale, "file", nil)
+}
+
+// CannotReturnToTheOriginalAppUse says "无法返回原应用。请在原应用中使用翻译快捷键。"
+// in the language the app shows.
+func CannotReturnToTheOriginalAppUse() string {
+	return In(i18n.Locale()).CannotReturnToTheOriginalAppUse()
+}
+
+// CannotReturnToTheOriginalAppUse says "无法返回原应用。请在原应用中使用翻译快捷键。"
+// in the language of msgs.
+func (msgs Messages) CannotReturnToTheOriginalAppUse() string {
+	return Catalog.Format(msgs.locale, "cannot_return_to_the_original_app_use", nil)
+}
+
+// Japanese says "日语"
+// in the language the app shows.
+func Japanese() string { return In(i18n.Locale()).Japanese() }
+
+// Japanese says "日语"
+// in the language of msgs.
+func (msgs Messages) Japanese() string {
+	return Catalog.Format(msgs.locale, "japanese", nil)
+}
+
+// Show says "显示"
+// in the language the app shows.
+func Show() string { return In(i18n.Locale()).Show() }
+
+// Show says "显示"
+// in the language of msgs.
+func (msgs Messages) Show() string {
+	return Catalog.Format(msgs.locale, "show", nil)
+}
+
+// ShowSourceInput says "显示原文输入框"
+// in the language the app shows.
+func ShowSourceInput() string { return In(i18n.Locale()).ShowSourceInput() }
+
+// ShowSourceInput says "显示原文输入框"
+// in the language of msgs.
+func (msgs Messages) ShowSourceInput() string {
+	return Catalog.Format(msgs.locale, "show_source_input", nil)
+}
+
+// ShowIcons says "显示图标"
+// in the language the app shows.
+func ShowIcons() string { return In(i18n.Locale()).ShowIcons() }
+
+// ShowIcons says "显示图标"
+// in the language of msgs.
+func (msgs Messages) ShowIcons() string {
+	return Catalog.Format(msgs.locale, "show_icons", nil)
+}
+
+// ShowLanguageBar says "显示语言栏"
+// in the language the app shows.
+func ShowLanguageBar() string { return In(i18n.Locale()).ShowLanguageBar() }
+
+// ShowLanguageBar says "显示语言栏"
+// in the language of msgs.
+func (msgs Messages) ShowLanguageBar() string {
+	return Catalog.Format(msgs.locale, "show_language_bar", nil)
+}
+
+// SmartTranslation says "智能互译"
+// in the language the app shows.
+func SmartTranslation() string { return In(i18n.Locale()).SmartTranslation() }
+
+// SmartTranslation says "智能互译"
+// in the language of msgs.
+func (msgs Messages) SmartTranslation() string {
+	return Catalog.Format(msgs.locale, "smart_translation", nil)
+}
+
+// SmartTranslationChineseToEnglishOtherLanguages says "智能互译：中文译为英文，其他语言译为中文；也可指定目标语言。"
+// in the language the app shows.
+func SmartTranslationChineseToEnglishOtherLanguages() string {
+	return In(i18n.Locale()).SmartTranslationChineseToEnglishOtherLanguages()
+}
+
+// SmartTranslationChineseToEnglishOtherLanguages says "智能互译：中文译为英文，其他语言译为中文；也可指定目标语言。"
+// in the language of msgs.
+func (msgs Messages) SmartTranslationChineseToEnglishOtherLanguages() string {
+	return Catalog.Format(msgs.locale, "smart_translation_chinese_to_english_other_languages", nil)
+}
+
+// NoMatchingTranslations says "暂无匹配的翻译记录"
+// in the language the app shows.
+func NoMatchingTranslations() string { return In(i18n.Locale()).NoMatchingTranslations() }
+
+// NoMatchingTranslations says "暂无匹配的翻译记录"
+// in the language of msgs.
+func (msgs Messages) NoMatchingTranslations() string {
+	return Catalog.Format(msgs.locale, "no_matching_translations", nil)
+}
+
+// NoRemoteBackups says "暂无远程备份"
+// in the language the app shows.
+func NoRemoteBackups() string { return In(i18n.Locale()).NoRemoteBackups() }
+
+// NoRemoteBackups says "暂无远程备份"
+// in the language of msgs.
+func (msgs Messages) NoRemoteBackups() string {
+	return Catalog.Format(msgs.locale, "no_remote_backups", nil)
+}
+
+// UpdatesUnavailableUseAReleaseBuildAnd says "更新不可用，请使用正式安装包并确认安装目录可写"
+// in the language the app shows.
+func UpdatesUnavailableUseAReleaseBuildAnd() string {
+	return In(i18n.Locale()).UpdatesUnavailableUseAReleaseBuildAnd()
+}
+
+// UpdatesUnavailableUseAReleaseBuildAnd says "更新不可用，请使用正式安装包并确认安装目录可写"
+// in the language of msgs.
+func (msgs Messages) UpdatesUnavailableUseAReleaseBuildAnd() string {
+	return Catalog.Format(msgs.locale, "updates_unavailable_use_a_release_build_and", nil)
+}
+
+// KeepUpToDEntriesOnThis says "最多保留 %d 条记录，存储在本机。"
+// in the language the app shows.
+func KeepUpToDEntriesOnThis() string { return In(i18n.Locale()).KeepUpToDEntriesOnThis() }
+
+// KeepUpToDEntriesOnThis says "最多保留 %d 条记录，存储在本机。"
+// in the language of msgs.
+func (msgs Messages) KeepUpToDEntriesOnThis() string {
+	return Catalog.Format(msgs.locale, "keep_up_to_d_entries_on_this", nil)
+}
+
+// YouCanConfigureUpTo24Services says "最多配置 24 个翻译服务"
+// in the language the app shows.
+func YouCanConfigureUpTo24Services() string { return In(i18n.Locale()).YouCanConfigureUpTo24Services() }
+
+// YouCanConfigureUpTo24Services says "最多配置 24 个翻译服务"
+// in the language of msgs.
+func (msgs Messages) YouCanConfigureUpTo24Services() string {
+	return Catalog.Format(msgs.locale, "you_can_configure_up_to_24_services", nil)
+}
+
+// Minimize says "最小化"
+// in the language the app shows.
+func Minimize() string { return In(i18n.Locale()).Minimize() }
+
+// Minimize says "最小化"
+// in the language of msgs.
+func (msgs Messages) Minimize() string {
+	return Catalog.Format(msgs.locale, "minimize", nil)
+}
+
+// MinimizeSettings says "最小化设置"
+// in the language the app shows.
+func MinimizeSettings() string { return In(i18n.Locale()).MinimizeSettings() }
+
+// MinimizeSettings says "最小化设置"
+// in the language of msgs.
+func (msgs Messages) MinimizeSettings() string {
+	return Catalog.Format(msgs.locale, "minimize_settings", nil)
+}
+
+// Services says "服务"
+// in the language the app shows.
+func Services() string { return In(i18n.Locale()).Services() }
+
+// Services says "服务"
+// in the language of msgs.
+func (msgs Messages) Services() string {
+	return Catalog.Format(msgs.locale, "services", nil)
+}
+
+// ServiceName says "服务名称"
+// in the language the app shows.
+func ServiceName() string { return In(i18n.Locale()).ServiceName() }
+
+// ServiceName says "服务名称"
+// in the language of msgs.
+func (msgs Messages) ServiceName() string {
+	return Catalog.Format(msgs.locale, "service_name", nil)
+}
+
+// LeaveTheUrlEmptyToSelectFree says "服务地址留空时自动选择 Free 或 Pro。也可填写域名、/v2 基础地址或完整翻译接口地址。"
+// in the language the app shows.
+func LeaveTheUrlEmptyToSelectFree() string { return In(i18n.Locale()).LeaveTheUrlEmptyToSelectFree() }
+
+// LeaveTheUrlEmptyToSelectFree says "服务地址留空时自动选择 Free 或 Pro。也可填写域名、/v2 基础地址或完整翻译接口地址。"
+// in the language of msgs.
+func (msgs Messages) LeaveTheUrlEmptyToSelectFree() string {
+	return Catalog.Format(msgs.locale, "leave_the_url_empty_to_select_free", nil)
+}
+
+// ApiKeys says "服务密钥"
+// in the language the app shows.
+func ApiKeys() string { return In(i18n.Locale()).ApiKeys() }
+
+// ApiKeys says "服务密钥"
+// in the language of msgs.
+func (msgs Messages) ApiKeys() string {
+	return Catalog.Format(msgs.locale, "api_keys", nil)
+}
+
+// ServiceConfiguration says "服务配置"
+// in the language the app shows.
+func ServiceConfiguration() string { return In(i18n.Locale()).ServiceConfiguration() }
+
+// ServiceConfiguration says "服务配置"
+// in the language of msgs.
+func (msgs Messages) ServiceConfiguration() string {
+	return Catalog.Format(msgs.locale, "service_configuration", nil)
+}
+
+// UnknownConfigurationOperation says "未知的配置操作"
+// in the language the app shows.
+func UnknownConfigurationOperation() string { return In(i18n.Locale()).UnknownConfigurationOperation() }
+
+// UnknownConfigurationOperation says "未知的配置操作"
+// in the language of msgs.
+func (msgs Messages) UnknownConfigurationOperation() string {
+	return Catalog.Format(msgs.locale, "unknown_configuration_operation", nil)
+}
+
+// NotSet says "未设置"
+// in the language the app shows.
+func NotSet() string { return In(i18n.Locale()).NotSet() }
+
+// NotSet says "未设置"
+// in the language of msgs.
+func (msgs Messages) NotSet() string {
+	return Catalog.Format(msgs.locale, "not_set", nil)
+}
+
+// ViewNewVersion says "查看新版本 "
+// in the language the app shows.
+func ViewNewVersion() string { return In(i18n.Locale()).ViewNewVersion() }
+
+// ViewNewVersion says "查看新版本 "
+// in the language of msgs.
+func (msgs Messages) ViewNewVersion() string {
+	return Catalog.Format(msgs.locale, "view_new_version", nil)
+}
+
+// ViewUpdate says "查看更新"
+// in the language the app shows.
+func ViewUpdate() string { return In(i18n.Locale()).ViewUpdate() }
+
+// ViewUpdate says "查看更新"
+// in the language of msgs.
+func (msgs Messages) ViewUpdate() string {
+	return Catalog.Format(msgs.locale, "view_update", nil)
+}
+
+// ServiceDocumentation says "查看服务说明 ↗"
+// in the language the app shows.
+func ServiceDocumentation() string { return In(i18n.Locale()).ServiceDocumentation() }
+
+// ServiceDocumentation says "查看服务说明 ↗"
+// in the language of msgs.
+func (msgs Messages) ServiceDocumentation() string {
+	return Catalog.Format(msgs.locale, "service_documentation", nil)
+}
+
+// CheckForUpdates says "检查更新"
+// in the language the app shows.
+func CheckForUpdates() string { return In(i18n.Locale()).CheckForUpdates() }
+
+// CheckForUpdates says "检查更新"
+// in the language of msgs.
+func (msgs Messages) CheckForUpdates() string {
+	return Catalog.Format(msgs.locale, "check_for_updates", nil)
+}
+
+// CheckForUpdates7469d0 says "检查更新…"
+// in the language the app shows.
+func CheckForUpdates7469d0() string { return In(i18n.Locale()).CheckForUpdates7469d0() }
+
+// CheckForUpdates7469d0 says "检查更新…"
+// in the language of msgs.
+func (msgs Messages) CheckForUpdates7469d0() string {
+	return Catalog.Format(msgs.locale, "check_for_updates_7469d0", nil)
+}
+
+// Detected says "检测到"
+// in the language the app shows.
+func Detected() string { return In(i18n.Locale()).Detected() }
+
+// Detected says "检测到"
+// in the language of msgs.
+func (msgs Messages) Detected() string {
+	return Catalog.Format(msgs.locale, "detected", nil)
+}
+
+// ModelName says "模型名称"
+// in the language the app shows.
+func ModelName() string { return In(i18n.Locale()).ModelName() }
+
+// ModelName says "模型名称"
+// in the language of msgs.
+func (msgs Messages) ModelName() string {
+	return Catalog.Format(msgs.locale, "model_name", nil)
+}
+
+// ModelNameCca1d3 says "模型名称 *"
+// in the language the app shows.
+func ModelNameCca1d3() string { return In(i18n.Locale()).ModelNameCca1d3() }
+
+// ModelNameCca1d3 says "模型名称 *"
+// in the language of msgs.
+func (msgs Messages) ModelNameCca1d3() string {
+	return Catalog.Format(msgs.locale, "model_name_cca1d3", nil)
+}
+
+// PreparingTranslation says "正在准备翻译…"
+// in the language the app shows.
+func PreparingTranslation() string { return In(i18n.Locale()).PreparingTranslation() }
+
+// PreparingTranslation says "正在准备翻译…"
+// in the language of msgs.
+func (msgs Messages) PreparingTranslation() string {
+	return Catalog.Format(msgs.locale, "preparing_translation", nil)
+}
+
+// Processing says "正在处理…"
+// in the language the app shows.
+func Processing() string { return In(i18n.Locale()).Processing() }
+
+// Processing says "正在处理…"
+// in the language of msgs.
+func (msgs Messages) Processing() string {
+	return Catalog.Format(msgs.locale, "processing", nil)
+}
+
+// Translating says "正在翻译…"
+// in the language the app shows.
+func Translating() string { return In(i18n.Locale()).Translating() }
+
+// Translating says "正在翻译…"
+// in the language of msgs.
+func (msgs Messages) Translating() string {
+	return Catalog.Format(msgs.locale, "translating", nil)
+}
+
+// RecognizingImageText says "正在识别图片文字…"
+// in the language the app shows.
+func RecognizingImageText() string { return In(i18n.Locale()).RecognizingImageText() }
+
+// RecognizingImageText says "正在识别图片文字…"
+// in the language of msgs.
+func (msgs Messages) RecognizingImageText() string {
+	return Catalog.Format(msgs.locale, "recognizing_image_text", nil)
+}
+
+// LoadingHistory says "正在读取历史…"
+// in the language the app shows.
+func LoadingHistory() string { return In(i18n.Locale()).LoadingHistory() }
+
+// LoadingHistory says "正在读取历史…"
+// in the language of msgs.
+func (msgs Messages) LoadingHistory() string {
+	return Catalog.Format(msgs.locale, "loading_history", nil)
+}
+
+// NoMatchingSettings says "没有匹配的设置"
+// in the language the app shows.
+func NoMatchingSettings() string { return In(i18n.Locale()).NoMatchingSettings() }
+
+// NoMatchingSettings says "没有匹配的设置"
+// in the language of msgs.
+func (msgs Messages) NoMatchingSettings() string {
+	return Catalog.Format(msgs.locale, "no_matching_settings", nil)
+}
+
+// OriginalAppNotFoundReturnToIt says "没有找到原应用。请回到原应用选中文字，再使用翻译快捷键。"
+// in the language the app shows.
+func OriginalAppNotFoundReturnToIt() string { return In(i18n.Locale()).OriginalAppNotFoundReturnToIt() }
+
+// OriginalAppNotFoundReturnToIt says "没有找到原应用。请回到原应用选中文字，再使用翻译快捷键。"
+// in the language of msgs.
+func (msgs Messages) OriginalAppNotFoundReturnToIt() string {
+	return Catalog.Format(msgs.locale, "original_app_not_found_return_to_it", nil)
+}
+
+// French says "法语"
+// in the language the app shows.
+func French() string { return In(i18n.Locale()).French() }
+
+// French says "法语"
+// in the language of msgs.
+func (msgs Messages) French() string {
+	return Catalog.Format(msgs.locale, "french", nil)
+}
+
+// Thai says "泰语"
+// in the language the app shows.
+func Thai() string { return In(i18n.Locale()).Thai() }
+
+// Thai says "泰语"
+// in the language of msgs.
+func (msgs Messages) Thai() string {
+	return Catalog.Format(msgs.locale, "thai", nil)
+}
+
+// Testing says "测试中…"
+// in the language the app shows.
+func Testing() string { return In(i18n.Locale()).Testing() }
+
+// Testing says "测试中…"
+// in the language of msgs.
+func (msgs Messages) Testing() string {
+	return Catalog.Format(msgs.locale, "testing", nil)
+}
+
+// TestConnection says "测试连接"
+// in the language the app shows.
+func TestConnection() string { return In(i18n.Locale()).TestConnection() }
+
+// TestConnection says "测试连接"
+// in the language of msgs.
+func (msgs Messages) TestConnection() string {
+	return Catalog.Format(msgs.locale, "test_connection", nil)
+}
+
+// TestConnection8a598a says "测试连通性"
+// in the language the app shows.
+func TestConnection8a598a() string { return In(i18n.Locale()).TestConnection8a598a() }
+
+// TestConnection8a598a says "测试连通性"
+// in the language of msgs.
+func (msgs Messages) TestConnection8a598a() string {
+	return Catalog.Format(msgs.locale, "test_connection_8a598a", nil)
+}
+
+// ShowPopupNearPointer says "浮窗随鼠标显示"
+// in the language the app shows.
+func ShowPopupNearPointer() string { return In(i18n.Locale()).ShowPopupNearPointer() }
+
+// ShowPopupNearPointer says "浮窗随鼠标显示"
+// in the language of msgs.
+func (msgs Messages) ShowPopupNearPointer() string {
+	return Catalog.Format(msgs.locale, "show_popup_near_pointer", nil)
+}
+
+// AddService says "添加服务"
+// in the language the app shows.
+func AddService() string { return In(i18n.Locale()).AddService() }
+
+// AddService says "添加服务"
+// in the language of msgs.
+func (msgs Messages) AddService() string {
+	return Catalog.Format(msgs.locale, "add_service", nil)
+}
+
+// ClearHistory says "清空历史"
+// in the language the app shows.
+func ClearHistory() string { return In(i18n.Locale()).ClearHistory() }
+
+// ClearHistory says "清空历史"
+// in the language of msgs.
+func (msgs Messages) ClearHistory() string {
+	return Catalog.Format(msgs.locale, "clear_history", nil)
+}
+
+// Clear says "清除"
+// in the language the app shows.
+func Clear() string { return In(i18n.Locale()).Clear() }
+
+// Clear says "清除"
+// in the language of msgs.
+func (msgs Messages) Clear() string {
+	return Catalog.Format(msgs.locale, "clear", nil)
+}
+
+// ClearShortcut says "清除快捷键"
+// in the language the app shows.
+func ClearShortcut() string { return In(i18n.Locale()).ClearShortcut() }
+
+// ClearShortcut says "清除快捷键"
+// in the language of msgs.
+func (msgs Messages) ClearShortcut() string {
+	return Catalog.Format(msgs.locale, "clear_shortcut", nil)
+}
+
+// ServiceGoogleBingTencentBaiduDeeplDeeplx says "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"
+// in the language the app shows.
+func ServiceGoogleBingTencentBaiduDeeplDeeplx() string {
+	return In(i18n.Locale()).ServiceGoogleBingTencentBaiduDeeplDeeplx()
+}
+
+// ServiceGoogleBingTencentBaiduDeeplDeeplx says "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"
+// in the language of msgs.
+func (msgs Messages) ServiceGoogleBingTencentBaiduDeeplDeeplx() string {
+	return Catalog.Format(msgs.locale, "service_google_bing_tencent_baidu_deepl_deeplx", nil)
+}
+
+// SourceLanguage says "源语言"
+// in the language the app shows.
+func SourceLanguage() string { return In(i18n.Locale()).SourceLanguage() }
+
+// SourceLanguage says "源语言"
+// in the language of msgs.
+func (msgs Messages) SourceLanguage() string {
+	return Catalog.Format(msgs.locale, "source_language", nil)
+}
+
+// ClickUploadSettingsToCreateYourFirst says "点击“上传配置”创建第一份备份。"
+// in the language the app shows.
+func ClickUploadSettingsToCreateYourFirst() string {
+	return In(i18n.Locale()).ClickUploadSettingsToCreateYourFirst()
+}
+
+// ClickUploadSettingsToCreateYourFirst says "点击“上传配置”创建第一份备份。"
+// in the language of msgs.
+func (msgs Messages) ClickUploadSettingsToCreateYourFirst() string {
+	return Catalog.Format(msgs.locale, "click_upload_settings_to_create_your_first", nil)
+}
+
+// ClickToRecordAShortcutChangesApply says "点击录入快捷键，设置后自动生效。全局录入按 Esc 取消；浮窗支持 Enter、Esc …"
+// in the language the app shows.
+func ClickToRecordAShortcutChangesApply() string {
+	return In(i18n.Locale()).ClickToRecordAShortcutChangesApply()
+}
+
+// ClickToRecordAShortcutChangesApply says "点击录入快捷键，设置后自动生效。全局录入按 Esc 取消；浮窗支持 Enter、Esc …"
+// in the language of msgs.
+func (msgs Messages) ClickToRecordAShortcutChangesApply() string {
+	return Catalog.Format(msgs.locale, "click_to_record_a_shortcut_changes_apply", nil)
+}
+
+// HotkeyShortcutOpen says "热键 组合 呼出"
+// in the language the app shows.
+func HotkeyShortcutOpen() string { return In(i18n.Locale()).HotkeyShortcutOpen() }
+
+// HotkeyShortcutOpen says "热键 组合 呼出"
+// in the language of msgs.
+func (msgs Messages) HotkeyShortcutOpen() string {
+	return Catalog.Format(msgs.locale, "hotkey_shortcut_open", nil)
+}
+
+// Version says "版本"
+// in the language the app shows.
+func Version() string { return In(i18n.Locale()).Version() }
+
+// Version says "版本"
+// in the language of msgs.
+func (msgs Messages) Version() string {
+	return Catalog.Format(msgs.locale, "version", nil)
+}
+
+// VersionGlidePrivacyLocalDataKeysClear says "版本 Glide 隐私 本地 数据 密钥 清空"
+// in the language the app shows.
+func VersionGlidePrivacyLocalDataKeysClear() string {
+	return In(i18n.Locale()).VersionGlidePrivacyLocalDataKeysClear()
+}
+
+// VersionGlidePrivacyLocalDataKeysClear says "版本 Glide 隐私 本地 数据 密钥 清空"
+// in the language of msgs.
+func (msgs Messages) VersionGlidePrivacyLocalDataKeysClear() string {
+	return Catalog.Format(msgs.locale, "version_glide_privacy_local_data_keys_clear", nil)
+}
+
+// ReplaceLocalServicesAndPreferencesWithA says "用 JSON 文件替换本机服务和偏好，保留 WebDAV 配置。"
+// in the language the app shows.
+func ReplaceLocalServicesAndPreferencesWithA() string {
+	return In(i18n.Locale()).ReplaceLocalServicesAndPreferencesWithA()
+}
+
+// ReplaceLocalServicesAndPreferencesWithA says "用 JSON 文件替换本机服务和偏好，保留 WebDAV 配置。"
+// in the language of msgs.
+func (msgs Messages) ReplaceLocalServicesAndPreferencesWithA() string {
+	return Catalog.Format(msgs.locale, "replace_local_services_and_preferences_with_a", nil)
+}
+
+// Username says "用户名"
+// in the language the app shows.
+func Username() string { return In(i18n.Locale()).Username() }
+
+// Username says "用户名"
+// in the language of msgs.
+func (msgs Messages) Username() string {
+	return Catalog.Format(msgs.locale, "username", nil)
+}
+
+// InterfaceLanguage says "界面语言"
+// in the language the app shows.
+func InterfaceLanguage() string { return In(i18n.Locale()).InterfaceLanguage() }
+
+// InterfaceLanguage says "界面语言"
+// in the language of msgs.
+func (msgs Messages) InterfaceLanguage() string {
+	return Catalog.Format(msgs.locale, "interface_language", nil)
+}
+
+// LeaveEmptyToUseTheSystemProxy says "留空跟随系统代理，填写后优先使用此地址。支持 HTTP、HTTPS 和 SOCKS5。"
+// in the language the app shows.
+func LeaveEmptyToUseTheSystemProxy() string { return In(i18n.Locale()).LeaveEmptyToUseTheSystemProxy() }
+
+// LeaveEmptyToUseTheSystemProxy says "留空跟随系统代理，填写后优先使用此地址。支持 HTTP、HTTPS 和 SOCKS5。"
+// in the language of msgs.
+func (msgs Messages) LeaveEmptyToUseTheSystemProxy() string {
+	return Catalog.Format(msgs.locale, "leave_empty_to_use_the_system_proxy", nil)
+}
+
+// Baidu says "百度"
+// in the language the app shows.
+func Baidu() string { return In(i18n.Locale()).Baidu() }
+
+// Baidu says "百度"
+// in the language of msgs.
+func (msgs Messages) Baidu() string {
+	return Catalog.Format(msgs.locale, "baidu", nil)
+}
+
+// TargetLanguage says "目标语言"
+// in the language the app shows.
+func TargetLanguage() string { return In(i18n.Locale()).TargetLanguage() }
+
+// TargetLanguage says "目标语言"
+// in the language of msgs.
+func (msgs Messages) TargetLanguage() string {
+	return Catalog.Format(msgs.locale, "target_language", nil)
+}
+
+// GotIt says "知道了"
+// in the language the app shows.
+func GotIt() string { return In(i18n.Locale()).GotIt() }
+
+// GotIt says "知道了"
+// in the language of msgs.
+func (msgs Messages) GotIt() string {
+	return Catalog.Format(msgs.locale, "got_it", nil)
+}
+
+// Delete says "确定删除“"
+// in the language the app shows.
+func Delete() string { return In(i18n.Locale()).Delete() }
+
+// Delete says "确定删除“"
+// in the language of msgs.
+func (msgs Messages) Delete() string {
+	return Catalog.Format(msgs.locale, "delete", nil)
+}
+
+// DeleteThisTranslationEntry says "确定删除这条翻译记录？"
+// in the language the app shows.
+func DeleteThisTranslationEntry() string { return In(i18n.Locale()).DeleteThisTranslationEntry() }
+
+// DeleteThisTranslationEntry says "确定删除这条翻译记录？"
+// in the language of msgs.
+func (msgs Messages) DeleteThisTranslationEntry() string {
+	return Catalog.Format(msgs.locale, "delete_this_translation_entry", nil)
+}
+
+// PermanentlyDeleteBackup says "确定永久删除备份“"
+// in the language the app shows.
+func PermanentlyDeleteBackup() string { return In(i18n.Locale()).PermanentlyDeleteBackup() }
+
+// PermanentlyDeleteBackup says "确定永久删除备份“"
+// in the language of msgs.
+func (msgs Messages) PermanentlyDeleteBackup() string {
+	return Catalog.Format(msgs.locale, "permanently_delete_backup", nil)
+}
+
+// ClearThe says "确定清除“"
+// in the language the app shows.
+func ClearThe() string { return In(i18n.Locale()).ClearThe() }
+
+// ClearThe says "确定清除“"
+// in the language of msgs.
+func (msgs Messages) ClearThe() string {
+	return Catalog.Format(msgs.locale, "clear_the", nil)
+}
+
+// Confirm says "确认"
+// in the language the app shows.
+func Confirm() string { return In(i18n.Locale()).Confirm() }
+
+// Confirm says "确认"
+// in the language of msgs.
+func (msgs Messages) Confirm() string {
+	return Catalog.Format(msgs.locale, "confirm", nil)
+}
+
+// ConfirmClear says "确认清空"
+// in the language the app shows.
+func ConfirmClear() string { return In(i18n.Locale()).ConfirmClear() }
+
+// ConfirmClear says "确认清空"
+// in the language of msgs.
+func (msgs Messages) ConfirmClear() string {
+	return Catalog.Format(msgs.locale, "confirm_clear", nil)
+}
+
+// ConfirmReplace says "确认覆盖"
+// in the language the app shows.
+func ConfirmReplace() string { return In(i18n.Locale()).ConfirmReplace() }
+
+// ConfirmReplace says "确认覆盖"
+// in the language of msgs.
+func (msgs Messages) ConfirmReplace() string {
+	return Catalog.Format(msgs.locale, "confirm_replace", nil)
+}
+
+// Window says "窗口"
+// in the language the app shows.
+func Window() string { return In(i18n.Locale()).Window() }
+
+// Window says "窗口"
+// in the language of msgs.
+func (msgs Messages) Window() string {
+	return Catalog.Format(msgs.locale, "window", nil)
+}
+
+// SimplifiedChinese says "简体中文"
+// in the language the app shows.
+func SimplifiedChinese() string { return In(i18n.Locale()).SimplifiedChinese() }
+
+// SimplifiedChinese says "简体中文"
+// in the language of msgs.
+func (msgs Messages) SimplifiedChinese() string {
+	return Catalog.Format(msgs.locale, "simplified_chinese", nil)
+}
+
+// SystemProxy says "系统代理"
+// in the language the app shows.
+func SystemProxy() string { return In(i18n.Locale()).SystemProxy() }
+
+// SystemProxy says "系统代理"
+// in the language of msgs.
+func (msgs Messages) SystemProxy() string {
+	return Catalog.Format(msgs.locale, "system_proxy", nil)
+}
+
+// SystemPermissions says "系统权限"
+// in the language the app shows.
+func SystemPermissions() string { return In(i18n.Locale()).SystemPermissions() }
+
+// SystemPermissions says "系统权限"
+// in the language of msgs.
+func (msgs Messages) SystemPermissions() string {
+	return Catalog.Format(msgs.locale, "system_permissions", nil)
+}
+
+// TraditionalChinese says "繁體中文"
+// in the language the app shows.
+func TraditionalChinese() string { return In(i18n.Locale()).TraditionalChinese() }
+
+// TraditionalChinese says "繁體中文"
+// in the language of msgs.
+func (msgs Messages) TraditionalChinese() string {
+	return Catalog.Format(msgs.locale, "traditional_chinese", nil)
+}
+
+// Edit says "编辑"
+// in the language the app shows.
+func Edit() string { return In(i18n.Locale()).Edit() }
+
+// Edit says "编辑"
+// in the language of msgs.
+func (msgs Messages) Edit() string {
+	return Catalog.Format(msgs.locale, "edit", nil)
+}
+
+// NetworkHttpHttpsSocksProxy says "网络 HTTP HTTPS SOCKS proxy"
+// in the language the app shows.
+func NetworkHttpHttpsSocksProxy() string { return In(i18n.Locale()).NetworkHttpHttpsSocksProxy() }
+
+// NetworkHttpHttpsSocksProxy says "网络 HTTP HTTPS SOCKS proxy"
+// in the language of msgs.
+func (msgs Messages) NetworkHttpHttpsSocksProxy() string {
+	return Catalog.Format(msgs.locale, "network_http_https_socks_proxy", nil)
+}
+
+// Translate says "翻译"
+// in the language the app shows.
+func Translate() string { return In(i18n.Locale()).Translate() }
+
+// Translate says "翻译"
+// in the language of msgs.
+func (msgs Messages) Translate() string {
+	return Catalog.Format(msgs.locale, "translate", nil)
+}
+
+// TranslateCompareInput says "翻译 对比 输入"
+// in the language the app shows.
+func TranslateCompareInput() string { return In(i18n.Locale()).TranslateCompareInput() }
+
+// TranslateCompareInput says "翻译 对比 输入"
+// in the language of msgs.
+func (msgs Messages) TranslateCompareInput() string {
+	return Catalog.Format(msgs.locale, "translate_compare_input", nil)
+}
+
+// TranslatingB8bb83 says "翻译中…"
+// in the language the app shows.
+func TranslatingB8bb83() string { return In(i18n.Locale()).TranslatingB8bb83() }
+
+// TranslatingB8bb83 says "翻译中…"
+// in the language of msgs.
+func (msgs Messages) TranslatingB8bb83() string {
+	return Catalog.Format(msgs.locale, "translating_b8bb83", nil)
+}
+
+// TranslationHistory says "翻译历史"
+// in the language the app shows.
+func TranslationHistory() string { return In(i18n.Locale()).TranslationHistory() }
+
+// TranslationHistory says "翻译历史"
+// in the language of msgs.
+func (msgs Messages) TranslationHistory() string {
+	return Catalog.Format(msgs.locale, "translation_history", nil)
+}
+
+// TranslationHistoryCleared says "翻译历史已清空"
+// in the language the app shows.
+func TranslationHistoryCleared() string { return In(i18n.Locale()).TranslationHistoryCleared() }
+
+// TranslationHistoryCleared says "翻译历史已清空"
+// in the language of msgs.
+func (msgs Messages) TranslationHistoryCleared() string {
+	return Catalog.Format(msgs.locale, "translation_history_cleared", nil)
+}
+
+// SourceTextA59e82 says "翻译原文"
+// in the language the app shows.
+func SourceTextA59e82() string { return In(i18n.Locale()).SourceTextA59e82() }
+
+// SourceTextA59e82 says "翻译原文"
+// in the language of msgs.
+func (msgs Messages) SourceTextA59e82() string {
+	return Catalog.Format(msgs.locale, "source_text_a59e82", nil)
+}
+
+// TranslationComparison says "翻译对比"
+// in the language the app shows.
+func TranslationComparison() string { return In(i18n.Locale()).TranslationComparison() }
+
+// TranslationComparison says "翻译对比"
+// in the language of msgs.
+func (msgs Messages) TranslationComparison() string {
+	return Catalog.Format(msgs.locale, "translation_comparison", nil)
+}
+
+// TranslationServices says "翻译服务"
+// in the language the app shows.
+func TranslationServices() string { return In(i18n.Locale()).TranslationServices() }
+
+// TranslationServices says "翻译服务"
+// in the language of msgs.
+func (msgs Messages) TranslationServices() string {
+	return Catalog.Format(msgs.locale, "translation_services", nil)
+}
+
+// TranslationPopup says "翻译浮窗"
+// in the language the app shows.
+func TranslationPopup() string { return In(i18n.Locale()).TranslationPopup() }
+
+// TranslationPopup says "翻译浮窗"
+// in the language of msgs.
+func (msgs Messages) TranslationPopup() string {
+	return Catalog.Format(msgs.locale, "translation_popup", nil)
+}
+
+// TranslationServices93a18e says "翻译渠道"
+// in the language the app shows.
+func TranslationServices93a18e() string { return In(i18n.Locale()).TranslationServices93a18e() }
+
+// TranslationServices93a18e says "翻译渠道"
+// in the language of msgs.
+func (msgs Messages) TranslationServices93a18e() string {
+	return Catalog.Format(msgs.locale, "translation_services_93a18e", nil)
+}
+
+// TranslationRequests says "翻译请求"
+// in the language the app shows.
+func TranslationRequests() string { return In(i18n.Locale()).TranslationRequests() }
+
+// TranslationRequests says "翻译请求"
+// in the language of msgs.
+func (msgs Messages) TranslationRequests() string {
+	return Catalog.Format(msgs.locale, "translation_requests", nil)
+}
+
+// TranslateSelectedText says "翻译选中文字"
+// in the language the app shows.
+func TranslateSelectedText() string { return In(i18n.Locale()).TranslateSelectedText() }
+
+// TranslateSelectedText says "翻译选中文字"
+// in the language of msgs.
+func (msgs Messages) TranslateSelectedText() string {
+	return Catalog.Format(msgs.locale, "translate_selected_text", nil)
+}
+
+// TencentCloud says "腾讯云"
+// in the language the app shows.
+func TencentCloud() string { return In(i18n.Locale()).TencentCloud() }
+
+// TencentCloud says "腾讯云"
+// in the language of msgs.
+func (msgs Messages) TencentCloud() string {
+	return Catalog.Format(msgs.locale, "tencent_cloud", nil)
+}
+
+// AutomaticSelectionPermissionSourceLanguagePopup says "自动 划词 权限 原文 语言 浮窗"
+// in the language the app shows.
+func AutomaticSelectionPermissionSourceLanguagePopup() string {
+	return In(i18n.Locale()).AutomaticSelectionPermissionSourceLanguagePopup()
+}
+
+// AutomaticSelectionPermissionSourceLanguagePopup says "自动 划词 权限 原文 语言 浮窗"
+// in the language of msgs.
+func (msgs Messages) AutomaticSelectionPermissionSourceLanguagePopup() string {
+	return Catalog.Format(msgs.locale, "automatic_selection_permission_source_language_popup", nil)
+}
+
+// DownloadAndInstallAutomatically says "自动下载并安装"
+// in the language the app shows.
+func DownloadAndInstallAutomatically() string {
+	return In(i18n.Locale()).DownloadAndInstallAutomatically()
+}
+
+// DownloadAndInstallAutomatically says "自动下载并安装"
+// in the language of msgs.
+func (msgs Messages) DownloadAndInstallAutomatically() string {
+	return Catalog.Format(msgs.locale, "download_and_install_automatically", nil)
+}
+
+// DownloadAndInstallUpdatesAutomatically says "自动下载并安装更新"
+// in the language the app shows.
+func DownloadAndInstallUpdatesAutomatically() string {
+	return In(i18n.Locale()).DownloadAndInstallUpdatesAutomatically()
+}
+
+// DownloadAndInstallUpdatesAutomatically says "自动下载并安装更新"
+// in the language of msgs.
+func (msgs Messages) DownloadAndInstallUpdatesAutomatically() string {
+	return Catalog.Format(msgs.locale, "download_and_install_updates_automatically", nil)
+}
+
+// CouldNotSaveAutomaticallyW says "自动保存失败：%w"
+// in the language the app shows.
+func CouldNotSaveAutomaticallyW() string { return In(i18n.Locale()).CouldNotSaveAutomaticallyW() }
+
+// CouldNotSaveAutomaticallyW says "自动保存失败：%w"
+// in the language of msgs.
+func (msgs Messages) CouldNotSaveAutomaticallyW() string {
+	return Catalog.Format(msgs.locale, "could_not_save_automatically_w", nil)
+}
+
+// TranslateSelectionAutomatically says "自动划词翻译"
+// in the language the app shows.
+func TranslateSelectionAutomatically() string {
+	return In(i18n.Locale()).TranslateSelectionAutomatically()
+}
+
+// TranslateSelectionAutomatically says "自动划词翻译"
+// in the language of msgs.
+func (msgs Messages) TranslateSelectionAutomatically() string {
+	return Catalog.Format(msgs.locale, "translate_selection_automatically", nil)
+}
+
+// CheckForUpdatesAutomatically says "自动检查更新"
+// in the language the app shows.
+func CheckForUpdatesAutomatically() string { return In(i18n.Locale()).CheckForUpdatesAutomatically() }
+
+// CheckForUpdatesAutomatically says "自动检查更新"
+// in the language of msgs.
+func (msgs Messages) CheckForUpdatesAutomatically() string {
+	return Catalog.Format(msgs.locale, "check_for_updates_automatically", nil)
+}
+
+// DetectLanguage says "自动识别"
+// in the language the app shows.
+func DetectLanguage() string { return In(i18n.Locale()).DetectLanguage() }
+
+// DetectLanguage says "自动识别"
+// in the language of msgs.
+func (msgs Messages) DetectLanguage() string {
+	return Catalog.Format(msgs.locale, "detect_language", nil)
+}
+
+// CustomModel says "自定义模型…"
+// in the language the app shows.
+func CustomModel() string { return In(i18n.Locale()).CustomModel() }
+
+// CustomModel says "自定义模型…"
+// in the language of msgs.
+func (msgs Messages) CustomModel() string {
+	return Catalog.Format(msgs.locale, "custom_model", nil)
+}
+
+// CustomModelName says "自定义模型名称"
+// in the language the app shows.
+func CustomModelName() string { return In(i18n.Locale()).CustomModelName() }
+
+// CustomModelName says "自定义模型名称"
+// in the language of msgs.
+func (msgs Messages) CustomModelName() string {
+	return Catalog.Format(msgs.locale, "custom_model_name", nil)
+}
+
+// English says "英语"
+// in the language the app shows.
+func English() string { return In(i18n.Locale()).English() }
+
+// English says "英语"
+// in the language of msgs.
+func (msgs Messages) English() string {
+	return Catalog.Format(msgs.locale, "english", nil)
+}
+
+// Loading says "获取中…"
+// in the language the app shows.
+func Loading() string { return In(i18n.Locale()).Loading() }
+
+// Loading says "获取中…"
+// in the language of msgs.
+func (msgs Messages) Loading() string {
+	return Catalog.Format(msgs.locale, "loading", nil)
+}
+
+// FetchModels says "获取模型"
+// in the language the app shows.
+func FetchModels() string { return In(i18n.Locale()).FetchModels() }
+
+// FetchModels says "获取模型"
+// in the language of msgs.
+func (msgs Messages) FetchModels() string {
+	return Catalog.Format(msgs.locale, "fetch_models", nil)
+}
+
+// FetchTheModelListOrEnterA says "获取模型列表，或输入自定义模型名称"
+// in the language the app shows.
+func FetchTheModelListOrEnterA() string { return In(i18n.Locale()).FetchTheModelListOrEnterA() }
+
+// FetchTheModelListOrEnterA says "获取模型列表，或输入自定义模型名称"
+// in the language of msgs.
+func (msgs Messages) FetchTheModelListOrEnterA() string {
+	return Catalog.Format(msgs.locale, "fetch_the_model_list_or_enter_a", nil)
+}
+
+// Portuguese says "葡萄牙语"
+// in the language the app shows.
+func Portuguese() string { return In(i18n.Locale()).Portuguese() }
+
+// Portuguese says "葡萄牙语"
+// in the language of msgs.
+func (msgs Messages) Portuguese() string {
+	return Catalog.Format(msgs.locale, "portuguese", nil)
+}
+
+// Spanish says "西班牙语"
+// in the language the app shows.
+func Spanish() string { return In(i18n.Locale()).Spanish() }
+
+// Spanish says "西班牙语"
+// in the language of msgs.
+func (msgs Messages) Spanish() string {
+	return Catalog.Format(msgs.locale, "spanish", nil)
+}
+
+// ReplaceSettings says "覆盖配置"
+// in the language the app shows.
+func ReplaceSettings() string { return In(i18n.Locale()).ReplaceSettings() }
+
+// ReplaceSettings says "覆盖配置"
+// in the language of msgs.
+func (msgs Messages) ReplaceSettings() string {
+	return Catalog.Format(msgs.locale, "replace_settings", nil)
+}
+
+// HistorySourceTranslation says "记录 原文 译文"
+// in the language the app shows.
+func HistorySourceTranslation() string { return In(i18n.Locale()).HistorySourceTranslation() }
+
+// HistorySourceTranslation says "记录 原文 译文"
+// in the language of msgs.
+func (msgs Messages) HistorySourceTranslation() string {
+	return Catalog.Format(msgs.locale, "history_source_translation", nil)
+}
+
+// Settings says "设置…"
+// in the language the app shows.
+func Settings() string { return In(i18n.Locale()).Settings() }
+
+// Settings says "设置…"
+// in the language of msgs.
+func (msgs Messages) Settings() string {
+	return Catalog.Format(msgs.locale, "settings", nil)
+}
+
+// Recognizing says "识别中…"
+// in the language the app shows.
+func Recognizing() string { return In(i18n.Locale()).Recognizing() }
+
+// Recognizing says "识别中…"
+// in the language of msgs.
+func (msgs Messages) Recognizing() string {
+	return Catalog.Format(msgs.locale, "recognizing", nil)
+}
+
+// DetectTheLanguageOfSelectedText says "识别选中文字所使用的语言。"
+// in the language the app shows.
+func DetectTheLanguageOfSelectedText() string {
+	return In(i18n.Locale()).DetectTheLanguageOfSelectedText()
+}
+
+// DetectTheLanguageOfSelectedText says "识别选中文字所使用的语言。"
+// in the language of msgs.
+func (msgs Messages) DetectTheLanguageOfSelectedText() string {
+	return Catalog.Format(msgs.locale, "detect_the_language_of_selected_text", nil)
+}
+
+// TranslationCopied says "译文已复制"
+// in the language the app shows.
+func TranslationCopied() string { return In(i18n.Locale()).TranslationCopied() }
+
+// TranslationCopied says "译文已复制"
+// in the language of msgs.
+func (msgs Messages) TranslationCopied() string {
+	return Catalog.Format(msgs.locale, "translation_copied", nil)
+}
+
+// UseAReleaseBuildToCheckFor says "请使用正式安装包检查更新。"
+// in the language the app shows.
+func UseAReleaseBuildToCheckFor() string { return In(i18n.Locale()).UseAReleaseBuildToCheckFor() }
+
+// UseAReleaseBuildToCheckFor says "请使用正式安装包检查更新。"
+// in the language of msgs.
+func (msgs Messages) UseAReleaseBuildToCheckFor() string {
+	return Catalog.Format(msgs.locale, "use_a_release_build_to_check_for", nil)
+}
+
+// StartDeeplxFirstEnterADomainOr says "请先启动 DeepLX 服务。地址可填写域名或完整 /translate 接口地址；访问令牌按需填写。"
+// in the language the app shows.
+func StartDeeplxFirstEnterADomainOr() string {
+	return In(i18n.Locale()).StartDeeplxFirstEnterADomainOr()
+}
+
+// StartDeeplxFirstEnterADomainOr says "请先启动 DeepLX 服务。地址可填写域名或完整 /translate 接口地址；访问令牌按需填写。"
+// in the language of msgs.
+func (msgs Messages) StartDeeplxFirstEnterADomainOr() string {
+	return Catalog.Format(msgs.locale, "start_deeplx_first_enter_a_domain_or", nil)
+}
+
+// StartOllamaAndEnterADownloadedModel says "请先启动 Ollama，填写已下载的模型名称。可以连接本机或自定义服务地址。"
+// in the language the app shows.
+func StartOllamaAndEnterADownloadedModel() string {
+	return In(i18n.Locale()).StartOllamaAndEnterADownloadedModel()
+}
+
+// StartOllamaAndEnterADownloadedModel says "请先启动 Ollama，填写已下载的模型名称。可以连接本机或自定义服务地址。"
+// in the language of msgs.
+func (msgs Messages) StartOllamaAndEnterADownloadedModel() string {
+	return Catalog.Format(msgs.locale, "start_ollama_and_enter_a_downloaded_model", nil)
+}
+
+// AddAndEnableAServiceInTranslation says "请在“翻译服务”中添加并启用服务。"
+// in the language the app shows.
+func AddAndEnableAServiceInTranslation() string {
+	return In(i18n.Locale()).AddAndEnableAServiceInTranslation()
+}
+
+// AddAndEnableAServiceInTranslation says "请在“翻译服务”中添加并启用服务。"
+// in the language of msgs.
+func (msgs Messages) AddAndEnableAServiceInTranslation() string {
+	return Catalog.Format(msgs.locale, "add_and_enable_a_service_in_translation", nil)
+}
+
+// PressAShortcut says "请按快捷键…"
+// in the language the app shows.
+func PressAShortcut() string { return In(i18n.Locale()).PressAShortcut() }
+
+// PressAShortcut says "请按快捷键…"
+// in the language of msgs.
+func (msgs Messages) PressAShortcut() string {
+	return Catalog.Format(msgs.locale, "press_a_shortcut", nil)
+}
+
+// WaitForSettingsToFinishSavingAnd says "请等待当前设置保存完成后重试"
+// in the language the app shows.
+func WaitForSettingsToFinishSavingAnd() string {
+	return In(i18n.Locale()).WaitForSettingsToFinishSavingAnd()
+}
+
+// WaitForSettingsToFinishSavingAnd says "请等待当前设置保存完成后重试"
+// in the language of msgs.
+func (msgs Messages) WaitForSettingsToFinishSavingAnd() string {
+	return Catalog.Format(msgs.locale, "wait_for_settings_to_finish_saving_and", nil)
+}
+
+// EnterTextToTranslate says "请输入需要翻译的文字"
+// in the language the app shows.
+func EnterTextToTranslate() string { return In(i18n.Locale()).EnterTextToTranslate() }
+
+// EnterTextToTranslate says "请输入需要翻译的文字"
+// in the language of msgs.
+func (msgs Messages) EnterTextToTranslate() string {
+	return Catalog.Format(msgs.locale, "enter_text_to_translate", nil)
+}
+
+// ChooseAnExportLocationOutsideTheApplication says "请选择应用数据文件以外的导出位置"
+// in the language the app shows.
+func ChooseAnExportLocationOutsideTheApplication() string {
+	return In(i18n.Locale()).ChooseAnExportLocationOutsideTheApplication()
+}
+
+// ChooseAnExportLocationOutsideTheApplication says "请选择应用数据文件以外的导出位置"
+// in the language of msgs.
+func (msgs Messages) ChooseAnExportLocationOutsideTheApplication() string {
+	return Catalog.Format(msgs.locale, "choose_an_export_location_outside_the_application", nil)
+}
+
+// ChooseAValidBackupFile says "请选择有效的备份文件"
+// in the language the app shows.
+func ChooseAValidBackupFile() string { return In(i18n.Locale()).ChooseAValidBackupFile() }
+
+// ChooseAValidBackupFile says "请选择有效的备份文件"
+// in the language of msgs.
+func (msgs Messages) ChooseAValidBackupFile() string {
+	return Catalog.Format(msgs.locale, "choose_a_valid_backup_file", nil)
+}
+
+// Doubao says "豆包"
+// in the language the app shows.
+func Doubao() string { return In(i18n.Locale()).Doubao() }
+
+// Doubao says "豆包"
+// in the language of msgs.
+func (msgs Messages) Doubao() string {
+	return Catalog.Format(msgs.locale, "doubao", nil)
+}
+
+// Vietnamese says "越南语"
+// in the language the app shows.
+func Vietnamese() string { return In(i18n.Locale()).Vietnamese() }
+
+// Vietnamese says "越南语"
+// in the language of msgs.
+func (msgs Messages) Vietnamese() string {
+	return Catalog.Format(msgs.locale, "vietnamese", nil)
+}
+
+// FollowSystem says "跟随系统"
+// in the language the app shows.
+func FollowSystem() string { return In(i18n.Locale()).FollowSystem() }
+
+// FollowSystem says "跟随系统"
+// in the language of msgs.
+func (msgs Messages) FollowSystem() string {
+	return Catalog.Format(msgs.locale, "follow_system", nil)
+}
+
+// CrossAppTextSelectionAuthorized says "跨应用取词已获授权"
+// in the language the app shows.
+func CrossAppTextSelectionAuthorized() string {
+	return In(i18n.Locale()).CrossAppTextSelectionAuthorized()
+}
+
+// CrossAppTextSelectionAuthorized says "跨应用取词已获授权"
+// in the language of msgs.
+func (msgs Messages) CrossAppTextSelectionAuthorized() string {
+	return Catalog.Format(msgs.locale, "cross_app_text_selection_authorized", nil)
+}
+
+// SoftwareUpdate says "软件更新"
+// in the language the app shows.
+func SoftwareUpdate() string { return In(i18n.Locale()).SoftwareUpdate() }
+
+// SoftwareUpdate says "软件更新"
+// in the language of msgs.
+func (msgs Messages) SoftwareUpdate() string {
+	return Catalog.Format(msgs.locale, "software_update", nil)
+}
+
+// TranslationsAppearHereAfterYouEnterText says "输入原文后在此显示译文"
+// in the language the app shows.
+func TranslationsAppearHereAfterYouEnterText() string {
+	return In(i18n.Locale()).TranslationsAppearHereAfterYouEnterText()
+}
+
+// TranslationsAppearHereAfterYouEnterText says "输入原文后在此显示译文"
+// in the language of msgs.
+func (msgs Messages) TranslationsAppearHereAfterYouEnterText() string {
+	return Catalog.Format(msgs.locale, "translations_appear_here_after_you_enter_text", nil)
+}
+
+// EnterTheFullModelName says "输入完整模型名称"
+// in the language the app shows.
+func EnterTheFullModelName() string { return In(i18n.Locale()).EnterTheFullModelName() }
+
+// EnterTheFullModelName says "输入完整模型名称"
+// in the language of msgs.
+func (msgs Messages) EnterTheFullModelName() string {
+	return Catalog.Format(msgs.locale, "enter_the_full_model_name", nil)
+}
+
+// TypeToTranslate says "输入翻译"
+// in the language the app shows.
+func TypeToTranslate() string { return In(i18n.Locale()).TypeToTranslate() }
+
+// TypeToTranslate says "输入翻译"
+// in the language of msgs.
+func (msgs Messages) TypeToTranslate() string {
+	return Catalog.Format(msgs.locale, "type_to_translate", nil)
+}
+
+// EnterTextToTranslate21b288 says "输入需要翻译的文字…"
+// in the language the app shows.
+func EnterTextToTranslate21b288() string { return In(i18n.Locale()).EnterTextToTranslate21b288() }
+
+// EnterTextToTranslate21b288 says "输入需要翻译的文字…"
+// in the language of msgs.
+func (msgs Messages) EnterTextToTranslate21b288() string {
+	return Catalog.Format(msgs.locale, "enter_text_to_translate_21b288", nil)
+}
+
+// RemoteBackups says "远程备份"
+// in the language the app shows.
+func RemoteBackups() string { return In(i18n.Locale()).RemoteBackups() }
+
+// RemoteBackups says "远程备份"
+// in the language of msgs.
+func (msgs Messages) RemoteBackups() string {
+	return Catalog.Format(msgs.locale, "remote_backups", nil)
+}
+
+// RemoteBackupDeleted says "远程备份已删除"
+// in the language the app shows.
+func RemoteBackupDeleted() string { return In(i18n.Locale()).RemoteBackupDeleted() }
+
+// RemoteBackupDeleted says "远程备份已删除"
+// in the language of msgs.
+func (msgs Messages) RemoteBackupDeleted() string {
+	return Catalog.Format(msgs.locale, "remote_backup_deleted", nil)
+}
+
+// ConnectionFailed says "连接失败："
+// in the language the app shows.
+func ConnectionFailed() string { return In(i18n.Locale()).ConnectionFailed() }
+
+// ConnectionFailed says "连接失败："
+// in the language of msgs.
+func (msgs Messages) ConnectionFailed() string {
+	return Catalog.Format(msgs.locale, "connection_failed", nil)
+}
+
+// Connected1fS says "连接成功 · %.1f 秒"
+// in the language the app shows.
+func Connected1fS() string { return In(i18n.Locale()).Connected1fS() }
+
+// Connected1fS says "连接成功 · %.1f 秒"
+// in the language of msgs.
+func (msgs Messages) Connected1fS() string {
+	return Catalog.Format(msgs.locale, "connected_1f_s", nil)
+}
+
+// Quit says "退出"
+// in the language the app shows.
+func Quit() string { return In(i18n.Locale()).Quit() }
+
+// Quit says "退出"
+// in the language of msgs.
+func (msgs Messages) Quit() string {
+	return Catalog.Format(msgs.locale, "quit", nil)
+}
+
+// QuitGlide says "退出 Glide"
+// in the language the app shows.
+func QuitGlide() string { return In(i18n.Locale()).QuitGlide() }
+
+// QuitGlide says "退出 Glide"
+// in the language of msgs.
+func (msgs Messages) QuitGlide() string {
+	return Catalog.Format(msgs.locale, "quit_glide", nil)
+}
+
+// SelectTextAndPressTheShortcutOr says "选中文字后按快捷键，或在此输入…"
+// in the language the app shows.
+func SelectTextAndPressTheShortcutOr() string {
+	return In(i18n.Locale()).SelectTextAndPressTheShortcutOr()
+}
+
+// SelectTextAndPressTheShortcutOr says "选中文字后按快捷键，或在此输入…"
+// in the language of msgs.
+func (msgs Messages) SelectTextAndPressTheShortcutOr() string {
+	return Catalog.Format(msgs.locale, "select_text_and_press_the_shortcut_or", nil)
+}
+
+// SelectTextToTranslateInstantly says "选中文字，即刻翻译"
+// in the language the app shows.
+func SelectTextToTranslateInstantly() string {
+	return In(i18n.Locale()).SelectTextToTranslateInstantly()
+}
+
+// SelectTextToTranslateInstantly says "选中文字，即刻翻译"
+// in the language of msgs.
+func (msgs Messages) SelectTextToTranslateInstantly() string {
+	return Catalog.Format(msgs.locale, "select_text_to_translate_instantly", nil)
+}
+
+// SelectAServiceToConfigureItsConnection says "选择一个服务，设置连接方式。"
+// in the language the app shows.
+func SelectAServiceToConfigureItsConnection() string {
+	return In(i18n.Locale()).SelectAServiceToConfigureItsConnection()
+}
+
+// SelectAServiceToConfigureItsConnection says "选择一个服务，设置连接方式。"
+// in the language of msgs.
+func (msgs Messages) SelectAServiceToConfigureItsConnection() string {
+	return Catalog.Format(msgs.locale, "select_a_service_to_configure_its_connection", nil)
+}
+
+// ChooseBuiltInIcon says "选择内置图标"
+// in the language the app shows.
+func ChooseBuiltInIcon() string { return In(i18n.Locale()).ChooseBuiltInIcon() }
+
+// ChooseBuiltInIcon says "选择内置图标"
+// in the language of msgs.
+func (msgs Messages) ChooseBuiltInIcon() string {
+	return Catalog.Format(msgs.locale, "choose_built_in_icon", nil)
+}
+
+// ChooseAnImageToRecognizeAndTranslate says "选择图片并识别翻译"
+// in the language the app shows.
+func ChooseAnImageToRecognizeAndTranslate() string {
+	return In(i18n.Locale()).ChooseAnImageToRecognizeAndTranslate()
+}
+
+// ChooseAnImageToRecognizeAndTranslate says "选择图片并识别翻译"
+// in the language of msgs.
+func (msgs Messages) ChooseAnImageToRecognizeAndTranslate() string {
+	return Catalog.Format(msgs.locale, "choose_an_image_to_recognize_and_translate", nil)
+}
+
+// ChooseBackup says "选择备份"
+// in the language the app shows.
+func ChooseBackup() string { return In(i18n.Locale()).ChooseBackup() }
+
+// ChooseBackup says "选择备份"
+// in the language of msgs.
+func (msgs Messages) ChooseBackup() string {
+	return Catalog.Format(msgs.locale, "choose_backup", nil)
+}
+
+// ChooseTheDisplayLanguageChangesApplyImmediately says "选择应用显示语言，修改后立即生效。"
+// in the language the app shows.
+func ChooseTheDisplayLanguageChangesApplyImmediately() string {
+	return In(i18n.Locale()).ChooseTheDisplayLanguageChangesApplyImmediately()
+}
+
+// ChooseTheDisplayLanguageChangesApplyImmediately says "选择应用显示语言，修改后立即生效。"
+// in the language of msgs.
+func (msgs Messages) ChooseTheDisplayLanguageChangesApplyImmediately() string {
+	return Catalog.Format(msgs.locale, "choose_the_display_language_changes_apply_immediately", nil)
+}
+
+// ChooseServiceIcon says "选择服务图标"
+// in the language the app shows.
+func ChooseServiceIcon() string { return In(i18n.Locale()).ChooseServiceIcon() }
+
+// ChooseServiceIcon says "选择服务图标"
+// in the language of msgs.
+func (msgs Messages) ChooseServiceIcon() string {
+	return Catalog.Format(msgs.locale, "choose_service_icon", nil)
+}
+
+// ChooseModel says "选择模型"
+// in the language the app shows.
+func ChooseModel() string { return In(i18n.Locale()).ChooseModel() }
+
+// ChooseModel says "选择模型"
+// in the language of msgs.
+func (msgs Messages) ChooseModel() string {
+	return Catalog.Format(msgs.locale, "choose_model", nil)
+}
+
+// Qwen says "通义千问"
+// in the language the app shows.
+func Qwen() string { return In(i18n.Locale()).Qwen() }
+
+// Qwen says "通义千问"
+// in the language of msgs.
+func (msgs Messages) Qwen() string {
+	return Catalog.Format(msgs.locale, "qwen", nil)
+}
+
+// General says "设置"
+// in the language the app shows.
+func General() string { return In(i18n.Locale()).General() }
+
+// General says "设置"
+// in the language of msgs.
+func (msgs Messages) General() string {
+	return Catalog.Format(msgs.locale, "general", nil)
+}
+
+// GeneralIcons says "通用图标"
+// in the language the app shows.
+func GeneralIcons() string { return In(i18n.Locale()).GeneralIcons() }
+
+// GeneralIcons says "通用图标"
+// in the language of msgs.
+func (msgs Messages) GeneralIcons() string {
+	return Catalog.Format(msgs.locale, "general_icons", nil)
+}
+
+// SettingsExported says "配置已导出"
+// in the language the app shows.
+func SettingsExported() string { return In(i18n.Locale()).SettingsExported() }
+
+// SettingsExported says "配置已导出"
+// in the language of msgs.
+func (msgs Messages) SettingsExported() string {
+	return Catalog.Format(msgs.locale, "settings_exported", nil)
+}
+
+// SettingsRestoredLocally says "配置已恢复到本地"
+// in the language the app shows.
+func SettingsRestoredLocally() string { return In(i18n.Locale()).SettingsRestoredLocally() }
+
+// SettingsRestoredLocally says "配置已恢复到本地"
+// in the language of msgs.
+func (msgs Messages) SettingsRestoredLocally() string {
+	return Catalog.Format(msgs.locale, "settings_restored_locally", nil)
+}
+
+// TranslateAgain says "重新翻译"
+// in the language the app shows.
+func TranslateAgain() string { return In(i18n.Locale()).TranslateAgain() }
+
+// TranslateAgain says "重新翻译"
+// in the language of msgs.
+func (msgs Messages) TranslateAgain() string {
+	return Catalog.Format(msgs.locale, "translate_again", nil)
+}
+
+// TranslateSourceAgainEnter says "重新翻译原文 · Enter"
+// in the language the app shows.
+func TranslateSourceAgainEnter() string { return In(i18n.Locale()).TranslateSourceAgainEnter() }
+
+// TranslateSourceAgainEnter says "重新翻译原文 · Enter"
+// in the language of msgs.
+func (msgs Messages) TranslateSourceAgainEnter() string {
+	return Catalog.Format(msgs.locale, "translate_source_again_enter", nil)
+}
+
+// RetryThisService says "重新翻译此渠道"
+// in the language the app shows.
+func RetryThisService() string { return In(i18n.Locale()).RetryThisService() }
+
+// RetryThisService says "重新翻译此渠道"
+// in the language of msgs.
+func (msgs Messages) RetryThisService() string {
+	return Catalog.Format(msgs.locale, "retry_this_service", nil)
+}
+
+// ReloadList says "重新获取列表"
+// in the language the app shows.
+func ReloadList() string { return In(i18n.Locale()).ReloadList() }
+
+// ReloadList says "重新获取列表"
+// in the language of msgs.
+func (msgs Messages) ReloadList() string {
+	return Catalog.Format(msgs.locale, "reload_list", nil)
+}
+
+// SendFeedback says "问题反馈"
+// in the language the app shows.
+func SendFeedback() string { return In(i18n.Locale()).SendFeedback() }
+
+// SendFeedback says "问题反馈"
+// in the language of msgs.
+func (msgs Messages) SendFeedback() string {
+	return Catalog.Format(msgs.locale, "send_feedback", nil)
+}
+
+// Arabic says "阿拉伯语"
+// in the language the app shows.
+func Arabic() string { return In(i18n.Locale()).Arabic() }
+
+// Arabic says "阿拉伯语"
+// in the language of msgs.
+func (msgs Messages) Arabic() string {
+	return Catalog.Format(msgs.locale, "arabic", nil)
+}
+
+// PrivacyAndData says "隐私与数据"
+// in the language the app shows.
+func PrivacyAndData() string { return In(i18n.Locale()).PrivacyAndData() }
+
+// PrivacyAndData says "隐私与数据"
+// in the language of msgs.
+func (msgs Messages) PrivacyAndData() string {
+	return Catalog.Format(msgs.locale, "privacy_and_data", nil)
+}
+
+// Hide says "隐藏"
+// in the language the app shows.
+func Hide() string { return In(i18n.Locale()).Hide() }
+
+// Hide says "隐藏"
+// in the language of msgs.
+func (msgs Messages) Hide() string {
+	return Catalog.Format(msgs.locale, "hide", nil)
+}
+
+// HideGlide says "隐藏 Glide"
+// in the language the app shows.
+func HideGlide() string { return In(i18n.Locale()).HideGlide() }
+
+// HideGlide says "隐藏 Glide"
+// in the language of msgs.
+func (msgs Messages) HideGlide() string {
+	return Catalog.Format(msgs.locale, "hide_glide", nil)
+}
+
+// HideOthers says "隐藏其他"
+// in the language the app shows.
+func HideOthers() string { return In(i18n.Locale()).HideOthers() }
+
+// HideOthers says "隐藏其他"
+// in the language of msgs.
+func (msgs Messages) HideOthers() string {
+	return Catalog.Format(msgs.locale, "hide_others", nil)
+}
+
+// AllowCrossAppTextSelection says "需要允许跨应用取词"
+// in the language the app shows.
+func AllowCrossAppTextSelection() string { return In(i18n.Locale()).AllowCrossAppTextSelection() }
+
+// AllowCrossAppTextSelection says "需要允许跨应用取词"
+// in the language of msgs.
+func (msgs Messages) AllowCrossAppTextSelection() string {
+	return Catalog.Format(msgs.locale, "allow_cross_app_text_selection", nil)
+}
+
+// TextToTranslate says "需要翻译的原文"
+// in the language the app shows.
+func TextToTranslate() string { return In(i18n.Locale()).TextToTranslate() }
+
+// TextToTranslate says "需要翻译的原文"
+// in the language of msgs.
+func (msgs Messages) TextToTranslate() string {
+	return Catalog.Format(msgs.locale, "text_to_translate", nil)
+}
+
+// Korean says "韩语"
+// in the language the app shows.
+func Korean() string { return In(i18n.Locale()).Korean() }
+
+// Korean says "韩语"
+// in the language of msgs.
+func (msgs Messages) Korean() string {
+	return Catalog.Format(msgs.locale, "korean", nil)
+}
+
+// Home says "首页"
+// in the language the app shows.
+func Home() string { return In(i18n.Locale()).Home() }
+
+// Home says "首页"
+// in the language of msgs.
+func (msgs Messages) Home() string {
+	return Catalog.Format(msgs.locale, "home", nil)
+}
+
+// Advanced says "备份同步"
+// in the language the app shows.
+func Advanced() string { return In(i18n.Locale()).Advanced() }
+
+// Advanced says "备份同步"
+// in the language of msgs.
+func (msgs Messages) Advanced() string {
+	return Catalog.Format(msgs.locale, "advanced", nil)
+}
+
+// DefaultIcon says "默认图标"
+// in the language the app shows.
+func DefaultIcon() string { return In(i18n.Locale()).DefaultIcon() }
+
+// DefaultIcon says "默认图标"
+// in the language of msgs.
+func (msgs Messages) DefaultIcon() string {
+	return Catalog.Format(msgs.locale, "default_icon", nil)
+}
+
+// DefaultLanguages says "默认语言"
+// in the language the app shows.
+func DefaultLanguages() string { return In(i18n.Locale()).DefaultLanguages() }
+
+// DefaultLanguages says "默认语言"
+// in the language of msgs.
+func (msgs Messages) DefaultLanguages() string {
+	return Catalog.Format(msgs.locale, "default_languages", nil)
+}
+
+// CurrentVersion says "当前版本"
+// in the language the app shows.
+func CurrentVersion() string { return In(i18n.Locale()).CurrentVersion() }
+
+// CurrentVersion says "当前版本"
+// in the language of msgs.
+func (msgs Messages) CurrentVersion() string {
+	return Catalog.Format(msgs.locale, "current_version", nil)
+}
+
+// SourceRepository says "开源仓库"
+// in the language the app shows.
+func SourceRepository() string { return In(i18n.Locale()).SourceRepository() }
+
+// SourceRepository says "开源仓库"
+// in the language of msgs.
+func (msgs Messages) SourceRepository() string {
+	return Catalog.Format(msgs.locale, "source_repository", nil)
+}
+
+// ServiceUrl says "服务地址"
+// in the language the app shows.
+func ServiceUrl() string { return In(i18n.Locale()).ServiceUrl() }
+
+// ServiceUrl says "服务地址"
+// in the language of msgs.
+func (msgs Messages) ServiceUrl() string {
+	return Catalog.Format(msgs.locale, "service_url", nil)
+}
+
+// WebsiteUrl says "网站地址"
+// in the language the app shows.
+func WebsiteUrl() string { return In(i18n.Locale()).WebsiteUrl() }
+
+// WebsiteUrl says "网站地址"
+// in the language of msgs.
+func (msgs Messages) WebsiteUrl() string {
+	return Catalog.Format(msgs.locale, "website_url", nil)
+}
+
+// SubscriptionKey says "订阅密钥"
+// in the language the app shows.
+func SubscriptionKey() string { return In(i18n.Locale()).SubscriptionKey() }
+
+// SubscriptionKey says "订阅密钥"
+// in the language of msgs.
+func (msgs Messages) SubscriptionKey() string {
+	return Catalog.Format(msgs.locale, "subscription_key", nil)
+}
+
+// ResourceRegion says "资源区域"
+// in the language the app shows.
+func ResourceRegion() string { return In(i18n.Locale()).ResourceRegion() }
+
+// ResourceRegion says "资源区域"
+// in the language of msgs.
+func (msgs Messages) ResourceRegion() string {
+	return Catalog.Format(msgs.locale, "resource_region", nil)
+}
+
+// ForExampleEastasiaLeaveEmptyForGlobal says "例如 eastasia，全局资源可留空"
+// in the language the app shows.
+func ForExampleEastasiaLeaveEmptyForGlobal() string {
+	return In(i18n.Locale()).ForExampleEastasiaLeaveEmptyForGlobal()
+}
+
+// ForExampleEastasiaLeaveEmptyForGlobal says "例如 eastasia，全局资源可留空"
+// in the language of msgs.
+func (msgs Messages) ForExampleEastasiaLeaveEmptyForGlobal() string {
+	return Catalog.Format(msgs.locale, "for_example_eastasia_leave_empty_for_global", nil)
+}
+
+// Region says "区域"
+// in the language the app shows.
+func Region() string { return In(i18n.Locale()).Region() }
+
+// Region says "区域"
+// in the language of msgs.
+func (msgs Messages) Region() string {
+	return Catalog.Format(msgs.locale, "region", nil)
+}
+
+// SecretKey says "密钥"
+// in the language the app shows.
+func SecretKey() string { return In(i18n.Locale()).SecretKey() }
+
+// SecretKey says "密钥"
+// in the language of msgs.
+func (msgs Messages) SecretKey() string {
+	return Catalog.Format(msgs.locale, "secret_key", nil)
+}
+
+// LeaveEmptyForAutomaticFreeProSelection says "留空自动选择 Free / Pro，也可填写完整接口地址"
+// in the language the app shows.
+func LeaveEmptyForAutomaticFreeProSelection() string {
+	return In(i18n.Locale()).LeaveEmptyForAutomaticFreeProSelection()
+}
+
+// LeaveEmptyForAutomaticFreeProSelection says "留空自动选择 Free / Pro，也可填写完整接口地址"
+// in the language of msgs.
+func (msgs Messages) LeaveEmptyForAutomaticFreeProSelection() string {
+	return Catalog.Format(msgs.locale, "leave_empty_for_automatic_free_pro_selection", nil)
+}
+
+// AccessToken says "访问令牌"
+// in the language the app shows.
+func AccessToken() string { return In(i18n.Locale()).AccessToken() }
+
+// AccessToken says "访问令牌"
+// in the language of msgs.
+func (msgs Messages) AccessToken() string {
+	return Catalog.Format(msgs.locale, "access_token", nil)
+}
+
+// RequiredOnlyWhenAuthenticationIsEnabled says "仅启用了认证的服务需要"
+// in the language the app shows.
+func RequiredOnlyWhenAuthenticationIsEnabled() string {
+	return In(i18n.Locale()).RequiredOnlyWhenAuthenticationIsEnabled()
+}
+
+// RequiredOnlyWhenAuthenticationIsEnabled says "仅启用了认证的服务需要"
+// in the language of msgs.
+func (msgs Messages) RequiredOnlyWhenAuthenticationIsEnabled() string {
+	return Catalog.Format(msgs.locale, "required_only_when_authentication_is_enabled", nil)
+}
+
+// ApiUrl says "API 地址"
+// in the language the app shows.
+func ApiUrl() string { return In(i18n.Locale()).ApiUrl() }
+
+// ApiUrl says "API 地址"
+// in the language of msgs.
+func (msgs Messages) ApiUrl() string {
+	return Catalog.Format(msgs.locale, "api_url", nil)
+}
+
+// LeaveEmptyForLocalServicesWithoutAuthentication says "无认证的本地服务可留空"
+// in the language the app shows.
+func LeaveEmptyForLocalServicesWithoutAuthentication() string {
+	return In(i18n.Locale()).LeaveEmptyForLocalServicesWithoutAuthentication()
+}
+
+// LeaveEmptyForLocalServicesWithoutAuthentication says "无认证的本地服务可留空"
+// in the language of msgs.
+func (msgs Messages) LeaveEmptyForLocalServicesWithoutAuthentication() string {
+	return Catalog.Format(msgs.locale, "leave_empty_for_local_services_without_authentication", nil)
+}
+
+// EnterTheFullModelNameSupportedBy says "填写服务支持的完整模型名称"
+// in the language the app shows.
+func EnterTheFullModelNameSupportedBy() string {
+	return In(i18n.Locale()).EnterTheFullModelNameSupportedBy()
+}
+
+// EnterTheFullModelNameSupportedBy says "填写服务支持的完整模型名称"
+// in the language of msgs.
+func (msgs Messages) EnterTheFullModelNameSupportedBy() string {
+	return Catalog.Format(msgs.locale, "enter_the_full_model_name_supported_by", nil)
+}
+
+// UseTheNameShownByOllamaList says "与 ollama list 中的名称一致"
+// in the language the app shows.
+func UseTheNameShownByOllamaList() string { return In(i18n.Locale()).UseTheNameShownByOllamaList() }
+
+// UseTheNameShownByOllamaList says "与 ollama list 中的名称一致"
+// in the language of msgs.
+func (msgs Messages) UseTheNameShownByOllamaList() string {
+	return Catalog.Format(msgs.locale, "use_the_name_shown_by_ollama_list", nil)
+}
+
+// AccessKey says "访问密钥"
+// in the language the app shows.
+func AccessKey() string { return In(i18n.Locale()).AccessKey() }
+
+// AccessKey says "访问密钥"
+// in the language of msgs.
+func (msgs Messages) AccessKey() string {
+	return Catalog.Format(msgs.locale, "access_key", nil)
+}
+
+// RequiredOnlyForProxyServicesWithAuthentication says "仅配置了认证的代理服务需要"
+// in the language the app shows.
+func RequiredOnlyForProxyServicesWithAuthentication() string {
+	return In(i18n.Locale()).RequiredOnlyForProxyServicesWithAuthentication()
+}
+
+// RequiredOnlyForProxyServicesWithAuthentication says "仅配置了认证的代理服务需要"
+// in the language of msgs.
+func (msgs Messages) RequiredOnlyForProxyServicesWithAuthentication() string {
+	return Catalog.Format(msgs.locale, "required_only_for_proxy_services_with_authentication", nil)
+}
+
+// GoogleTranslateBuiltIn says "谷歌翻译 · 内置"
+// in the language the app shows.
+func GoogleTranslateBuiltIn() string { return In(i18n.Locale()).GoogleTranslateBuiltIn() }
+
+// GoogleTranslateBuiltIn says "谷歌翻译 · 内置"
+// in the language of msgs.
+func (msgs Messages) GoogleTranslateBuiltIn() string {
+	return Catalog.Format(msgs.locale, "google_translate_built_in", nil)
+}
+
+// BingTranslateBuiltIn says "必应翻译 · 内置"
+// in the language the app shows.
+func BingTranslateBuiltIn() string { return In(i18n.Locale()).BingTranslateBuiltIn() }
+
+// BingTranslateBuiltIn says "必应翻译 · 内置"
+// in the language of msgs.
+func (msgs Messages) BingTranslateBuiltIn() string {
+	return Catalog.Format(msgs.locale, "bing_translate_built_in", nil)
+}
+
+// MicrosoftTranslatorAzure says "微软翻译 · Azure"
+// in the language the app shows.
+func MicrosoftTranslatorAzure() string { return In(i18n.Locale()).MicrosoftTranslatorAzure() }
+
+// MicrosoftTranslatorAzure says "微软翻译 · Azure"
+// in the language of msgs.
+func (msgs Messages) MicrosoftTranslatorAzure() string {
+	return Catalog.Format(msgs.locale, "microsoft_translator_azure", nil)
+}
+
+// TencentTranslate says "腾讯翻译"
+// in the language the app shows.
+func TencentTranslate() string { return In(i18n.Locale()).TencentTranslate() }
+
+// TencentTranslate says "腾讯翻译"
+// in the language of msgs.
+func (msgs Messages) TencentTranslate() string {
+	return Catalog.Format(msgs.locale, "tencent_translate", nil)
+}
+
+// BaiduTranslate says "百度翻译"
+// in the language the app shows.
+func BaiduTranslate() string { return In(i18n.Locale()).BaiduTranslate() }
+
+// BaiduTranslate says "百度翻译"
+// in the language of msgs.
+func (msgs Messages) BaiduTranslate() string {
+	return Catalog.Format(msgs.locale, "baidu_translate", nil)
+}
+
+// AiTranslation says "AI 翻译"
+// in the language the app shows.
+func AiTranslation() string { return In(i18n.Locale()).AiTranslation() }
+
+// AiTranslation says "AI 翻译"
+// in the language of msgs.
+func (msgs Messages) AiTranslation() string {
+	return Catalog.Format(msgs.locale, "ai_translation", nil)
+}
+
+// ThemeStyle says "主题风格"
+// in the language the app shows.
+func ThemeStyle() string { return In(i18n.Locale()).ThemeStyle() }
+
+// ThemeStyle says "主题风格"
+// in the language of msgs.
+func (msgs Messages) ThemeStyle() string {
+	return Catalog.Format(msgs.locale, "theme_style", nil)
+}
+
+// ThemeLight says "明亮"
+// in the language the app shows.
+func ThemeLight() string { return In(i18n.Locale()).ThemeLight() }
+
+// ThemeLight says "明亮"
+// in the language of msgs.
+func (msgs Messages) ThemeLight() string {
+	return Catalog.Format(msgs.locale, "theme_light", nil)
+}
+
+// ThemeDark says "黑夜"
+// in the language the app shows.
+func ThemeDark() string { return In(i18n.Locale()).ThemeDark() }
+
+// ThemeDark says "黑夜"
+// in the language of msgs.
+func (msgs Messages) ThemeDark() string {
+	return Catalog.Format(msgs.locale, "theme_dark", nil)
+}
+
+// ThemeDescription says "选择明亮、黑夜或跟随系统，修改后立即生效。"
+// in the language the app shows.
+func ThemeDescription() string { return In(i18n.Locale()).ThemeDescription() }
+
+// ThemeDescription says "选择明亮、黑夜或跟随系统，修改后立即生效。"
+// in the language of msgs.
+func (msgs Messages) ThemeDescription() string {
+	return Catalog.Format(msgs.locale, "theme_description", nil)
+}
+
+// UnsupportedThemeStyle says "不支持的主题风格"
+// in the language the app shows.
+func UnsupportedThemeStyle() string { return In(i18n.Locale()).UnsupportedThemeStyle() }
+
+// UnsupportedThemeStyle says "不支持的主题风格"
+// in the language of msgs.
+func (msgs Messages) UnsupportedThemeStyle() string {
+	return Catalog.Format(msgs.locale, "unsupported_theme_style", nil)
+}
+
+// BasicSettings says "外观"
+// in the language the app shows.
+func BasicSettings() string { return In(i18n.Locale()).BasicSettings() }
+
+// BasicSettings says "外观"
+// in the language of msgs.
+func (msgs Messages) BasicSettings() string {
+	return Catalog.Format(msgs.locale, "basic_settings", nil)
+}
+
+// TranslationPreferences says "翻译偏好"
+// in the language the app shows.
+func TranslationPreferences() string { return In(i18n.Locale()).TranslationPreferences() }
+
+// TranslationPreferences says "翻译偏好"
+// in the language of msgs.
+func (msgs Messages) TranslationPreferences() string {
+	return Catalog.Format(msgs.locale, "translation_preferences", nil)
+}
+
+// CopyCurrentService says "复制当前服务"
+// in the language the app shows.
+func CopyCurrentService() string { return In(i18n.Locale()).CopyCurrentService() }
+
+// CopyCurrentService says "复制当前服务"
+// in the language of msgs.
+func (msgs Messages) CopyCurrentService() string {
+	return Catalog.Format(msgs.locale, "copy_current_service", nil)
+}
+
+// ServiceCopySuffix says " 副本"
+// in the language the app shows.
+func ServiceCopySuffix() string { return In(i18n.Locale()).ServiceCopySuffix() }
+
+// ServiceCopySuffix says " 副本"
+// in the language of msgs.
+func (msgs Messages) ServiceCopySuffix() string {
+	return Catalog.Format(msgs.locale, "service_copy_suffix", nil)
+}
+
+// DeleteAction says "删除"
+// in the language the app shows.
+func DeleteAction() string { return In(i18n.Locale()).DeleteAction() }
+
+// DeleteAction says "删除"
+// in the language of msgs.
+func (msgs Messages) DeleteAction() string {
+	return Catalog.Format(msgs.locale, "delete_action", nil)
+}

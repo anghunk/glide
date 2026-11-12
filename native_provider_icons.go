@@ -102,9 +102,9 @@ func providerIconKind(config translation.Config) string {
 // providerIconPicker 只显示当前图标与修改按钮，点击后再打开选择弹窗。
 func (s *settingsUI) providerIconPicker(c *ui.Context, p pnPalette, config *translation.Config) {
 	ui.Column(c.Key("provider-icon")).Shrink(0).Gap(6).Children(func() {
-		ui.Text(c, "显示图标").FontSize(12).TextColor(p.Muted)
+		ui.Text(c, tr("显示图标")).FontSize(12).TextColor(p.Muted)
 		id := config.ID
-		ui.ButtonBase(c).Size(30, 30).AlignSelf(ui.Start).Center().Radius(7).Border(.5, p.FieldBorder).Label("修改服务图标").Tooltip("选择内置图标").Children(func() {
+		ui.ButtonBase(c).Size(30, 30).AlignSelf(ui.Start).Center().Radius(7).Border(.5, p.FieldBorder).Label(tr("修改服务图标")).Tooltip(tr("选择内置图标")).Children(func() {
 			pnProviderIcon(c, providerIconKind(*config), 19, p.Text)
 		}).OnClick(func() { s.iconPickerProviderID = id; s.iconPickerOpen = true })
 	})
@@ -124,18 +124,18 @@ func (s *settingsUI) providerIconDialog(c *ui.Context, p pnPalette) {
 	}
 	ui.DialogBase(c.Key("provider-icon-dialog"), &s.iconPickerOpen, func(backdrop, panel ui.Element) {
 		backdrop.Background(ui.RGBA(0, 0, 0, .22))
-		panel.Width(500).Padding(20).Gap(14).Radius(14).Background(p.Surface).TextColor(p.Text).Border(.5, p.FieldBorder).Shadow(0, 8, 28, 0, ui.RGBA(0, 0, 0, .18)).Label("选择服务图标")
+		panel.Width(500).Padding(20).Gap(14).Radius(14).Background(p.Surface).TextColor(p.Text).Border(.5, p.FieldBorder).Shadow(0, 8, 28, 0, ui.RGBA(0, 0, 0, .18)).Label(tr("选择服务图标"))
 		ui.Row(c).Gap(10).Children(func() {
-			ui.Text(c, "选择服务图标").Grow(1).FontSize(16).FontWeight(650)
-			ui.ButtonBase(c).Size(26, 26).Radius(6).Center().Label("关闭图标选择").Tooltip("关闭").Children(func() { pnIcon(c, "close", 15, p.Muted) }).OnClick(func() { s.iconPickerOpen = false })
+			ui.Text(c, tr("选择服务图标")).Grow(1).FontSize(16).FontWeight(650)
+			ui.ButtonBase(c).Size(26, 26).Radius(6).Center().Label(tr("关闭图标选择")).Tooltip(tr("关闭")).Children(func() { pnIcon(c, "close", 15, p.Muted) }).OnClick(func() { s.iconPickerOpen = false })
 		})
-		ui.Text(c, config.Name+" · 选择后自动保存").FontSize(12).TextColor(p.Muted).SingleLine()
+		ui.Text(c, tr(config.Name+tr(" · 选择后自动保存"))).FontSize(12).TextColor(p.Muted).SingleLine()
 		ui.Scroll(c).Height(350).FillWidth().Children(func() {
 			ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
 				for _, choice := range providerIconChoices {
 					kind := choice.kind
 					selected := config.Icon == kind
-					button := ui.ButtonBase(c.Key(kind)).Width(84).Height(62).Radius(9).Border(.5, p.FieldBorder).Label(choice.label).Tooltip(choice.label)
+					button := ui.ButtonBase(c.Key(kind)).Width(84).Height(62).Radius(9).Border(.5, p.FieldBorder).Label(tr(choice.label)).Tooltip(tr(choice.label))
 					if selected {
 						button.Background(p.Group).BorderColor(p.Accent)
 					} else if button.Hovered() {
@@ -148,7 +148,7 @@ func (s *settingsUI) providerIconDialog(c *ui.Context, p pnPalette) {
 								displayKind = config.Kind
 							}
 							pnProviderIcon(c, displayKind, 25, p.Text)
-							ui.Text(c, choice.label).FontSize(10.5).SingleLine().TextColor(p.Muted)
+							ui.Text(c, tr(choice.label)).FontSize(10.5).SingleLine().TextColor(p.Muted)
 						})
 					}).OnClick(func() { config.Icon = kind; s.iconPickerOpen = false })
 				}

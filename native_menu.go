@@ -11,6 +11,7 @@ import (
 
 // nativeTrayMenu 持有系统菜单与当前快捷键；字段只在 MyGo 主线程读写。
 type nativeTrayMenu struct {
+	labels          map[*mygo.MenuItem]string
 	tray            *mygo.Tray
 	menu            *mygo.Menu
 	selectionItem   *mygo.MenuItem
@@ -70,12 +71,24 @@ func newNativeTrayMenu(a *GlideService) (*nativeTrayMenu, error) {
 		{Label: "退出", Role: mygo.RoleQuit, Accelerator: "CmdOrCtrl+Q"},
 	})
 	tray, err := mygo.NewTray(mygo.TrayOptions{
-		ID: "glide-main", Icon: trayIcon(), IconIsTemplate: trayIconIsTemplate(), ToolTip: "Glide · 划词翻译",
+		ID: "glide-main", Icon: trayIcon(), IconIsTemplate: trayIconIsTemplate(), ToolTip: tr("Glide · 划词翻译"),
 	})
 	if err != nil {
 		return nil, err
 	}
+	t.labels = map[*mygo.MenuItem]string{}
+	var remember func([]*mygo.MenuItem)
+	remember = func(items []*mygo.MenuItem) {
+		for _, item := range items {
+			if item.Label != "" {
+				t.labels[item] = item.Label
+			}
+			remember(item.Submenu)
+		}
+	}
+	remember(t.menu.Items())
 	t.tray = tray
+	t.localize()
 	tray.OnClick(func() {
 		a.mu.RLock()
 		showSettings := a.settings.TrayClickShowsPanel
@@ -143,9 +156,9 @@ func (a *GlideService) showUsageHelp() {
 	a.showSettingsCategory("general")
 	go func() {
 		_, err := mygo.Dialog.Message(mygo.MessageOptions{
-			Parent: a.mainWindow, Type: mygo.MessageInfo, Title: "Glide 使用说明", Message: "选中文字，即刻翻译",
-			Detail:  fmt.Sprintf("1. 在其他应用中选中文字，按 %s 呼出译文。\n2. 也可从托盘选择“输入翻译”或“剪贴板翻译”。\n3. 在“设置 → 翻译服务”配置并启用渠道。\n4. 图钉可保留浮窗；未固定时，进入浮窗再切换应用会将它收起。\n\n快捷键无法取词时自动使用最新的剪贴板文字，也可在“通用”中检查系统权限。", shortcut),
-			Buttons: []string{"知道了"},
+			Parent: a.mainWindow, Type: mygo.MessageInfo, Title: tr("Glide 使用说明"), Message: tr("选中文字，即刻翻译"),
+			Detail:  fmt.Sprintf(tr("1. 在其他应用中选中文字，按 %s 呼出译文。\n2. 也可从托盘选择“输入翻译”或“剪贴板翻译”。\n3. 在“设置 → 翻译服务”配置并启用渠道。\n4. 图钉可保留浮窗；未固定时，进入浮窗再切换应用会将它收起。\n\n快捷键无法取词时自动使用最新的剪贴板文字，也可在“设置”中检查系统权限。"), shortcut),
+			Buttons: []string{tr("知道了")},
 		})
 		if err != nil {
 			log.Printf("打开使用说明失败：%v", err)
@@ -160,25 +173,25 @@ func (a *GlideService) configureApplicationMenu() {
 	}
 	mygo.App.SetMenu(mygo.NewMenu([]*mygo.MenuItem{
 		{Label: "Glide", Submenu: []*mygo.MenuItem{
-			{Label: "关于 Glide", Click: func(*mygo.MenuItem, *mygo.Window) { a.showAbout() }},
-			{Label: "检查更新…", Disabled: mygo.IsDev(), Click: func(*mygo.MenuItem, *mygo.Window) { a.CheckForUpdates() }},
+			{Label: tr("关于 Glide"), Click: func(*mygo.MenuItem, *mygo.Window) { a.showAbout() }},
+			{Label: tr("检查更新…"), Disabled: mygo.IsDev(), Click: func(*mygo.MenuItem, *mygo.Window) { a.CheckForUpdates() }},
 			mygo.Separator(),
-			{Label: "偏好设置…", Accelerator: "CmdOrCtrl+,", Click: func(*mygo.MenuItem, *mygo.Window) { a.ShowMain() }},
+			{Label: tr("偏好设置…"), Accelerator: "CmdOrCtrl+,", Click: func(*mygo.MenuItem, *mygo.Window) { a.ShowMain() }},
 			mygo.Separator(),
-			{Label: "服务", Role: mygo.RoleServices},
+			{Label: tr("服务"), Role: mygo.RoleServices},
 			mygo.Separator(),
-			{Label: "隐藏 Glide", Role: mygo.RoleHide},
-			{Label: "隐藏其他", Role: mygo.RoleHideOthers},
-			{Label: "全部显示", Role: mygo.RoleUnhide},
+			{Label: tr("隐藏 Glide"), Role: mygo.RoleHide},
+			{Label: tr("隐藏其他"), Role: mygo.RoleHideOthers},
+			{Label: tr("全部显示"), Role: mygo.RoleUnhide},
 			mygo.Separator(),
-			{Label: "退出 Glide", Role: mygo.RoleQuit},
+			{Label: tr("退出 Glide"), Role: mygo.RoleQuit},
 		}},
-		{Label: "文件", Role: mygo.RoleFileMenu},
-		{Label: "编辑", Role: mygo.RoleEditMenu},
-		{Label: "显示", Role: mygo.RoleViewMenu},
-		{Label: "窗口", Role: mygo.RoleWindowMenu},
-		{Label: "帮助", Role: mygo.RoleHelp, Submenu: []*mygo.MenuItem{
-			{Label: "Glide 使用说明", Click: func(*mygo.MenuItem, *mygo.Window) { a.showUsageHelp() }},
+		{Label: tr("文件"), Role: mygo.RoleFileMenu},
+		{Label: tr("编辑"), Role: mygo.RoleEditMenu},
+		{Label: tr("显示"), Role: mygo.RoleViewMenu},
+		{Label: tr("窗口"), Role: mygo.RoleWindowMenu},
+		{Label: tr("帮助"), Role: mygo.RoleHelp, Submenu: []*mygo.MenuItem{
+			{Label: tr("Glide 使用说明"), Click: func(*mygo.MenuItem, *mygo.Window) { a.showUsageHelp() }},
 		}},
 	}))
 }
@@ -187,7 +200,7 @@ func (a *GlideService) configureApplicationMenu() {
 func (a *GlideService) showAbout() {
 	if runtime.GOOS == "darwin" {
 		mygo.App.ShowAboutPanel(mygo.AboutPanelOptions{
-			ApplicationName: "Glide", ApplicationVersion: mygo.App.Version(), Credits: "原生桌面划词翻译工具",
+			ApplicationName: "Glide", ApplicationVersion: mygo.App.Version(), Credits: tr("原生桌面划词翻译工具"),
 		})
 		return
 	}
@@ -198,7 +211,7 @@ func (a *GlideService) showAbout() {
 func (a *GlideService) showAppMessage(title, message, detail string) {
 	go func() {
 		_, err := mygo.Dialog.Message(mygo.MessageOptions{
-			Type: mygo.MessageInfo, Title: title, Message: message, Detail: detail, Buttons: []string{"好"},
+			Type: mygo.MessageInfo, Title: tr(title), Message: tr(message), Detail: tr(detail), Buttons: []string{tr("好")},
 		})
 		if err != nil {
 			log.Printf("打开%s失败：%v", title, err)

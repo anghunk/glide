@@ -63,6 +63,10 @@ func (s *settingsUI) saveScope() string {
 	before, after := s.state.Settings, s.draft
 	section := "翻译浮窗"
 	switch {
+	case before.ThemeMode != after.ThemeMode:
+		section = "主题风格"
+	case before.UILanguage != after.UILanguage:
+		section = "界面语言"
 	case before.HistoryLimit != after.HistoryLimit:
 		section = "翻译历史"
 	case before.SourceLang != after.SourceLang || before.TargetLang != after.TargetLang:
@@ -92,5 +96,5 @@ func (s *settingsUI) inlineNotice(c *ui.Context, p pnPalette, section string) {
 	if notice.failed {
 		color = p.Danger
 	}
-	ui.Text(c.Key("notice-"+section), notice.text).Shrink(0).FillWidth().Padding(3, 4).FontSize(12).LineHeight(1.5).TextColor(color).Selectable()
+	ui.Text(c.Key("notice-"+section), tr(notice.text)).Shrink(0).FillWidth().Padding(3, 4).FontSize(12).LineHeight(1.5).TextColor(color).Selectable()
 }

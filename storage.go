@@ -35,6 +35,16 @@ func readSettings(dir string) (Settings, error) {
 	if disk.Settings.HistoryLimit != 0 && disk.Settings.HistoryLimit != 10 && disk.Settings.HistoryLimit != 50 && disk.Settings.HistoryLimit != 100 {
 		disk.Settings.HistoryLimit = 50
 	}
+	switch disk.Settings.ThemeMode {
+	case "system", "light", "dark":
+	default:
+		disk.Settings.ThemeMode = "system"
+	}
+	switch disk.Settings.UILanguage {
+	case "", "zh-Hans", "zh-Hant", "en":
+	default:
+		disk.Settings.UILanguage = ""
+	}
 	if len(disk.Secrets) > 0 {
 		if err := migrateLegacySecrets(dir, &disk, mygoLegacySecretStore{}); err != nil {
 			return Settings{}, err

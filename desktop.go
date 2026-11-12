@@ -21,7 +21,7 @@ func (a *GlideService) createWindows() {
 		settingsTitleBar = mygo.TitleBarHiddenInset
 	}
 	a.mainWindow = mygo.NewWindow(mygo.WindowOptions{
-		Title: "Glide 偏好设置", Content: ui.View(a.settingsUI.view), Width: 840, Height: 620, MinWidth: 780, MinHeight: 540,
+		Title: tr("Glide 偏好设置"), Content: ui.View(a.settingsUI.view), Width: 840, Height: 620, MinWidth: 780, MinHeight: 540,
 		BackgroundColor: "#f6f7f8", StateKey: "preferences-compact-v2", Hidden: true,
 		TitleBarStyle: settingsTitleBar, HideWindowButtons: runtime.GOOS != "darwin",
 	})
@@ -45,7 +45,7 @@ func (a *GlideService) createWindows() {
 		}
 	})
 	a.panelWindow = mygo.NewWindow(mygo.WindowOptions{
-		Title: "Glide", Content: ui.View(a.panelUI.view), Width: 400, Height: 420, MinWidth: 360, MinHeight: 1, MaxWidth: 420,
+		Title: tr("Glide"), Content: ui.View(a.panelUI.view), Width: 400, Height: 420, MinWidth: 360, MinHeight: 1, MaxWidth: 420,
 		Panel: true, Frameless: true, CornerRadius: 12, Hidden: true, BackgroundColor: "#ffffff", DisableMaximize: true,
 	})
 	a.panelWindow.OnMove(a.notifyPanel)

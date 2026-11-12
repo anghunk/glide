@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -17,10 +18,10 @@ func (s *settingsUI) advanced(c *ui.Context, p pnPalette) {
 	ui.Scroll(c).Grow(1).FillWidth().Padding(18).Gap(17).Disabled(s.advancedBusy).Children(func() {
 		s.group(c, p, "导入与导出", func() {
 			s.row(c, p, "导出配置", "包含翻译服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。", func() {
-				ui.Button(c, "导出…").Height(28).OnClick(func() { s.startAdvanced("export") })
+				ui.Button(c, tr("导出…")).Height(28).OnClick(func() { s.startAdvanced("export") })
 			})
 			s.row(c, p, "导入配置", "用 JSON 文件替换本机服务和偏好，保留 WebDAV 配置。", func() {
-				ui.Button(c, "导入…").Height(28).OnClick(func() { s.startAdvanced("import") })
+				ui.Button(c, tr("导入…")).Height(28).OnClick(func() { s.startAdvanced("import") })
 			})
 		})
 		s.group(c, p, "WebDAV 同步", func() {
@@ -28,15 +29,15 @@ func (s *settingsUI) advanced(c *ui.Context, p pnPalette) {
 				s.field(c, p, "WebDAV 目录地址", &s.draft.WebDAV.URL, "https://dav.example.com/Glide/", false)
 				s.field(c, p, "用户名", &s.draft.WebDAV.Username, "WebDAV 用户名", false)
 				s.field(c, p, "密码 / 应用专用密码", &s.draft.WebDAV.Password, "WebDAV 密码", true)
-				ui.Text(c, "填写 WebDAV 父目录，自动检测并创建 Glide-backup 文件夹。每次上传以年月日时分秒命名，保留历史备份；下载时选择要恢复的版本。建议使用 HTTPS。").FontSize(12).TextColor(p.Muted).LineHeight(1.5)
+				ui.Text(c, tr("填写 WebDAV 父目录，自动检测并创建 Glide-backup 文件夹。每次上传以年月日时分秒命名，保留历史备份；下载时选择要恢复的版本。建议使用 HTTPS。")).FontSize(12).TextColor(p.Muted).LineHeight(1.5)
 				ui.Row(c).Gap(8).Children(func() {
-					ui.Button(c, "测试连接").Height(28).OnClick(func() { s.startAdvanced("test") })
-					ui.Button(c, "上传配置").Height(28).OnClick(func() { s.startAdvanced("upload") })
-					ui.Button(c, "下载配置").Height(28).OnClick(func() { s.startAdvanced("download") })
+					ui.Button(c, tr("测试连接")).Height(28).OnClick(func() { s.startAdvanced("test") })
+					ui.Button(c, tr("上传配置")).Height(28).OnClick(func() { s.startAdvanced("upload") })
+					ui.Button(c, tr("下载配置")).Height(28).OnClick(func() { s.startAdvanced("download") })
 				})
 			})
 		})
-		ui.Text(c, "备份含明文服务密钥，请妥善保存文件并使用可信任的 WebDAV 服务器。").FontSize(12).TextColor(p.Muted)
+		ui.Text(c, tr("备份含明文服务密钥，请妥善保存文件并使用可信任的 WebDAV 服务器。")).FontSize(12).TextColor(p.Muted)
 	})
 }
 
@@ -103,7 +104,7 @@ func (s *settingsUI) startAdvancedBackup(action string, backup webDAVBackup) {
 
 // confirmConfigReplace 用系统对话框确认本机配置替换，取消不执行恢复。
 func (s *settingsUI) confirmConfigReplace(message string) (bool, error) {
-	result, err := mygo.Dialog.Message(mygo.MessageOptions{Parent: s.app.mainWindow, Type: mygo.MessageWarning, Title: "覆盖配置", Message: message, Buttons: []string{"取消", "确认覆盖"}, DefaultButton: 0, CancelButton: 0})
+	result, err := mygo.Dialog.Message(mygo.MessageOptions{Parent: s.app.mainWindow, Type: mygo.MessageWarning, Title: tr("覆盖配置"), Message: tr(message), Buttons: []string{tr("取消"), tr("确认覆盖")}, DefaultButton: 0, CancelButton: 0})
 	return result.Button == 1 && err == nil, err
 }
 
@@ -119,15 +120,15 @@ type advancedResult struct {
 // performAdvanced 使用调用时的已保存快照执行操作，不从后台读取界面草稿。
 func (s *settingsUI) performAdvanced(action string, settings Settings, backup webDAVBackup, source WebDAVConfig) (advancedResult, error) {
 	result := advancedResult{}
-	filters := []mygo.FileFilter{{Name: "Glide 配置", Extensions: []string{"json"}}}
+	filters := []mygo.FileFilter{{Name: tr("Glide 配置"), Extensions: []string{"json"}}}
 	switch action {
 	case "export":
-		path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: s.app.mainWindow, Title: "导出 Glide 配置", ButtonLabel: "保存", DefaultPath: "glide-settings.json", Filters: filters})
+		path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: s.app.mainWindow, Title: tr("导出 Glide 配置"), ButtonLabel: tr("保存"), DefaultPath: "glide-settings.json", Filters: filters})
 		if err != nil || path == "" {
 			return result, err
 		}
 		if filepath.Clean(path) == filepath.Join(s.app.dir, "settings.json") || filepath.Clean(path) == filepath.Join(s.app.dir, "history.json") {
-			return result, fmt.Errorf("请选择应用数据文件以外的导出位置")
+			return result, errors.New(tr("请选择应用数据文件以外的导出位置"))
 		}
 		data, err := encodeBackup(settings)
 		if err != nil {
@@ -139,7 +140,7 @@ func (s *settingsUI) performAdvanced(action string, settings Settings, backup we
 		result.message = "配置已导出"
 		return result, nil
 	case "import":
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: s.app.mainWindow, Title: "导入 Glide 配置", ButtonLabel: "打开", Filters: filters})
+		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: s.app.mainWindow, Title: tr("导入 Glide 配置"), ButtonLabel: tr("打开"), Filters: filters})
 		if err != nil || len(paths) == 0 {
 			return result, err
 		}
@@ -165,17 +166,17 @@ func (s *settingsUI) performAdvanced(action string, settings Settings, backup we
 			var name string
 			name, err = client.uploadBackup(data)
 			result.uploaded = err == nil
-			result.message = "备份已上传：" + name
+			result.message = tr("备份已上传：") + name
 		}
 	case "download":
 		result.backups, err = client.listBackups()
 		result.source, result.listUpdated = settings.WebDAV, err == nil
 	case "restore-backup", "delete-backup":
 		if settings.WebDAV != source {
-			return result, fmt.Errorf("WebDAV 连接已改变，请重新获取备份列表")
+			return result, errors.New(tr("WebDAV 连接已改变，请重新获取备份列表"))
 		}
 		if !webDAVBackupName.MatchString(backup.Name) {
-			return result, fmt.Errorf("请选择有效的备份文件")
+			return result, errors.New(tr("请选择有效的备份文件"))
 		}
 		if action == "restore-backup" {
 			var data []byte
@@ -191,7 +192,7 @@ func (s *settingsUI) performAdvanced(action string, settings Settings, backup we
 			}
 		}
 	default:
-		err = fmt.Errorf("未知的配置操作")
+		err = errors.New(tr("未知的配置操作"))
 	}
 	return result, err
 }
@@ -202,7 +203,7 @@ func (s *settingsUI) restoreBackup(data []byte, local WebDAVConfig) (string, err
 	if err != nil {
 		return "", err
 	}
-	ok, err := s.confirmConfigReplace(fmt.Sprintf("将用备份中的 %d 个翻译服务及偏好替换本机配置。WebDAV 登录信息和翻译历史不导入；历史保留条数降低时会清理超额记录。", len(imported.Providers)))
+	ok, err := s.confirmConfigReplace(fmt.Sprintf(tr("将用备份中的 %d 个翻译服务及偏好替换本机配置。WebDAV 登录信息和翻译历史不导入；历史保留条数降低时会清理超额记录。"), len(imported.Providers)))
 	if err != nil || !ok {
 		return "", err
 	}
@@ -214,13 +215,13 @@ func (s *settingsUI) restoreBackup(data []byte, local WebDAVConfig) (string, err
 func (s *settingsUI) backupList(c *ui.Context, p pnPalette) {
 	ui.Column(c).Grow(1).MinHeight(0).FillWidth().Children(func() {
 		ui.Row(c).FillWidth().Shrink(0).Padding(0, 0, 10).Gap(8).AlignItems(ui.Center).BorderWidth(0, 0, .5, 0).BorderColor(p.FieldBorder).Children(func() {
-			ui.Text(c, fmt.Sprintf("Glide-backup · %d 份备份", len(s.remoteBackups))).Grow(1).MinWidth(0).SingleLine().TextAlign(ui.Start).FontSize(12).TextColor(p.Muted)
-			ui.Button(c, "刷新列表").Height(28).Shrink(0).Disabled(s.advancedBusy).OnClick(func() { s.startAdvanced("download") })
+			ui.Text(c, tr(fmt.Sprintf(tr("Glide-backup · %d 份备份"), len(s.remoteBackups)))).Grow(1).MinWidth(0).SingleLine().TextAlign(ui.Start).FontSize(12).TextColor(p.Muted)
+			ui.Button(c, tr("刷新列表")).Height(28).Shrink(0).Disabled(s.advancedBusy).OnClick(func() { s.startAdvanced("download") })
 		})
 		if len(s.remoteBackups) == 0 {
 			ui.Column(c).FillWidth().Padding(20, 0).Gap(6).Children(func() {
-				ui.Text(c, "暂无远程备份").FontSize(13).FontWeight(600)
-				ui.Text(c, "点击“上传配置”创建第一份备份。").FontSize(12).TextColor(p.Muted)
+				ui.Text(c, tr("暂无远程备份")).FontSize(13).FontWeight(600)
+				ui.Text(c, tr("点击“上传配置”创建第一份备份。")).FontSize(12).TextColor(p.Muted)
 			})
 			return
 		}
@@ -234,16 +235,16 @@ func (s *settingsUI) backupList(c *ui.Context, p pnPalette) {
 						}
 					}
 					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, title).Grow(1).MinWidth(0).SingleLine().TextAlign(ui.Start).FontSize(13).FontWeight(600).Tooltip(title)
-						ui.Button(c, "恢复").Height(28).Padding(0, 12).Shrink(0).FontSize(12).Disabled(s.advancedBusy).OnClick(func() { s.startAdvancedBackup("restore-backup", backup) })
-						ui.ButtonBase(c).Size(28, 28).Shrink(0).Radius(6).Center().Disabled(s.advancedBusy).Label("删除备份 " + backup.Name).Tooltip("删除远程备份").Children(func() { pnIcon(c, "trash", 14, p.Muted) }).OnClick(func() {
-							s.confirmDeletion("删除远程备份", "确定永久删除备份“"+backup.Name+"”？此操作无法撤销。", func() { s.startAdvancedBackup("delete-backup", backup) })
+						ui.Text(c, tr(title)).Grow(1).MinWidth(0).SingleLine().TextAlign(ui.Start).FontSize(13).FontWeight(600).Tooltip(tr(title))
+						ui.Button(c, tr("恢复")).Height(28).Padding(0, 12).Shrink(0).FontSize(12).Disabled(s.advancedBusy).OnClick(func() { s.startAdvancedBackup("restore-backup", backup) })
+						ui.ButtonBase(c).Size(28, 28).Shrink(0).Radius(6).Center().Disabled(s.advancedBusy).Label(tr("删除备份 " + backup.Name)).Tooltip(tr("删除远程备份")).Children(func() { pnIcon(c, "trash", 14, p.Muted) }).OnClick(func() {
+							s.confirmDeletion("删除远程备份", tr("确定永久删除备份“")+backup.Name+tr("”？此操作无法撤销。"), func() { s.startAdvancedBackup("delete-backup", backup) })
 						})
 					})
 					ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, backup.Name).Grow(1).MinWidth(0).SingleLine().TextAlign(ui.Start).FontSize(11).TextColor(p.Muted).Tooltip(backup.Name)
+						ui.Text(c, tr(backup.Name)).Grow(1).MinWidth(0).SingleLine().TextAlign(ui.Start).FontSize(11).TextColor(p.Muted).Tooltip(tr(backup.Name))
 						if backup.Size > 0 {
-							ui.Text(c, fmt.Sprintf("%.1f KB", float64(backup.Size)/1024)).Shrink(0).SingleLine().FontSize(11).TextColor(p.Muted)
+							ui.Text(c, tr(fmt.Sprintf("%.1f KB", float64(backup.Size)/1024))).Shrink(0).SingleLine().FontSize(11).TextColor(p.Muted)
 						}
 					})
 				})
@@ -271,22 +272,22 @@ func (s *settingsUI) backupDrawer(c *ui.Context, p pnPalette) {
 	visible := true
 	ui.DialogBase(c.Key("backup-drawer"), &visible, func(backdrop, panel ui.Element) {
 		backdrop.Background(ui.RGBA(0, 0, 0, .18*progress)).AlignItems(ui.End).Justify(ui.Start).Clip()
-		panel.Width(460).FillHeight().Padding(20).Gap(14).Background(p.Surface).TextColor(p.Text).BorderWidth(0, 0, 0, .5).BorderColor(p.FieldBorder).Shadow(-4, 0, 18, 0, ui.RGBA(0, 0, 0, .12)).Label("WebDAV 备份列表").
+		panel.Width(460).FillHeight().Padding(20).Gap(14).Background(p.Surface).TextColor(p.Text).BorderWidth(0, 0, 0, .5).BorderColor(p.FieldBorder).Shadow(-4, 0, 18, 0, ui.RGBA(0, 0, 0, .12)).Label(tr("WebDAV 备份列表")).
 			TranslatePercent(100*(1-progress), 0).Disabled(!s.backupDrawerOpen)
 		ui.Row(c).Gap(10).Children(func() {
-			ui.Text(c, "选择备份").Grow(1).FontSize(16).FontWeight(650)
-			ui.ButtonBase(c).Size(28, 28).Radius(6).Center().Label("关闭备份列表").Tooltip("关闭").Children(func() { pnIcon(c, "close", 15, p.Muted) }).OnClick(func() { s.backupDrawerOpen = false })
+			ui.Text(c, tr("选择备份")).Grow(1).FontSize(16).FontWeight(650)
+			ui.ButtonBase(c).Size(28, 28).Radius(6).Center().Label(tr("关闭备份列表")).Tooltip(tr("关闭")).Children(func() { pnIcon(c, "close", 15, p.Muted) }).OnClick(func() { s.backupDrawerOpen = false })
 		})
-		ui.Text(c, "恢复到本地前会确认，WebDAV 登录信息保留在本机。").FontSize(12).TextColor(p.Muted).LineHeight(1.5)
+		ui.Text(c, tr("恢复到本地前会确认，WebDAV 登录信息保留在本机。")).FontSize(12).TextColor(p.Muted).LineHeight(1.5)
 		if s.advancedBusy {
-			ui.Row(c).Gap(8).Children(func() { ui.Spinner(c).Size(13, 13); ui.Text(c, "正在处理…").FontSize(12).TextColor(p.Muted) })
+			ui.Row(c).Gap(8).Children(func() { ui.Spinner(c).Size(13, 13); ui.Text(c, tr("正在处理…")).FontSize(12).TextColor(p.Muted) })
 		}
 		s.inlineNotice(c, p, "远程备份")
 		if s.remoteBackupsLoaded && s.remoteBackupsSource == s.draft.WebDAV {
 			s.backupList(c, p)
 		} else if !s.advancedBusy {
-			ui.Text(c, "列表尚未加载，或连接信息已改变。").FontSize(12).TextColor(p.Muted)
-			ui.Button(c, "重新获取列表").Height(28).OnClick(func() { s.startAdvanced("download") })
+			ui.Text(c, tr("列表尚未加载，或连接信息已改变。")).FontSize(12).TextColor(p.Muted)
+			ui.Button(c, tr("重新获取列表")).Height(28).OnClick(func() { s.startAdvanced("download") })
 		}
 	})
 	if !visible {
