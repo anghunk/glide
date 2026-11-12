@@ -1,0 +1,308 @@
+package main
+
+import (
+	"context"
+	"log"
+	"runtime"
+	"strings"
+	"sync/atomic"
+	"time"
+
+	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
+	"glide/internal/selection"
+)
+
+// createWindows 预载设置页与紧凑翻译浮窗，启动时仅显示托盘。
+func (a *GlideService) createWindows() {
+	a.settingsUI = newSettingsUI(a)
+	a.panelUI = newPanelUI(a)
+	a.mainWindow = mygo.NewWindow(mygo.WindowOptions{
+		Title: "Glide 偏好设置", Content: ui.View(a.settingsUI.view), Width: 840, Height: 620, MinWidth: 780, MinHeight: 540,
+		BackgroundColor: "#f6f7f8", StateKey: "preferences-compact-v2", Hidden: true,
+		TitleBarStyle: mygo.TitleBarHidden, HideWindowButtons: true,
+	})
+	a.mainWindow.OnShow(func() {
+		if runtime.GOOS == "darwin" {
+			mygo.App.Dock.Show()
+		}
+	})
+	a.mainWindow.OnHide(func() {
+		if runtime.GOOS == "darwin" {
+			mygo.App.Dock.Hide()
+		}
+	})
+	a.mainWindow.OnClose(func(e *mygo.CloseEvent) {
+		a.mu.RLock()
+		quitting := a.quitting
+		a.mu.RUnlock()
+		if !quitting {
+			e.PreventDefault()
+			a.HideMain()
+		}
+	})
+	a.panelWindow = mygo.NewWindow(mygo.WindowOptions{
+		Title: "Glide", Content: ui.View(a.panelUI.view), Width: 400, Height: 420, MinWidth: 360, MinHeight: 240, MaxWidth: 420, MaxHeight: 560,
+		Panel: true, Frameless: true, CornerRadius: 12, Hidden: true, BackgroundColor: "#ffffff", DisableMaximize: true,
+	})
+	var hadFocus atomic.Bool
+	a.panelWindow.OnShow(func() { hadFocus.Store(false) })
+	a.panelWindow.OnHide(func() { hadFocus.Store(false) })
+	a.panelWindow.OnFocus(func() { hadFocus.Store(true) })
+	a.panelWindow.OnBlur(func() {
+		// ShowInactive 保留原应用焦点；只有用户进入过浮窗后，失焦才自动收起。
+		if !hadFocus.Swap(false) {
+			return
+		}
+		a.mu.RLock()
+		pinned, quitting := a.panel.Pinned, a.quitting
+		a.mu.RUnlock()
+		if !pinned && !quitting {
+			a.HidePanel()
+		}
+	})
+	a.panelWindow.OnClose(func(e *mygo.CloseEvent) {
+		a.mu.RLock()
+		quitting := a.quitting
+		a.mu.RUnlock()
+		if !quitting {
+			e.PreventDefault()
+			a.HidePanel()
+		}
+	})
+	trayMenu, err := newNativeTrayMenu(a)
+	if err != nil {
+		log.Printf("创建托盘失败：%v", err)
+		// 托盘不可用时保留设置入口，以免后台应用失去可操作的窗口。
+		a.mainWindow.Show()
+	} else {
+		a.trayMenu = trayMenu
+	}
+	go a.configureTriggers()
+	a.startUpdater()
+}
+
+// configureTriggers 更新热键及鼠标取词；注册新热键失败时保留旧热键。
+func (a *GlideService) configureTriggers() {
+	a.triggersMu.Lock()
+	defer a.triggersMu.Unlock()
+	defer a.notifySettings()
+	a.mu.Lock()
+	if a.quitting {
+		a.mu.Unlock()
+		return
+	}
+	settings := cloneSettings(a.settings)
+	oldHotkey := a.hotkey
+	if a.watchCancel != nil {
+		a.watchCancel()
+		a.watchCancel = nil
+	}
+	if a.watchStop != nil {
+		a.watchStop()
+		a.watchStop = nil
+	}
+	a.watchError = ""
+	a.mu.Unlock()
+	if oldHotkey != settings.Shortcut {
+		err := mygo.GlobalShortcut.Register(settings.Shortcut, func() { go a.translateSelection() })
+		if err == nil && oldHotkey != "" {
+			mygo.GlobalShortcut.Unregister(oldHotkey)
+		}
+		a.mu.Lock()
+		if err != nil {
+			a.hotkeyError = "快捷键注册失败，请更换组合：" + err.Error()
+			log.Printf("%s", a.hotkeyError)
+		} else {
+			a.hotkey = settings.Shortcut
+			a.hotkeyError = ""
+			log.Printf("已注册全局翻译快捷键：%s", settings.Shortcut)
+		}
+		a.mu.Unlock()
+	}
+	if !settings.AutoSelection {
+		return
+	}
+	cap := selection.Status()
+	if !cap.AutomaticSupported || !cap.PermissionGranted {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	stop, err := selection.StartWatching(ctx, func(s selection.Selection) {
+		text := strings.TrimSpace(s.Text)
+		if text == "" {
+			return
+		}
+		a.mu.Lock()
+		if !a.settings.AutoSelection || ctx.Err() != nil || (text == a.lastSelection && time.Since(a.lastSelectionAt) < time.Second) {
+			a.mu.Unlock()
+			return
+		}
+		a.lastSelection = text
+		a.lastSelectionAt = time.Now()
+		a.mu.Unlock()
+		a.showTranslation(text)
+	})
+	a.mu.Lock()
+	if a.quitting {
+		cancel()
+		if stop != nil {
+			stop()
+		}
+	} else if err != nil {
+		cancel()
+		a.watchError = "自动划词启动失败：" + err.Error()
+	} else {
+		a.watchCancel = cancel
+		a.watchStop = stop
+	}
+	a.mu.Unlock()
+}
+
+// OpenPanel 打开可直接输入原文的浮窗，保留已有译文和编辑内容。
+func (a *GlideService) OpenPanel() {
+	if a.panelWindow == nil {
+		return
+	}
+	if !a.panelWindow.IsVisible() {
+		a.positionPanel()
+	}
+	a.panelWindow.Show()
+	a.notifyPanel()
+}
+
+// translateSelection 在原应用仍保持焦点时读取选区；失败不会误用旧剪贴板。
+func (a *GlideService) translateSelection() {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	s, err := selection.Read(ctx)
+	if err != nil {
+		a.showPanelError(err.Error())
+		return
+	}
+	a.showTranslation(s.Text)
+}
+
+// positionPanel 使用实际窗口大小与逻辑坐标贴近选区，固定时保留当前浮窗位置。
+func (a *GlideService) positionPanel() {
+	a.mu.RLock()
+	pinned, quitting := a.panel.Pinned, a.quitting
+	a.mu.RUnlock()
+	if quitting {
+		return
+	}
+	if pinned && a.panelWindow.IsVisible() {
+		return
+	}
+	point := mygo.Screen.CursorScreenPoint()
+	area := mygo.Screen.DisplayNearestPoint(point).WorkArea
+	bounds := a.panelWindow.Bounds()
+	width, height := bounds.Width, bounds.Height
+	if width > area.Width-16 || height > area.Height-16 {
+		a.panelWindow.SetSize(min(width, max(1, area.Width-16)), min(height, max(1, area.Height-16)))
+		bounds = a.panelWindow.Bounds()
+		width, height = bounds.Width, bounds.Height
+	}
+	x, y := point.X+16, point.Y+20
+	if x+width > area.X+area.Width-8 {
+		x = point.X - width - 16
+	}
+	if y+height > area.Y+area.Height-8 {
+		y = area.Y + area.Height - height - 8
+	}
+	x = max(area.X+8, min(x, area.X+area.Width-width-8))
+	y = max(area.Y+8, min(y, area.Y+area.Height-height-8))
+	a.panelWindow.SetPosition(x, y)
+	a.panelWindow.ShowInactive()
+}
+
+// showPanelError 将权限或取词错误显示在同一浮窗中。
+func (a *GlideService) showPanelError(message string) {
+	a.mu.Lock()
+	a.panelGeneration++
+	if a.panelCancel != nil {
+		a.panelCancel()
+		a.panelCancel = nil
+	}
+	a.panel = PanelState{Error: message, Pinned: a.panel.Pinned}
+	a.mu.Unlock()
+	a.positionPanel()
+	a.notifyPanel()
+}
+
+// showTranslation 取消旧浮窗请求并逐渠道发布结果，过期回调不会覆盖新选区。
+func (a *GlideService) showTranslation(text string) {
+	a.showTranslationRequest(TranslateRequest{Text: text})
+}
+
+// showTranslationRequest 保留浮窗内编辑的语言与渠道配置，复用原来的窗口和进度通知。
+func (a *GlideService) showTranslationRequest(req TranslateRequest) {
+	a.runPanelTranslation(req, true)
+}
+
+// runPanelTranslation 在新选区出现时定位浮窗，窗内重译则保留位置与键盘焦点。
+func (a *GlideService) runPanelTranslation(req TranslateRequest, reposition bool) {
+	req.Text = strings.TrimSpace(req.Text)
+	if req.Text == "" {
+		a.showPanelError("没有读到文字。请先选中文字，或复制后使用“翻译剪贴板”。")
+		return
+	}
+	a.mu.Lock()
+	if a.panelCancel != nil {
+		a.panelCancel()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.panelCancel = cancel
+	a.panelGeneration++
+	generation := a.panelGeneration
+	a.panel = PanelState{Loading: true, Pinned: a.panel.Pinned}
+	a.mu.Unlock()
+	if reposition || !a.panelWindow.IsVisible() {
+		a.positionPanel()
+	}
+	a.notifyPanel()
+	go func() {
+		response, err := a.translate(ctx, req, func(response TranslationResponse) {
+			a.mu.Lock()
+			if a.panelGeneration != generation {
+				a.mu.Unlock()
+				return
+			}
+			a.panel.Response = &response
+			a.mu.Unlock()
+			a.notifyPanel()
+		})
+		a.mu.Lock()
+		if a.panelGeneration != generation {
+			a.mu.Unlock()
+			return
+		}
+		a.panel.Loading = false
+		if response.RequestID != "" {
+			a.panel.Response = &response
+		}
+		if err != nil {
+			a.panel.Error = err.Error()
+		}
+		a.mu.Unlock()
+		a.notifyPanel()
+	}()
+}
+
+// shutdown 终止鼠标监听、浮窗翻译和全局快捷键。
+func (a *GlideService) shutdown() {
+	a.stopUpdater()
+	a.mu.Lock()
+	a.quitting = true
+	if a.panelCancel != nil {
+		a.panelCancel()
+	}
+	if a.watchCancel != nil {
+		a.watchCancel()
+	}
+	if a.watchStop != nil {
+		a.watchStop()
+	}
+	a.mu.Unlock()
+	mygo.GlobalShortcut.UnregisterAll()
+}

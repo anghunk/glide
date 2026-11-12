@@ -1,0 +1,17 @@
+{
+  "name": "Glide",
+  "slug": "glide",
+  "identifier": "app.glide.translator",
+  "version": "0.1.0",
+  "out": "build",
+  "icon": "resources/icon.png",
+  "macos": {
+    "icon": "assets/brand/icon-macos.icns"
+  },
+  "updates": {
+    "github": "anghunk/glide",
+    "publicKey": "0gOvEU7v51FyjRA0sq2tB3rCj9vIluPW8cRfoLvX8Fw=",
+    "tagPrefix": "v",
+    "deltas": 0
+  }
+}

@@ -1,0 +1,119 @@
+name: 发布桌面版本
+
+on:
+  push:
+    paths:
+      - mygo.json
+      - .github/workflows/release.yml
+      - scripts/release.py
+      - scripts/release_verify.go
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一仓库串行发布，避免两个版本同时修改 latest；不取消已经开始的发布。
+concurrency:
+  group: glide-releases-${{ github.repository }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    name: 检测新版本
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.plan.outputs.publish }}
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: 检查版本与公开更新源
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release.py plan --repository "$GITHUB_REPOSITORY" --output "$GITHUB_OUTPUT"
+
+  build:
+    name: 构建 ${{ matrix.target }}
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            platform: darwin/universal
+            target: darwin-universal
+          - runner: windows-latest
+            platform: windows/amd64
+            target: windows-amd64
+          - runner: windows-latest
+            platform: windows/arm64
+            target: windows-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      CGO_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: 配置当前仓库并构建签名更新与安装包
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+        run: |
+          python scripts/release.py prepare --repository "$GITHUB_REPOSITORY"
+          go vet ./...
+          go tool mygo build -platform "$RELEASE_PLATFORM"
+      - name: 整理当前架构发布文件
+        env:
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: python scripts/release.py collect --target "$RELEASE_TARGET" --output release-out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: release-${{ matrix.target }}
+          path: release-out/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: 验证并发布完整版本
+    needs: [version, build]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: release-*
+          path: release-artifacts/
+          merge-multiple: false
+      - name: 聚合全端产物并验证更新签名
+        run: |
+          python3 scripts/release.py merge
+          go run ./scripts/release_verify.go -repository "$GITHUB_REPOSITORY"
+      - name: 创建草稿、上传全部文件并正式发布
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release.py publish --repository "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA"

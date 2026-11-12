@@ -1,0 +1,15 @@
+/.mygo/
+/build/
+.DS_Store
+*.log
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+/release-keys/
+/release-out/
+/release-artifacts/
+/release-dist/
+__pycache__/
+*.pyc
