@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "glide/locales"
 	"log"
 	"runtime"
 
@@ -9,7 +10,7 @@ import (
 
 // main 初始化原生窗口和托盘；操作系统集成始终由 MyGo 主线程驱动。
 func main() {
-	mygo.App.SetLanguages("zh-Hans")
+	mygo.App.SetLanguages("zh-CN", "zh-Hans")
 	mygo.App.SetName(appMetadata.Name)
 	mygo.App.SetVersion(appMetadata.Version)
 	if runtime.GOOS == "darwin" {

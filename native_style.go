@@ -39,7 +39,7 @@ func pnApplyTheme(c *ui.Context) pnPalette {
 var lucideAssets embed.FS
 
 var pnIcons = func() map[string]*ui.SVG {
-	files := map[string]string{"settings": "settings", "globe": "globe", "keyboard": "keyboard", "history": "history", "shield": "shield-check", "info": "info", "search": "search", "plus": "plus", "minus": "minus", "trash": "trash-2", "check": "check", "pin": "pin", "close": "x", "copy": "copy", "chevron-down": "chevron-down", "chevron-right": "chevron-right", "swap": "arrow-right-left", "bolt": "zap"}
+	files := map[string]string{"screenshot": "screenshot", "home": "home", "eye": "eye", "eye-off": "eye-off", "settings": "settings", "globe": "globe", "keyboard": "keyboard", "history": "history", "shield": "shield-check", "info": "info", "search": "search", "plus": "plus", "minus": "minus", "trash": "trash-2", "check": "check", "pin": "pin", "close": "x", "copy": "copy", "chevron-down": "chevron-down", "chevron-right": "chevron-right", "swap": "arrow-right-left", "bolt": "zap"}
 	icons := make(map[string]*ui.SVG, len(files))
 	for name, file := range files {
 		data, err := lucideAssets.ReadFile("assets/lucide/" + file + ".svg")

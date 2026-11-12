@@ -13,6 +13,14 @@ import (
 
 // settingsUI 的可编辑状态仅由主线程访问；磁盘与系统操作在后台执行。
 type settingsUI struct {
+	iconPickerOpen                       bool
+	iconPickerProviderID                 string
+	visibleSecrets                       map[string]bool
+	home                                 *homeUI
+	advancedBusy                         bool
+	remoteBackups                        []webDAVBackup
+	remoteBackupsLoaded                  bool
+	remoteBackupsSource                  WebDAVConfig
 	aiTests                              map[string]*aiTestState
 	modelLists                           map[string]*modelListState
 	autoSaving                           bool
@@ -21,12 +29,16 @@ type settingsUI struct {
 	observedSettings                     Settings
 	confirmingDelete                     bool
 	recordingShortcut                    string
+	lastHotkeyError                      string
 	app                                  *GlideService
 	state                                AppState
 	draft                                Settings
 	category, query, providerID          string
 	saving, loadingHistory, clearConfirm bool
-	errorText, notice, historyQuery      string
+	historyQuery                         string
+	messages                             map[string]settingsNotice
+	pendingSaveScope                     string
+	backupDrawerOpen                     bool
 	history                              []TranslationResponse
 	expanded                             map[string]bool
 	providerList                         ui.ListState
@@ -34,8 +46,9 @@ type settingsUI struct {
 
 // newSettingsUI 创建原生设置视图，不会启动翻译请求或自动申请权限。
 func newSettingsUI(app *GlideService) *settingsUI {
-	s := &settingsUI{app: app, category: "services", expanded: map[string]bool{}}
+	s := &settingsUI{app: app, category: "home", expanded: map[string]bool{}, visibleSecrets: map[string]bool{}, messages: map[string]settingsNotice{}}
 	s.adopt(app.GetState())
+	s.home = newHomeUI(app)
 	s.observedSettings = cloneSettings(s.draft)
 	s.providerList.Key = func(row int) any { return s.draft.Providers[row].ID }
 	s.providerList.Label = func(row int) string { return s.draft.Providers[row].Name }
@@ -76,18 +89,24 @@ func (s *settingsUI) reload() {
 }
 
 // runTask 自动保存时允许继续编辑，完成后保留保存期间的新修改。
-func (s *settingsUI) runTask(task func() (AppState, error), success string) {
+func (s *settingsUI) runTask(task func() (AppState, error)) {
 	if s.saving || s.autoSaving {
 		return
 	}
 	submitted := cloneSettings(s.draft)
-	s.autoSaving, s.errorText, s.notice = true, "", ""
+	s.autoSaving = true
+	scope := s.pendingSaveScope
+	if scope == "" {
+		scope = s.saveScope()
+	}
+	s.pendingSaveScope = ""
+	s.showNotice(scope, "", nil)
 	go func() {
 		state, err := task()
 		s.app.mainWindow.Update(func() {
 			s.autoSaving = false
 			if err != nil {
-				s.errorText = "自动保存失败：" + err.Error()
+				s.showNotice(scope, "", fmt.Errorf("自动保存失败：%w", err))
 				if !reflect.DeepEqual(s.draft, submitted) && s.saveTimer == nil {
 					s.save()
 				}
@@ -99,7 +118,6 @@ func (s *settingsUI) runTask(task func() (AppState, error), success string) {
 				s.draft = mergeSettingsDraft(submitted, s.draft, state.Settings)
 				s.state = state
 			}
-			s.notice = success
 			if s.dirty() && s.saveTimer == nil {
 				s.save()
 			}
@@ -117,6 +135,7 @@ func (s *settingsUI) scheduleSave() {
 		return
 	}
 	previous := s.observedSettings
+	s.pendingSaveScope = s.saveScope()
 	s.observedSettings = cloneSettings(s.draft)
 	s.saveRevision++
 	revision := s.saveRevision
@@ -171,7 +190,7 @@ func (s *settingsUI) save() {
 		latest := s.app.GetState().Settings
 		draft = mergeSettingsDraft(baseline, draft, latest)
 		return s.app.SaveSettings(draft)
-	}, "")
+	})
 }
 
 // refreshPermission 重新检查授权并启动已经保存的监听偏好，保留尚未保存的服务表单。
@@ -179,7 +198,9 @@ func (s *settingsUI) refreshPermission() {
 	if s.saving {
 		return
 	}
-	s.saving, s.errorText, s.notice = true, "", ""
+	s.saving = true
+	scope := "general/系统权限"
+	s.showNotice(scope, "", nil)
 	window := s.app.mainWindow
 	go func() {
 		latest := s.app.GetState()
@@ -189,11 +210,11 @@ func (s *settingsUI) refreshPermission() {
 			s.saving = false
 			s.state.Platform, s.state.HotkeyError = latest.Platform, latest.HotkeyError
 			if err != nil {
-				s.errorText = err.Error()
+				s.showNotice(scope, "", err)
 			} else if latest.Platform.PermissionGranted {
-				s.notice = "取词权限已刷新"
+				s.showNotice(scope, "取词权限已刷新", nil)
 			} else {
-				s.notice = "尚未取得授权，请在系统设置中允许 Glide 后重试"
+				s.showNotice(scope, "尚未取得授权，请在系统设置中允许 Glide 后重试", nil)
 			}
 		})
 	}()
@@ -202,9 +223,13 @@ func (s *settingsUI) refreshPermission() {
 // externalAction 异步打开系统设置或服务文档，错误保持在设置页中可见。
 func (s *settingsUI) externalAction(action func() error) {
 	window := s.app.mainWindow
+	scope := s.operationScope()
+	if s.category == "about" {
+		scope = "about/应用信息"
+	}
 	go func() {
 		if err := action(); err != nil {
-			window.Update(func() { s.errorText = err.Error() })
+			window.Update(func() { s.showNotice(scope, "", err) })
 		}
 	}()
 }
@@ -232,16 +257,18 @@ func (s *settingsUI) clearHistory() {
 		return
 	}
 	s.saving = true
+	scope := s.operationScope()
+	s.showNotice(scope, "", nil)
 	window := s.app.mainWindow
 	go func() {
 		err := s.app.ClearHistory()
 		window.Update(func() {
 			s.saving, s.clearConfirm = false, false
 			if err != nil {
-				s.errorText = err.Error()
+				s.showNotice(scope, "", err)
 			} else {
 				s.history = nil
-				s.notice = "翻译历史已清空"
+				s.showNotice(scope, "翻译历史已清空", nil)
 			}
 		})
 	}()
@@ -253,7 +280,7 @@ func (s *settingsUI) addProvider(definition translation.Definition) {
 		return
 	}
 	if len(s.draft.Providers) >= 24 {
-		s.errorText = "最多配置 24 个翻译服务"
+		s.showNotice("services/服务配置", "", fmt.Errorf("最多配置 24 个翻译服务"))
 		return
 	}
 	var p translation.Config
@@ -339,7 +366,6 @@ func (s *settingsUI) reorderProviders(rows []int, to int) {
 	ordered = append(ordered, remaining[insertion:]...)
 	if !reflect.DeepEqual(s.draft.Providers, ordered) {
 		s.draft.Providers = ordered
-		s.errorText, s.notice = "", "服务顺序已调整"
 	}
 }
 
@@ -353,9 +379,6 @@ func (s *settingsUI) view(c *ui.Context) {
 			ui.Row(c).Height(40).Shrink(0).Padding(0, 9, 0, 18).Gap(8).BorderWidth(0, 0, .5, 0).BorderColor(p.Divider).Children(func() {
 				ui.Row(c).Grow(1).FillHeight().Gap(8).DragWindow().Children(func() {
 					ui.Text(c, s.categoryTitle()).FontSize(15).FontWeight(650).Grow(1)
-					if s.dirty() {
-						ui.Text(c, "正在保存…").FontSize(12).TextColor(p.Muted)
-					}
 				})
 				if s.state.Platform.OS == "windows" {
 					minimize := ui.ButtonBase(c.Key("minimize-settings")).Size(25, 25).Radius(7).Center().Label("最小化设置").Tooltip("最小化")
@@ -374,29 +397,32 @@ func (s *settingsUI) view(c *ui.Context) {
 			})
 			ui.Column(c).Grow(1).FillWidth().Disabled(s.saving).Children(func() {
 				switch s.category {
+				case "home":
+					s.home.view(c, p, s.draft)
+				case "advanced":
+					s.advanced(c, p)
 				case "services":
 					s.services(c, p)
 				case "shortcut":
 					s.shortcut(c, p)
 				case "history":
 					s.historyView(c, p)
-				case "privacy":
-					s.privacy(c, p)
 				case "about":
 					s.about(c, p)
 				default:
 					s.general(c, p)
 				}
 			})
-			s.footer(c, p)
 		})
 	})
+	s.providerIconDialog(c, p)
+	s.backupDrawer(c, p)
 	s.scheduleSave()
 }
 
 type settingsCategory struct{ ID, Label, Icon, Keywords string }
 
-var settingsCategories = []settingsCategory{{"general", "通用", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 AI Ollama 模型 密钥"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"privacy", "隐私", "shield", "本地 数据 密钥 清空"}, {"about", "关于", "info", "版本 Glide"}}
+var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"general", "通用", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "高级", "settings", "导入 导出 WebDAV 同步 备份"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
 
 // categoryTitle 返回当前分类标题。
 func (s *settingsUI) categoryTitle() string {
@@ -424,7 +450,7 @@ func (s *settingsUI) categoryMatches(item settingsCategory) bool {
 	return false
 }
 
-// sidebar 提供窄侧栏搜索和六个实际可用的设置分类。
+// sidebar 提供侧栏搜索和功能分类。
 func (s *settingsUI) sidebar(c *ui.Context, p pnPalette) {
 	ui.Column(c).Width(180).Shrink(0).FillHeight().Padding(8, 3).Gap(7).Children(func() {
 		if s.state.Platform.OS == "darwin" {
@@ -493,25 +519,12 @@ func (s *settingsUI) sidebar(c *ui.Context, p pnPalette) {
 	})
 }
 
-// footer 仅在有操作提示或错误时展示状态，不再提供手动保存入口。
-func (s *settingsUI) footer(c *ui.Context, p pnPalette) {
-	text, color := s.notice, p.Muted
-	if s.errorText != "" {
-		text, color = s.errorText, p.Danger
-	}
-	if text == "" {
-		return
-	}
-	ui.Row(c).MinHeight(36).Shrink(0).Padding(8, 16).BorderWidth(.5, 0, 0, 0).BorderColor(p.Divider).Children(func() {
-		ui.Text(c, text).Grow(1).FontSize(12).TextColor(color).MaxLines(2).Tooltip(text)
-	})
-}
-
 // group 为同一主题设置提供一致的圆角分组和细分隔线。
 func (s *settingsUI) group(c *ui.Context, p pnPalette, title string, content func()) {
 	ui.Column(c).Shrink(0).Gap(7).Children(func() {
 		ui.Text(c, title).FontSize(12).FontWeight(600).TextColor(p.Muted).Padding(0, 4)
 		ui.Column(c).Background(p.Group).Radius(12).Padding(3, 13).Dividers(.5, p.Divider).Children(content)
+		s.inlineNotice(c, p, title)
 	})
 }
 
@@ -540,6 +553,7 @@ func (s *settingsUI) general(c *ui.Context, p pnPalette) {
 			s.row(c, p, "打开翻译浮窗", "也可以直接输入原文进行翻译。", func() {
 				ui.Button(c, "打开浮窗").Height(28).FontSize(12.5).OnClick(s.app.OpenPanel)
 			})
+			s.row(c, p, "浮窗随鼠标显示", "开启后在鼠标附近弹出；关闭时在鼠标所在屏幕居中显示。固定的浮窗保留当前位置。", func() { ui.Switch(c, &s.draft.PanelFollowsMouse).Label("浮窗随鼠标显示").Size(38, 22) })
 			s.row(c, p, "显示原文输入框", "允许在浮窗中修改原文并重新翻译。", func() { ui.Switch(c, &s.draft.ShowSourceInput).Label("显示原文输入框").Size(38, 22) })
 			s.row(c, p, "显示语言栏", "在浮窗中选择源语言和目标语言。", func() { ui.Switch(c, &s.draft.ShowLanguageBar).Label("显示语言栏").Size(38, 22) })
 		})
@@ -557,10 +571,15 @@ func (s *settingsUI) general(c *ui.Context, p pnPalette) {
 			s.row(c, p, "目标语言", "将选中文字翻译为此语言。", func() { pnLanguageSelect(c, &s.draft.TargetLang, false, 144) })
 		})
 		s.group(c, p, "翻译历史", func() {
-			s.row(c, p, "保留条数", "仅保留最近的记录，超额旧记录将被清理。", func() {
+			s.row(c, p, "保留条数", "仅保留最近的记录；选择“不保留”会清空已有历史，并停止记录。", func() {
 				chosen := fmt.Sprintf("%d 条", s.draft.HistoryLimit)
-				if ui.Select(c, &chosen, []string{"10 条", "50 条", "100 条"}).Width(100).Height(28).FontSize(12.5).Changed() {
+				if s.draft.HistoryLimit == 0 {
+					chosen = "不保留"
+				}
+				if ui.Select(c, &chosen, []string{"不保留", "10 条", "50 条", "100 条"}).Width(100).Height(28).FontSize(12.5).Changed() {
 					switch chosen {
+					case "不保留":
+						s.draft.HistoryLimit = 0
 					case "10 条":
 						s.draft.HistoryLimit = 10
 					case "50 条":
@@ -612,7 +631,7 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 						})
 						id := provider.ID
 						ui.ButtonBase(c).Grow(1).MinWidth(0).Gap(5).Justify(ui.Start).AlignItems(ui.Center).Tooltip(provider.Name).Children(func() {
-							ui.Box(c).Size(22, 22).Shrink(0).Radius(6).Background(p.Surface).Center().Children(func() { pnProviderIcon(c, provider.Kind, 17, p.Text) })
+							ui.Box(c).Size(22, 22).Shrink(0).Radius(6).Background(p.Surface).Center().Children(func() { pnProviderIcon(c, providerIconKind(*provider), 17, p.Text) })
 							ui.Text(c, provider.Name).Grow(1).MinWidth(0).FontSize(12).SingleLine().TextAlign(ui.Start)
 						}).OnClick(func() { s.providerID = id })
 						toggle := ui.Switch(c, &provider.Enabled).Size(28, 17).Shrink(0).Label("启用" + provider.Name)
@@ -629,7 +648,7 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 						}
 					}
 				}).Grow(1).Height(29).AlignItems(ui.Center).FontSize(12)
-				ui.ButtonBase(c).Size(29, 29).Center().Radius(7).Border(.5, p.Danger).Label("删除选中服务").Tooltip("删除选中服务").Disabled(s.providerID == "").Children(func() { pnIcon(c, "trash", 14, p.Danger) }).OnClick(s.removeProvider)
+				ui.ButtonBase(c).Size(29, 29).Center().Radius(7).Border(.5, p.FieldBorder).Label("删除选中服务").Tooltip("删除选中服务").Disabled(s.providerID == "").Children(func() { pnIcon(c, "trash", 14, p.Muted) }).OnClick(s.removeProvider)
 			})
 		})
 		ui.Box(c).Width(.5).Shrink(0).FillHeight().Background(p.Divider)
@@ -643,16 +662,18 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 			}
 			if selected == nil {
 				ui.Text(c, "选择一个服务，设置连接方式。").FontSize(13).TextColor(p.Muted).Padding(30, 0)
+				s.inlineNotice(c, p, "服务配置")
 				return
 			}
 			ui.Column(c.Key(selected.ID)).Shrink(0).Gap(14).Children(func() {
 				ui.Row(c).Gap(9).Children(func() {
-					ui.Box(c).Size(32, 32).Shrink(0).Radius(9).Background(p.Group).Center().Children(func() { pnProviderIcon(c, selected.Kind, 23, p.Text) })
+					ui.Box(c).Size(32, 32).Shrink(0).Radius(9).Background(p.Group).Center().Children(func() { pnProviderIcon(c, providerIconKind(*selected), 23, p.Text) })
 					ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 						ui.Text(c, selected.Name).FontSize(15).FontWeight(650)
 					})
 				})
 				s.field(c, p, "服务名称", &selected.Name, "为此服务起个名字", false)
+				s.providerIconPicker(c, p, selected)
 				if selected.Kind == "openai" {
 					s.aiFormatField(c, p, selected)
 				}
@@ -682,11 +703,18 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 				if selected.Kind == "google" || selected.Kind == "bing" {
 					ui.Text(c, "内置服务无需密钥，可用性受网络及服务调整影响。遇到限制时，可以改用官方 API。").FontSize(12).TextColor(p.Muted).LineHeight(1.4)
 				}
+				if selected.Kind == "deepl" {
+					ui.Text(c, "服务地址留空时自动选择 Free 或 Pro。也可填写域名、/v2 基础地址或完整翻译接口地址。").FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+				}
+				if selected.Kind == "deeplx" {
+					ui.Text(c, "请先启动 DeepLX 服务。地址可填写域名或完整 /translate 接口地址；访问令牌按需填写。").FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+				}
 				if selected.Kind == "ollama" {
 					ui.Text(c, "请先启动 Ollama，填写已下载的模型名称。可以连接本机或自定义服务地址。").FontSize(12).TextColor(p.Muted).LineHeight(1.4)
 				}
 				url := s.serviceDocs(selected.Kind)
 				ui.Button(c, "查看服务说明 ↗").Height(28).AlignSelf(ui.Start).FontSize(12).OnClick(func() { s.externalAction(func() error { return s.app.OpenExternal(url) }) })
+				s.inlineNotice(c, p, "服务配置")
 			})
 		})
 	})
@@ -700,14 +728,27 @@ func (s *settingsUI) serviceBackground(p pnPalette, id string) ui.Color {
 	return ui.Transparent
 }
 
-// field 使用统一尺寸的输入框，密钥默认隐藏且不参与剪贴板复制。
+// field 统一表单样式，密钥默认隐藏，可通过眼睛按钮切换可见性。
 func (s *settingsUI) field(c *ui.Context, p pnPalette, label string, value *string, placeholder string, secret bool) {
+	key := s.category + ":" + s.providerID + ":" + label
 	ui.Column(c.Key(label)).Shrink(0).Gap(6).Children(func() {
 		ui.Text(c, label).FontSize(12).TextColor(p.Muted)
-		input := ui.TextInput(c, value).Placeholder(placeholder).Label(label).Height(28).Radius(7).FontSize(12.5).FillWidth()
-		if secret {
-			input.Password()
-		}
+		ui.Row(c).Gap(6).Children(func() {
+			input := ui.TextInput(c, value).Placeholder(placeholder).Label(label).Height(28).Radius(7).FontSize(12.5).Grow(1).MinWidth(0)
+			if secret {
+				visible := s.visibleSecrets[key]
+				if !visible {
+					input.Password()
+				}
+				icon, action := "eye", "显示"+label
+				if visible {
+					icon, action = "eye-off", "隐藏"+label
+				}
+				ui.ButtonBase(c.Key("visibility")).Size(28, 28).Radius(6).Center().Label(action).Tooltip(action).Children(func() {
+					pnIcon(c, icon, 15, p.Muted)
+				}).OnClick(func() { s.visibleSecrets[key] = !visible })
+			}
+		})
 	})
 }
 
@@ -732,23 +773,28 @@ func (s *settingsUI) providerField(provider *translation.Config, key string) *st
 	return nil
 }
 
-// shortcut 提供全局操作录入及浮窗内快捷键说明。
+// shortcut 提供全局和浮窗操作的快捷键录入。
 func (s *settingsUI) shortcut(c *ui.Context, p pnPalette) {
+	if s.state.HotkeyError != s.lastHotkeyError {
+		s.lastHotkeyError = s.state.HotkeyError
+		var err error
+		if s.lastHotkeyError != "" {
+			err = fmt.Errorf("%s", s.lastHotkeyError)
+		}
+		s.showNotice("shortcut/全局快捷键", "", err)
+	}
 	ui.Scroll(c).Grow(1).FillWidth().Padding(18).Gap(17).Children(func() {
 		s.group(c, p, "全局快捷键", func() {
-			s.shortcutRow(c, p, "翻译选中文字", &s.draft.Shortcut)
-			s.shortcutRow(c, p, "输入翻译", &s.draft.InputShortcut)
-			s.shortcutRow(c, p, "剪贴板翻译", &s.draft.ClipboardShortcut)
+			s.shortcutRow(c, p, "翻译选中文字", &s.draft.Shortcut, false)
+			s.shortcutRow(c, p, "输入翻译", &s.draft.InputShortcut, false)
+			s.shortcutRow(c, p, "剪贴板翻译", &s.draft.ClipboardShortcut, false)
+			s.shortcutRow(c, p, "截图 OCR 翻译", &s.draft.OCRShortcut, false)
 		})
 		s.group(c, p, "翻译浮窗", func() {
-			for _, item := range []struct{ title, key string }{{"重新翻译", "CmdOrCtrl+Enter"}, {"关闭浮窗", "Escape"}} {
-				s.row(c, p, item.title, "", func() { ui.Text(c, s.shortcutLabel(item.key)).FontSize(13).TextColor(p.Muted) })
-			}
+			s.shortcutRow(c, p, "重新翻译", &s.draft.PanelTranslateShortcut, true)
+			s.shortcutRow(c, p, "关闭浮窗", &s.draft.PanelCloseShortcut, true)
 		})
-		ui.Text(c, "点击录入快捷键，按 Esc 取消，设置后自动生效。").FontSize(12).TextColor(p.Muted)
-		if s.state.HotkeyError != "" {
-			ui.Text(c, s.state.HotkeyError).FontSize(12).TextColor(p.Danger)
-		}
+		ui.Text(c, "点击录入快捷键，设置后自动生效。全局录入按 Esc 取消；浮窗支持 Enter、Esc 等按键，仅在浮窗中生效。").FontSize(12).TextColor(p.Muted)
 	})
 }
 
@@ -760,8 +806,8 @@ func (s *settingsUI) shortcutLabel(shortcut string) string {
 	return strings.ReplaceAll(shortcut, "CmdOrCtrl", "Ctrl")
 }
 
-// shortcutRow 使用统一输入框录入组合键，已设置时在框内提供独立清除按钮。
-func (s *settingsUI) shortcutRow(c *ui.Context, p pnPalette, title string, value *string) {
+// shortcutRow 录入组合键；panel 允许无修饰键的特殊按键，已设置时提供清除按钮。
+func (s *settingsUI) shortcutRow(c *ui.Context, p pnPalette, title string, value *string, panel bool) {
 	s.row(c, p, title, "", func() {
 		border := p.FieldBorder
 		if s.recordingShortcut == title {
@@ -787,45 +833,43 @@ func (s *settingsUI) shortcutRow(c *ui.Context, p pnPalette, title string, value
 				ui.Text(c, label).FontSize(12.5).TextColor(color).SingleLine()
 			})
 			button.OnClick(func() { s.recordingShortcut = title })
-			if s.recordingShortcut == title && button.Focused() {
-				if c.KeyDown(ui.KeyEscape) {
-					s.recordingShortcut = ""
-				} else {
-					mods := c.Modifiers()
-					for _, key := range c.KeysDown() {
-						letter := ""
-						if key >= ui.KeyA && key <= ui.KeyZ {
-							letter = string(rune('A') + rune(key-ui.KeyA))
-						}
-						if key >= ui.Key0 && key <= ui.Key9 {
-							letter = string(rune('0') + rune(key-ui.Key0))
-						}
-						if letter == "" || mods&(ui.Ctrl|ui.Super|ui.Alt) == 0 {
-							continue
-						}
-						parts := []string{}
-						if mods&ui.Ctrl != 0 {
-							parts = append(parts, "Ctrl")
-						}
-						if mods&ui.Alt != 0 {
-							parts = append(parts, "Alt")
-						}
-						if mods&ui.Shift != 0 {
-							parts = append(parts, "Shift")
-						}
-						if mods&ui.Super != 0 {
-							modifier := "Command"
-							if s.state.Platform.OS == "windows" {
-								modifier = "Win"
-							}
-							parts = append(parts, modifier)
-						}
-						*value = strings.Join(append(parts, letter), "+")
-						s.recordingShortcut = ""
-						break
-					}
+			button.HandleInput(func(event ui.InputEvent) bool {
+				if s.recordingShortcut != title || event.Kind != ui.InputKeyDown {
+					return false
 				}
-			}
+				if !panel && event.Key == ui.KeyEscape {
+					s.recordingShortcut = ""
+					return true
+				}
+				key, mods := event.Key, event.Mods
+				letter := panelShortcutKeyName(key)
+				if !panel && !((key >= ui.KeyA && key <= ui.KeyZ) || (key >= ui.Key0 && key <= ui.Key9)) {
+					return true
+				}
+				if letter == "" || !panelShortcutAllowed(mods, key) || (!panel && mods&(ui.Ctrl|ui.Super|ui.Alt) == 0) {
+					return true
+				}
+				parts := []string{}
+				if mods&ui.Ctrl != 0 {
+					parts = append(parts, "Ctrl")
+				}
+				if mods&ui.Alt != 0 {
+					parts = append(parts, "Alt")
+				}
+				if mods&ui.Shift != 0 {
+					parts = append(parts, "Shift")
+				}
+				if mods&ui.Super != 0 {
+					modifier := "Command"
+					if s.state.Platform.OS == "windows" {
+						modifier = "Win"
+					}
+					parts = append(parts, modifier)
+				}
+				*value = strings.Join(append(parts, letter), "+")
+				s.recordingShortcut = ""
+				return true
+			})
 			if *value != "" {
 				clear := ui.ButtonBase(c.Key(title+"-clear")).Size(20, 20).Shrink(0).Center().Radius(10).Label("清除" + title + "快捷键").Tooltip("清除快捷键")
 				if clear.Hovered() {
@@ -849,8 +893,9 @@ func (s *settingsUI) historyView(c *ui.Context, p pnPalette) {
 			if s.clearConfirm {
 				label = "确认清空"
 			}
-			ui.Button(c, label).Height(30).TextColor(p.Danger).Disabled(s.saving || s.loadingHistory || len(s.history) == 0).OnClick(s.clearHistory)
+			ui.Button(c, label).Height(30).TextColor(p.Muted).Disabled(s.saving || s.loadingHistory || len(s.history) == 0).OnClick(s.clearHistory)
 		})
+		s.inlineNotice(c, p, "翻译历史")
 		ui.Scroll(c.Key("history-scroll")).Grow(1).FillWidth().Gap(12).Children(func() {
 			if s.loadingHistory {
 				ui.Text(c, "正在读取历史…").FontSize(12).TextColor(p.Muted)
@@ -890,7 +935,7 @@ func (s *settingsUI) historyView(c *ui.Context, p pnPalette) {
 								ui.Row(c).Children(func() {
 									ui.Text(c, result.ProviderName).FontSize(12).FontWeight(600).Grow(1)
 									if result.Text != "" {
-										ui.Button(c, "复制").Height(25).FontSize(11).OnClick(func() { s.app.CopyText(result.Text); s.notice = "译文已复制" })
+										ui.Button(c, "复制").Height(25).FontSize(11).OnClick(func() { s.app.CopyText(result.Text); s.showNotice("history/翻译历史", "译文已复制", nil) })
 									}
 								})
 								if result.Error != "" {
@@ -917,18 +962,22 @@ func (s *settingsUI) historyView(c *ui.Context, p pnPalette) {
 	})
 }
 
-// privacy 说明真实的数据存储与发送范围，并提供历史清空入口。
-func (s *settingsUI) privacy(c *ui.Context, p pnPalette) {
-	ui.Scroll(c).Grow(1).FillWidth().Padding(18).Gap(17).Children(func() {
-		s.group(c, p, "数据与密钥", func() {
-			s.row(c, p, "服务密钥", "密钥保存在本机 settings.json 中，与其他配置一起管理。", func() {})
+// privacyContent 在关于页下方说明数据存储与发送范围，并保留历史清空入口。
+func (s *settingsUI) privacyContent(c *ui.Context, p pnPalette) {
+	ui.Column(c).Shrink(0).FillWidth().Gap(10).Children(func() {
+		s.group(c, p, "隐私与数据", func() {
+			s.row(c, p, "服务密钥", "密钥保存在本机 settings.json 中；导出或上传配置时会包含服务密钥。", func() {})
 			s.row(c, p, "翻译请求", "原文只发送至当前启用的翻译服务。Ollama 使用本机地址时，翻译请求无需离开本机。", func() {})
-			s.row(c, p, "翻译历史", fmt.Sprintf("最多保留 %d 条记录，存储在本机。", s.state.Settings.HistoryLimit), func() {
+			detail := fmt.Sprintf("最多保留 %d 条记录，存储在本机。", s.state.Settings.HistoryLimit)
+			if s.state.Settings.HistoryLimit == 0 {
+				detail = "当前不保留翻译历史。"
+			}
+			s.row(c, p, "翻译历史", detail, func() {
 				label := "清空历史"
 				if s.clearConfirm {
 					label = "确认清空"
 				}
-				ui.Button(c, label).Height(29).FontSize(12.5).TextColor(p.Danger).OnClick(s.clearHistory)
+				ui.Button(c, label).Height(29).FontSize(12.5).TextColor(p.Muted).OnClick(s.clearHistory)
 			})
 		})
 		if s.clearConfirm {
@@ -937,28 +986,24 @@ func (s *settingsUI) privacy(c *ui.Context, p pnPalette) {
 	})
 }
 
-// about 展示应用版本、运行平台与签名更新的实际状态。
+// about 展示应用版本、项目地址与签名更新状态。
 func (s *settingsUI) about(c *ui.Context, p pnPalette) {
 	ui.Scroll(c).Grow(1).FillWidth().Padding(18).Gap(17).Children(func() {
 		ui.Column(c).AlignItems(ui.Center).Gap(8).Padding(18, 0, 12).Children(func() {
-			pnBrandLogo(c, 58)
+			pnBrandLogo(c, 58).Shadow(0, 2, 5, 0, ui.RGBA(0, 0, 0, .20))
 			ui.Text(c, "Glide").FontSize(22).FontWeight(650)
 			ui.Text(c, "划词翻译").FontSize(13).TextColor(p.Muted)
 		})
 		s.group(c, p, "应用信息", func() {
 			s.row(c, p, "版本", "", func() { ui.Text(c, s.state.Version).FontSize(13).TextColor(p.Muted) })
-			s.row(c, p, "运行平台", "", func() {
-				platform := s.state.Platform.OS
-				if platform == "darwin" {
-					platform = "macOS"
-				} else if platform == "windows" {
-					platform = "Windows"
-				}
-				ui.Text(c, platform).FontSize(13).TextColor(p.Muted)
+			s.row(c, p, "GitHub", "", func() {
+				ui.Button(c, "anghunk/glide ↗").Height(28).FontSize(12).OnClick(func() {
+					s.externalAction(func() error { return s.app.OpenExternal("https://github.com/anghunk/glide") })
+				})
 			})
-			s.row(c, p, "界面框架", "Go 原生界面", func() { ui.Text(c, "MyGo").FontSize(13).TextColor(p.Muted) })
 		})
 		s.app.renderUpdateSettings(c, p)
+		s.privacyContent(c, p)
 	})
 }
 
@@ -985,6 +1030,10 @@ func (s *settingsUI) serviceDocs(kind string) string {
 		return "https://cloud.tencent.com/product/tmt"
 	case "baidu":
 		return "https://api.fanyi.baidu.com/"
+	case "deepl":
+		return "https://developers.deepl.com/docs"
+	case "deeplx":
+		return "https://github.com/OwO-Network/DLX"
 	case "ollama":
 		return "https://ollama.com/"
 	}
@@ -1004,14 +1053,16 @@ func (s *settingsUI) deleteHistoryConfirmed(requestID string) {
 	if s.saving || s.loadingHistory {
 		return
 	}
-	s.saving, s.errorText, s.notice = true, "", ""
+	s.saving = true
+	scope := "history/翻译历史"
+	s.showNotice(scope, "", nil)
 	go func() {
 		err := s.app.DeleteHistory(requestID)
 		items := s.app.GetHistory()
 		s.app.mainWindow.Update(func() {
 			s.saving = false
 			if err != nil {
-				s.errorText = err.Error()
+				s.showNotice(scope, "", err)
 				return
 			}
 			s.history = items
@@ -1027,6 +1078,7 @@ func (s *settingsUI) confirmDeletion(title, message string, confirmed func()) {
 		return
 	}
 	s.confirmingDelete = true
+	scope := s.operationScope()
 	go func() {
 		result, err := mygo.Dialog.Message(mygo.MessageOptions{
 			Parent: s.app.mainWindow, Type: mygo.MessageWarning, Title: title, Message: message,
@@ -1035,7 +1087,7 @@ func (s *settingsUI) confirmDeletion(title, message string, confirmed func()) {
 		s.app.mainWindow.Update(func() {
 			s.confirmingDelete = false
 			if err != nil {
-				s.errorText = err.Error()
+				s.showNotice(scope, "", err)
 				return
 			}
 			if result.Button == 1 {
@@ -1047,6 +1099,21 @@ func (s *settingsUI) confirmDeletion(title, message string, confirmed func()) {
 
 // mergeSettingsDraft 只合并相对基线有改动的字段，保留外部语言切换等并行修改。
 func mergeSettingsDraft(baseline, edited, latest Settings) Settings {
+	if edited.PanelFollowsMouse == baseline.PanelFollowsMouse {
+		edited.PanelFollowsMouse = latest.PanelFollowsMouse
+	}
+	if edited.PanelTranslateShortcut == baseline.PanelTranslateShortcut {
+		edited.PanelTranslateShortcut = latest.PanelTranslateShortcut
+	}
+	if edited.PanelCloseShortcut == baseline.PanelCloseShortcut {
+		edited.PanelCloseShortcut = latest.PanelCloseShortcut
+	}
+	if edited.OCRShortcut == baseline.OCRShortcut {
+		edited.OCRShortcut = latest.OCRShortcut
+	}
+	if edited.WebDAV == baseline.WebDAV {
+		edited.WebDAV = latest.WebDAV
+	}
 	if edited.TrayClickShowsPanel == baseline.TrayClickShowsPanel {
 		edited.TrayClickShowsPanel = latest.TrayClickShowsPanel
 	}

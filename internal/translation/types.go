@@ -3,6 +3,7 @@ package translation
 
 // Config 描述一个可独立启用的翻译渠道；密钥随应用配置保存在本机。
 type Config struct {
+	Icon      string `json:"icon,omitempty"`
 	Format    string `json:"format,omitempty"`
 	ID        string `json:"id"`
 	Kind      string `json:"kind"`

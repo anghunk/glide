@@ -15,6 +15,7 @@ type panelUI struct {
 	initialized  bool
 	requestID    string
 	inputSession uint64
+	inputFocus   ui.Handle
 	draft        string
 	sourceLang   string
 	targetLang   string
@@ -72,21 +73,31 @@ func (p *panelUI) view(c *ui.Context) {
 		p.toolbar(c, state, colors)
 		ui.Column(c.Key("panel-composer")).Shrink(0).Padding(0, 12, 10).Gap(8).Children(func() {
 			if settings.ShowSourceInput {
-				input := ui.TextArea(c.Key(struct {
-					Kind    string
-					Session uint64
-				}{"panel-source", p.inputSession}), &p.draft).
-					Height(76).FillWidth().Padding(9, 10).Radius(7).FontSize(13).
-					Background(colors.Group).Border(1, colors.FieldBorder).
-					Label("需要翻译的原文").Placeholder("选中文字后按快捷键，或在此输入…").MaxLength(10000).
-					OnTextKey(func(key ui.TextKey) bool {
-						if key.Key == ui.KeyEnter && key.Mods == ui.Cmd {
-							p.draft = key.Text()
-							p.submit()
-							return true
-						}
-						return false
-					})
+				var input ui.Element
+				frame := ui.Box(c.Key("panel-source-frame")).Height(104).FillWidth().Shrink(0).Radius(8).Background(colors.Group).Padding(1).Border(1, panelInputBorder(c)).Children(func() {
+					input = ui.TextAreaBase(c.Key(struct {
+						Kind    string
+						Session uint64
+					}{"panel-source", p.inputSession}), &p.draft).
+						Fill().Padding(5, 7).Radius(7).FontSize(13).LineHeight(1.6).
+						Background(colors.Group).Border(0, ui.Transparent).FocusRing(false).Bind(&p.inputFocus).AutoFocus().
+						Label("需要翻译的原文").Placeholder("选中文字后按快捷键，或在此输入…").MaxLength(10000).
+						OnTextKey(func(key ui.TextKey) bool {
+							if (key.Key == ui.KeyEnter && key.Mods == 0) || panelShortcutMatches(settings.PanelTranslateShortcut, key.Mods, key.Key) {
+								p.draft = key.Text()
+								p.submit()
+								return true
+							}
+							if panelShortcutMatches(settings.PanelCloseShortcut, key.Mods, key.Key) {
+								p.app.HidePanel()
+								return true
+							}
+							return false
+						})
+				})
+				if input.Focused() {
+					frame.BorderColor(colors.Accent)
+				}
 				if input.Changed() {
 					p.message = ""
 				}
@@ -99,7 +110,7 @@ func (p *panelUI) view(c *ui.Context) {
 				}
 				ui.Spacer(c)
 				ui.PrimaryButton(c.Key("panel-translate"), "翻译").Height(28).Padding(4, 12).FontSize(12).
-					Tooltip("重新翻译原文（⌘ / Ctrl + Enter）").Disabled(strings.TrimSpace(p.draft) == "").OnClick(p.submit)
+					Tooltip(panelShortcutTooltip("重新翻译原文 · Enter", settings.PanelTranslateShortcut)).Disabled(strings.TrimSpace(p.draft) == "").OnClick(p.submit)
 			})
 		})
 		ui.Divider(c).Height(.5).Background(colors.Divider)
@@ -117,21 +128,24 @@ func (p *panelUI) view(c *ui.Context) {
 			} else if state.Loading {
 				ui.Row(c).Gap(8).Padding(16, 4).Children(func() {
 					ui.Spinner(c).Size(14, 14)
-					ui.Text(c, "正在准备翻译…").TextColor(colors.Muted).FontSize(12)
+					message := "正在准备翻译…"
+					if p.app.ocrRunning() {
+						message = "正在识别图片文字…"
+					}
+					ui.Text(c, message).TextColor(colors.Muted).FontSize(12)
 				})
 			} else if state.Error == "" {
 				ui.Column(c).Padding(24, 12).Gap(9).AlignItems(ui.Center).Children(func() {
 					pnIcon(c, "globe", 26, colors.Faint)
-					ui.Text(c, "选中文字，即刻翻译").FontSize(14).FontWeight(600)
-					ui.Text(c, "使用 "+settings.Shortcut+" 唤起浮窗").FontSize(11).TextColor(colors.Muted).TextAlign(ui.Center)
+					ui.Text(c, "选中文字，即刻翻译").FontSize(11).TextColor(colors.Muted).TextAlign(ui.Center)
 				})
 			}
 		})
 	})
-	if c.Shortcut(ui.Cmd, ui.KeyEnter) {
+	if mods, key, ok := parsePanelShortcut(settings.PanelTranslateShortcut); ok && c.Shortcut(mods, key) {
 		p.submit()
 	}
-	if c.Shortcut(0, ui.KeyEscape) {
+	if mods, key, ok := parsePanelShortcut(settings.PanelCloseShortcut); ok && c.Shortcut(mods, key) {
 		p.app.HidePanel()
 	}
 }
@@ -151,6 +165,7 @@ func (p *panelUI) toolbar(c *ui.Context, state PanelState, colors pnPalette) {
 				ui.Spinner(c).Size(11, 11)
 			}
 		})
+		p.iconButton(c.Key("panel-ocr"), "screenshot", "截图 OCR 翻译", false, colors).OnClick(func() { p.app.startOCR(true) })
 		p.iconButton(c.Key("panel-settings"), "settings", "偏好设置", false, colors).OnClick(p.app.ShowMain)
 		p.iconButton(c.Key("panel-close"), "close", "关闭浮窗", false, colors).OnClick(p.app.HidePanel)
 	})
@@ -175,7 +190,7 @@ func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider trans
 	ui.Column(c).Shrink(0).Radius(8).Background(colors.Group).Border(.5, colors.Divider).Clip().Children(func() {
 		ui.Row(c).Height(38).Padding(5, 8, 5, 10).Gap(7).Children(func() {
 			ui.Box(c).Size(21, 21).Radius(5).Background(colors.Surface).Center().Children(func() {
-				pnProviderIcon(c, provider.Kind, 16, colors.Text)
+				pnProviderIcon(c, providerIconKind(provider), 16, colors.Text)
 			})
 			name := result.ProviderName
 			if name == "" {
@@ -294,4 +309,12 @@ func panelDuration(milliseconds int64) string {
 		return fmt.Sprintf("%d ms", milliseconds)
 	}
 	return fmt.Sprintf("%.1f 秒", float64(milliseconds)/1000)
+}
+
+// panelInputBorder 只为浮窗原文框提供低对比度静态边框。
+func panelInputBorder(c *ui.Context) ui.Color {
+	if c.Theme().Dark {
+		return ui.RGBA(255, 255, 255, .08)
+	}
+	return ui.RGBA(0, 0, 0, .07)
 }

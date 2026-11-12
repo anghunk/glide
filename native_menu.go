@@ -52,6 +52,8 @@ func newNativeTrayMenu(a *GlideService) (*nativeTrayMenu, error) {
 		mygo.Separator(),
 		{Label: "输入翻译", Click: func(*mygo.MenuItem, *mygo.Window) { a.OpenPanel() }},
 		t.selectionItem,
+		{Label: "截图 OCR 翻译", Click: func(*mygo.MenuItem, *mygo.Window) { a.startOCR(true) }},
+		{Label: "图片 OCR 翻译…", Click: func(*mygo.MenuItem, *mygo.Window) { a.startOCR(false) }},
 		{Label: "剪贴板翻译", Click: func(*mygo.MenuItem, *mygo.Window) { a.showTranslation(mygo.Clipboard.ReadText()) }},
 		mygo.Separator(),
 		{Label: "设置…", Accelerator: "CmdOrCtrl+,", Click: func(*mygo.MenuItem, *mygo.Window) { a.ShowMain() }},

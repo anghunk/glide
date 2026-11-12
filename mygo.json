@@ -2,7 +2,7 @@
   "name": "Glide",
   "slug": "glide",
   "identifier": "app.glide.translator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "out": "build",
   "icon": "resources/icon.png",
   "macos": {
@@ -14,5 +14,9 @@
     "tagPrefix": "v",
     "deltas": 0,
     "changelog": "CHANGELOG.md"
+  },
+  "i18n": {
+    "source": "zh-Hans",
+    "dir": "locales"
   }
 }

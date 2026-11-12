@@ -4,12 +4,19 @@
 <h1 align="center">Glide</h1>
 <p align="center">轻巧的原生桌面划词翻译工具，支持 macOS 与 Windows。</p>
 
+<p align="center">
+  <img src="assets/screenshots/glide-overview.png" alt="Glide 软件宣传图：主页面与翻译浮窗，使用通用演示内容" width="100%" />
+</p>
+
 ## 功能
 
+- **图片 OCR**：选择图片或使用 `CmdOrCtrl+Shift+O` 框选截图，本地识别文字后自动翻译。
 - **快捷翻译**：常驻系统托盘，支持划词、手动输入与剪贴板翻译。
+- **首页翻译**：上方输入原文，下方逐项展示已启用服务的译文，支持语言选择与快捷键提交。
+- **配置备份**：在“高级”中导入导出 JSON，或通过 WebDAV 手动上传、下载配置。
 - **多渠道对照**：并行请求多个翻译服务，结果独立展示，支持调整渠道顺序。
 - **紧凑浮窗**：支持编辑重译、固定窗口、折叠结果与复制译文。
-- **本地管理**：支持清空、单条删除历史，可保留最近 10 / 50 / 100 条；配置与密钥保存在本机。
+- **本地管理**：支持清空、单条删除历史，可选择不保留，或保留最近 10 / 50 / 100 条；配置与密钥保存在本机。
 - **原生体验**：基于 Go / MyGo 绘制界面，无需 WebView，正式版支持签名验证更新。
 
 ## 开始使用
@@ -18,7 +25,11 @@
 
 选中文字后按 `CmdOrCtrl+Shift+T` 呼出翻译浮窗（macOS 为 `⌘⇧T`，Windows 为 `Ctrl+Shift+T`），快捷键可在设置中修改。自动划词默认关闭，可按需开启。
 
-macOS 需在“系统设置 → 隐私与安全性 → 辅助功能”中授权 Glide，授权后重启应用。部分应用无法读取选区时，可使用托盘中的“翻译剪贴板”或“输入翻译”。当前不支持 OCR。
+macOS 需在“系统设置 → 隐私与安全性 → 辅助功能”中授权 Glide，授权后重启应用。部分应用无法读取选区时，可使用托盘中的“翻译剪贴板”或“输入翻译”。图片文字可通过首页“图片 OCR”、截图按钮或托盘入口识别翻译。
+
+截图 OCR 默认快捷键为 `CmdOrCtrl+Shift+O`，可在“快捷键”中修改。macOS 首次截图需在系统设置中允许 Glide 使用屏幕录制；OCR 使用系统 Vision。Windows 使用框选截图及系统 OCR 语言包，需要安装相应语言的文字识别功能。识别在本机完成，图片不会上传，文字发送至启用的翻译渠道；截图临时文件识别后自动删除。支持 PNG、JPEG、BMP、TIFF 图片。
+
+浮窗默认在鼠标所在屏幕居中显示；在“通用”中开启“浮窗随鼠标显示”后，在鼠标附近弹出。固定的浮窗保留当前位置。设置修改自动保存，操作结果和错误显示在对应设置列表下方。
 
 ### macOS 提示“Apple 无法验证 Glide.app”
 
@@ -39,10 +50,16 @@ macOS 需在“系统设置 → 隐私与安全性 → 辅助功能”中授权 
 | 微软 Azure | 订阅密钥、资源区域（如需） |
 | 腾讯翻译 | SecretId、SecretKey、区域 |
 | 百度翻译 | APP ID、密钥 |
+| DeepL | API Key；支持 Free / Pro，可自定义服务地址 |
+| DeepLX | 服务地址、访问令牌（可选），默认本机 1188 端口 |
 | AI 翻译 | 上游格式、API 地址、API Key、模型（支持获取列表或自定义） |
 | Ollama | 服务地址、已安装的模型 |
 
+DeepL 使用[官方 API](https://developers.deepl.com/api-reference/translate/request-translation)，地址留空时根据密钥自动选择 Free 或 Pro，支持填写域名、`/v2` 或完整接口地址。DeepLX 连接[自托管服务](https://github.com/OwO-Network/DLX)，默认 `http://127.0.0.1:1188/translate`，访问令牌使用 Bearer 认证。两个渠道均默认关闭，可在“添加服务”中添加多个实例。
+
 AI 翻译支持 [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)、[OpenAI Responses](https://developers.openai.com/api/reference/resources/responses/methods/create)、[Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create) 和 [Gemini](https://ai.google.dev/api/generate-content)。填写地址与密钥后，点击“获取模型”即可下拉选择，也可选择“自定义模型…”手动输入。地址可填写基础地址或完整的生成接口地址；切换格式时请确认地址与上游匹配。
+
+翻译服务的密钥输入框支持点击眼睛显示或隐藏；每个服务可以点击小图标按钮，在弹窗中选择内置显示图标，包括 Claude、Gemini、DeepSeek、通义千问、豆包等 AI 品牌，不改变实际请求的服务类型。
 
 Ollama 默认连接 `http://127.0.0.1:11434`，需自行启动服务并安装模型。AI 与 Ollama 均支持添加多个实例。
 
@@ -57,9 +74,19 @@ Ollama 默认连接 `http://127.0.0.1:11434`，需自行启动服务并安装模
 
 原文会发送至当前启用的翻译渠道；仅启用本机 Ollama 时，翻译请求留在本机。应用不监听剪贴板，仅在主动使用剪贴板翻译时读取。旧版钥匙串凭据在首次启动时自动迁移，读取旧密钥时可能需要一次系统授权；迁移成功后清理对应旧凭据。
 
-历史可在“翻译历史”中清空或单条删除，保留条数可在“通用”中设置。
+历史可在“翻译历史”中清空或单条删除，也可在“关于”下方的“隐私与数据”中清空；保留条数可在“通用”中设置；选择“不保留”会清空已有历史，并停止记录后续翻译。
+
+“高级”中的配置备份包含偏好、翻译服务和明文服务密钥，不包含历史及 WebDAV 登录信息。导入会替换本机服务和偏好，保留本机 WebDAV 连接配置；若降低历史保留条数，会清理超额历史。WebDAV 填写已有的父目录地址，连接时自动检测并创建 `Glide-backup` 文件夹。每次上传生成独立备份，例如 `glide-settings-20261112-143025.json`；同秒重名时追加短后缀，不覆盖已有备份。点击“下载配置”从右侧抽屉获取按时间倒序排列的列表，可以选择某份备份恢复到本地，也可删除远端备份；恢复和删除前均会确认。不自动合并，WebDAV 登录信息始终留在本机。建议使用 HTTPS，并妥善保管备份及服务器访问权限。
 
 ## 开发与构建
+
+安装 Go 1.27.3 或更高版本及 Make 后，在项目根目录执行：
+
+```bash
+make dev
+```
+
+该命令执行 `go tool mygo dev`，启动开发模式并在代码变更后自动重载。
 
 渠道图标来自 [LobeHub Icons](https://icons.lobehub.com/)，通用图标来自 [Lucide](https://lucide.dev/)，许可见 [assets/providers](assets/providers/) 与 [assets/lucide](assets/lucide/)。
 

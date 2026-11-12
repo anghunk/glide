@@ -27,7 +27,7 @@ func readSettings(dir string) (Settings, error) {
 	if err := json.Unmarshal(data, &disk); err != nil {
 		return Settings{}, fmt.Errorf("读取设置失败：%w", err)
 	}
-	if disk.Settings.HistoryLimit != 10 && disk.Settings.HistoryLimit != 50 && disk.Settings.HistoryLimit != 100 {
+	if disk.Settings.HistoryLimit != 0 && disk.Settings.HistoryLimit != 10 && disk.Settings.HistoryLimit != 50 && disk.Settings.HistoryLimit != 100 {
 		disk.Settings.HistoryLimit = 50
 	}
 	if len(disk.Secrets) > 0 {

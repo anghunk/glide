@@ -5,7 +5,6 @@ import (
 	"log"
 	"runtime"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -49,15 +48,7 @@ func (a *GlideService) createWindows() {
 		Title: "Glide", Content: ui.View(a.panelUI.view), Width: 400, Height: 420, MinWidth: 360, MinHeight: 240, MaxWidth: 420, MaxHeight: 560,
 		Panel: true, Frameless: true, CornerRadius: 12, Hidden: true, BackgroundColor: "#ffffff", DisableMaximize: true,
 	})
-	var hadFocus atomic.Bool
-	a.panelWindow.OnShow(func() { hadFocus.Store(false) })
-	a.panelWindow.OnHide(func() { hadFocus.Store(false) })
-	a.panelWindow.OnFocus(func() { hadFocus.Store(true) })
 	a.panelWindow.OnBlur(func() {
-		// ShowInactive 保留原应用焦点；只有用户进入过浮窗后，失焦才自动收起。
-		if !hadFocus.Swap(false) {
-			return
-		}
 		a.mu.RLock()
 		pinned, quitting := a.panel.Pinned, a.quitting
 		a.mu.RUnlock()
@@ -157,6 +148,7 @@ func (a *GlideService) OpenPanel() {
 		a.positionPanel()
 	}
 	a.panelWindow.Show()
+	a.focusPanelInput()
 	a.notifyPanel()
 }
 
@@ -172,15 +164,17 @@ func (a *GlideService) translateSelection() {
 	a.showTranslation(s.Text)
 }
 
-// positionPanel 使用实际窗口大小与逻辑坐标贴近选区，固定时保留当前浮窗位置。
+// positionPanel 按偏好定位并聚焦浮窗，使唤醒后的首次失焦即可收起；固定且可见时保留当前位置。
 func (a *GlideService) positionPanel() {
 	a.mu.RLock()
-	pinned, quitting := a.panel.Pinned, a.quitting
+	pinned, quitting, followsMouse := a.panel.Pinned, a.quitting, a.settings.PanelFollowsMouse
 	a.mu.RUnlock()
 	if quitting {
 		return
 	}
+	a.focusPanelInput()
 	if pinned && a.panelWindow.IsVisible() {
+		a.panelWindow.Show()
 		return
 	}
 	point := mygo.Screen.CursorScreenPoint()
@@ -192,6 +186,11 @@ func (a *GlideService) positionPanel() {
 		bounds = a.panelWindow.Bounds()
 		width, height = bounds.Width, bounds.Height
 	}
+	if !followsMouse {
+		a.panelWindow.SetPosition(area.X+(area.Width-width)/2, area.Y+(area.Height-height)/2)
+		a.panelWindow.Show()
+		return
+	}
 	x, y := point.X+16, point.Y+20
 	if x+width > area.X+area.Width-8 {
 		x = point.X - width - 16
@@ -202,7 +201,7 @@ func (a *GlideService) positionPanel() {
 	x = max(area.X+8, min(x, area.X+area.Width-width-8))
 	y = max(area.Y+8, min(y, area.Y+area.Height-height-8))
 	a.panelWindow.SetPosition(x, y)
-	a.panelWindow.ShowInactive()
+	a.panelWindow.Show()
 }
 
 // showPanelError 将权限或取词错误显示在同一浮窗中。
@@ -283,6 +282,9 @@ func (a *GlideService) shutdown() {
 	a.stopUpdater()
 	a.mu.Lock()
 	a.quitting = true
+	if a.ocrCancel != nil {
+		a.ocrCancel()
+	}
 	if a.panelCancel != nil {
 		a.panelCancel()
 	}
@@ -300,13 +302,14 @@ func (a *GlideService) shutdown() {
 // 调用方须持有 triggersMu。
 func (a *GlideService) configureShortcuts(settings Settings) {
 	a.mu.RLock()
-	previous := map[string]string{"划词翻译": a.hotkey, "输入翻译": a.extraHotkeys["输入翻译"], "剪贴板翻译": a.extraHotkeys["剪贴板翻译"]}
+	previous := map[string]string{"划词翻译": a.hotkey, "输入翻译": a.extraHotkeys["输入翻译"], "剪贴板翻译": a.extraHotkeys["剪贴板翻译"], "截图 OCR 翻译": a.extraHotkeys["截图 OCR 翻译"]}
 	a.mu.RUnlock()
-	desired := map[string]string{"划词翻译": settings.Shortcut, "输入翻译": settings.InputShortcut, "剪贴板翻译": settings.ClipboardShortcut}
+	desired := map[string]string{"划词翻译": settings.Shortcut, "输入翻译": settings.InputShortcut, "剪贴板翻译": settings.ClipboardShortcut, "截图 OCR 翻译": settings.OCRShortcut}
 	actions := map[string]func(){
-		"划词翻译":  func() { go a.translateSelection() },
-		"输入翻译":  a.OpenPanel,
-		"剪贴板翻译": func() { a.showTranslation(mygo.Clipboard.ReadText()) },
+		"截图 OCR 翻译": func() { a.startOCR(true) },
+		"划词翻译":      func() { go a.translateSelection() },
+		"输入翻译":      a.OpenPanel,
+		"剪贴板翻译":     func() { a.showTranslation(mygo.Clipboard.ReadText()) },
 	}
 	unchanged := true
 	for name, key := range desired {
@@ -323,7 +326,7 @@ func (a *GlideService) configureShortcuts(settings Settings) {
 		}
 	}
 	registered := []string{}
-	for _, name := range []string{"划词翻译", "输入翻译", "剪贴板翻译"} {
+	for _, name := range []string{"划词翻译", "输入翻译", "剪贴板翻译", "截图 OCR 翻译"} {
 		key := desired[name]
 		if key == "" {
 			continue

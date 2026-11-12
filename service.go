@@ -23,17 +23,22 @@ import (
 
 // Settings 描述语言、触发方式及各翻译渠道的独立配置。
 type Settings struct {
-	TrayClickShowsPanel bool                 `json:"trayClickShowsPanel"`
-	InputShortcut       string               `json:"inputShortcut"`
-	ClipboardShortcut   string               `json:"clipboardShortcut"`
-	HistoryLimit        int                  `json:"historyLimit"`
-	SourceLang          string               `json:"sourceLang"`
-	TargetLang          string               `json:"targetLang"`
-	Shortcut            string               `json:"shortcut"`
-	AutoSelection       bool                 `json:"autoSelection"`
-	ShowSourceInput     bool                 `json:"showSourceInput"`
-	ShowLanguageBar     bool                 `json:"showLanguageBar"`
-	Providers           []translation.Config `json:"providers"`
+	PanelTranslateShortcut string               `json:"panelTranslateShortcut"`
+	PanelCloseShortcut     string               `json:"panelCloseShortcut"`
+	PanelFollowsMouse      bool                 `json:"panelFollowsMouse"`
+	OCRShortcut            string               `json:"ocrShortcut"`
+	WebDAV                 WebDAVConfig         `json:"webdav"`
+	TrayClickShowsPanel    bool                 `json:"trayClickShowsPanel"`
+	InputShortcut          string               `json:"inputShortcut"`
+	ClipboardShortcut      string               `json:"clipboardShortcut"`
+	HistoryLimit           int                  `json:"historyLimit"`
+	SourceLang             string               `json:"sourceLang"`
+	TargetLang             string               `json:"targetLang"`
+	Shortcut               string               `json:"shortcut"`
+	AutoSelection          bool                 `json:"autoSelection"`
+	ShowSourceInput        bool                 `json:"showSourceInput"`
+	ShowLanguageBar        bool                 `json:"showLanguageBar"`
+	Providers              []translation.Config `json:"providers"`
 }
 
 // PlatformState 向设置界面报告真实的取词支持及权限状态。
@@ -100,6 +105,8 @@ type PanelState struct {
 
 // GlideService 连接原生界面、系统取词及翻译渠道。
 type GlideService struct {
+	ocrBusy         bool
+	ocrCancel       context.CancelFunc
 	mu              sync.RWMutex
 	settingsMu      sync.Mutex
 	triggersMu      sync.Mutex
@@ -129,7 +136,7 @@ type GlideService struct {
 
 // defaultSettings 只默认启用无需付费凭据的渠道，自动划词由用户主动开启。
 func defaultSettings() Settings {
-	return Settings{TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "zh-CN", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
+	return Settings{PanelTranslateShortcut: "CmdOrCtrl+Enter", PanelCloseShortcut: "Escape", OCRShortcut: "CmdOrCtrl+Shift+O", TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "zh-CN", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
 }
 
 // cloneSettings 复制渠道切片，避免界面快照与运行配置共用可变数据。
@@ -179,8 +186,8 @@ func (a *GlideService) GetState() AppState {
 func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
-	if settings.HistoryLimit != 10 && settings.HistoryLimit != 50 && settings.HistoryLimit != 100 {
-		return AppState{}, fmt.Errorf("历史保留条数仅支持 10、50 或 100")
+	if settings.HistoryLimit != 0 && settings.HistoryLimit != 10 && settings.HistoryLimit != 50 && settings.HistoryLimit != 100 {
+		return AppState{}, fmt.Errorf("历史保留条数仅支持不保留、10、50 或 100")
 	}
 	if settings.SourceLang == "" {
 		settings.SourceLang = "auto"
@@ -192,7 +199,7 @@ func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 		return AppState{}, fmt.Errorf("请输入有效快捷键")
 	}
 	seenShortcuts := map[string]bool{shortcutIdentity(settings.Shortcut): true}
-	for _, shortcut := range []string{settings.InputShortcut, settings.ClipboardShortcut} {
+	for _, shortcut := range []string{settings.InputShortcut, settings.ClipboardShortcut, settings.OCRShortcut} {
 		if shortcut == "" {
 			continue
 		}
@@ -201,6 +208,18 @@ func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 			return AppState{}, fmt.Errorf("快捷键重复或无效，请使用不同组合")
 		}
 		seenShortcuts[key] = true
+	}
+	for _, shortcut := range []string{settings.PanelTranslateShortcut, settings.PanelCloseShortcut} {
+		if shortcut == "" {
+			continue
+		}
+		if _, _, ok := parsePanelShortcut(shortcut); !ok {
+			return AppState{}, fmt.Errorf("浮窗快捷键无效，请重新录入")
+		}
+		if seenShortcuts[shortcutIdentity(shortcut)] {
+			return AppState{}, fmt.Errorf("快捷键重复，请使用不同组合")
+		}
+		seenShortcuts[shortcutIdentity(shortcut)] = true
 	}
 	if len(settings.Providers) > 24 {
 		return AppState{}, fmt.Errorf("最多配置 24 个翻译渠道")
@@ -394,8 +413,12 @@ func (a *GlideService) recordHistory(response TranslationResponse) error {
 	a.historyMu.Lock()
 	defer a.historyMu.Unlock()
 	a.mu.RLock()
-	history := append([]TranslationResponse{response}, a.history...)
 	limit := a.settings.HistoryLimit
+	if limit == 0 {
+		a.mu.RUnlock()
+		return nil
+	}
+	history := append([]TranslationResponse{response}, a.history...)
 	a.mu.RUnlock()
 	if len(history) > limit {
 		history = history[:limit]
@@ -451,7 +474,7 @@ func (a *GlideService) HideMain() {
 	}
 }
 
-// SetPanelPinned 控制浮窗取得焦点后是否在失焦时保留。
+// SetPanelPinned 控制浮窗是否在失焦时保留。
 func (a *GlideService) SetPanelPinned(pinned bool) {
 	a.mu.Lock()
 	a.panel.Pinned = pinned

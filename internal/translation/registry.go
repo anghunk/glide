@@ -38,6 +38,14 @@ func Definitions() []Definition {
 			{Key: "secretKey", Label: "密钥", Secret: true, Required: true},
 			{Key: "endpoint", Label: "服务地址", Placeholder: "https://fanyi-api.baidu.com/api/trans/vip/translate"},
 		}},
+		{Kind: "deepl", Name: "DeepL", Description: "DeepL 官方 API，支持 Free 和 Pro；地址留空时根据密钥自动选择。", RequiresKey: true, Fields: []Field{
+			{Key: "apiKey", Label: "API Key", Secret: true, Required: true},
+			{Key: "endpoint", Label: "服务地址", Placeholder: "留空自动选择 Free / Pro，也可填写完整接口地址"},
+		}},
+		{Kind: "deeplx", Name: "DeepLX", Description: "连接自托管 DeepLX 服务，可选访问令牌；默认使用本机 1188 端口。", Fields: []Field{
+			{Key: "endpoint", Label: "服务地址", Placeholder: "http://127.0.0.1:1188/translate"},
+			{Key: "apiKey", Label: "访问令牌", Placeholder: "仅启用了认证的服务需要", Secret: true},
+		}},
 		{Kind: "openai", Name: "AI 翻译", Description: "支持 OpenAI、Anthropic 与 Gemini 协议，可获取模型列表。", Fields: []Field{
 			{Key: "endpoint", Label: "API 地址", Placeholder: "https://api.openai.com/v1"},
 			{Key: "apiKey", Label: "API Key", Placeholder: "无认证的本地服务可留空", Secret: true},
@@ -106,6 +114,10 @@ func Translate(ctx context.Context, config Config, request Request) (result Resu
 		text, detected, err = tencent(ctx, config, request)
 	case "baidu":
 		text, detected, err = baidu(ctx, config, request)
+	case "deepl":
+		text, detected, err = deepl(ctx, config, request)
+	case "deeplx":
+		text, detected, err = deeplx(ctx, config, request)
 	case "openai":
 		text, detected, err = aiTranslate(ctx, config, request)
 	case "ollama":
