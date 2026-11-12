@@ -3,7 +3,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"syscall"
 	"time"
@@ -29,7 +29,7 @@ func captureTraySelectionSource() func() error {
 	valid := window != 0 && pid != 0 && pid != uint32(os.Getpid()) && name != "Shell_TrayWnd" && name != "Shell_SecondaryTrayWnd" && name != "NotifyIconOverflowWindow"
 	return func() error {
 		if !valid {
-			return fmt.Errorf(tr("没有找到原应用。请回到原应用选中文字，再使用翻译快捷键。"))
+			return errors.New(tr("没有找到原应用。请回到原应用选中文字，再使用翻译快捷键。"))
 		}
 		stillValid := func() bool {
 			alive, _, _ := isWindow.Call(window)
@@ -38,7 +38,7 @@ func captureTraySelectionSource() func() error {
 			return alive != 0 && currentPID == pid
 		}
 		if !stillValid() {
-			return fmt.Errorf(tr("原应用窗口已关闭，请重新选中文字。"))
+			return errors.New(tr("原应用窗口已关闭，请重新选中文字。"))
 		}
 		setForeground.Call(window)
 		// 跨输入队列的激活可能异步完成；仅在后台有界等待，不占用菜单所在的主线程。
@@ -48,7 +48,7 @@ func captureTraySelectionSource() func() error {
 		defer ticker.Stop()
 		for {
 			if !stillValid() {
-				return fmt.Errorf(tr("原应用窗口已关闭，请重新选中文字。"))
+				return errors.New(tr("原应用窗口已关闭，请重新选中文字。"))
 			}
 			current, _, _ := getForeground.Call()
 			if current == window {
@@ -56,7 +56,7 @@ func captureTraySelectionSource() func() error {
 			}
 			select {
 			case <-deadline.C:
-				return fmt.Errorf(tr("无法返回原应用。请在原应用中使用翻译快捷键。"))
+				return errors.New(tr("无法返回原应用。请在原应用中使用翻译快捷键。"))
 			case <-ticker.C:
 			}
 		}
