@@ -3499,3 +3499,53 @@ func DeleteAction() string { return In(i18n.Locale()).DeleteAction() }
 func (msgs Messages) DeleteAction() string {
 	return Catalog.Format(msgs.locale, "delete_action", nil)
 }
+
+// Startup says "启动"
+// in the language the app shows.
+func Startup() string { return In(i18n.Locale()).Startup() }
+
+// Startup says "启动"
+// in the language of msgs.
+func (msgs Messages) Startup() string {
+	return Catalog.Format(msgs.locale, "startup", nil)
+}
+
+// OpenAtLogin says "开机自启"
+// in the language the app shows.
+func OpenAtLogin() string { return In(i18n.Locale()).OpenAtLogin() }
+
+// OpenAtLogin says "开机自启"
+// in the language of msgs.
+func (msgs Messages) OpenAtLogin() string {
+	return Catalog.Format(msgs.locale, "open_at_login", nil)
+}
+
+// OpenAtLoginDescription says "登录系统后自动启动 Glide，并在托盘后台运行。"
+// in the language the app shows.
+func OpenAtLoginDescription() string { return In(i18n.Locale()).OpenAtLoginDescription() }
+
+// OpenAtLoginDescription says "登录系统后自动启动 Glide，并在托盘后台运行。"
+// in the language of msgs.
+func (msgs Messages) OpenAtLoginDescription() string {
+	return Catalog.Format(msgs.locale, "open_at_login_description", nil)
+}
+
+// OpenAtLoginFailed says "修改开机自启失败：%w"
+// in the language the app shows.
+func OpenAtLoginFailed() string { return In(i18n.Locale()).OpenAtLoginFailed() }
+
+// OpenAtLoginFailed says "修改开机自启失败：%w"
+// in the language of msgs.
+func (msgs Messages) OpenAtLoginFailed() string {
+	return Catalog.Format(msgs.locale, "open_at_login_failed", nil)
+}
+
+// OpenAtLoginNotApplied says "开机自启未生效，请检查系统的登录项或启动应用设置。"
+// in the language the app shows.
+func OpenAtLoginNotApplied() string { return In(i18n.Locale()).OpenAtLoginNotApplied() }
+
+// OpenAtLoginNotApplied says "开机自启未生效，请检查系统的登录项或启动应用设置。"
+// in the language of msgs.
+func (msgs Messages) OpenAtLoginNotApplied() string {
+	return Catalog.Format(msgs.locale, "open_at_login_not_applied", nil)
+}

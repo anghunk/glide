@@ -26,10 +26,12 @@ func (a *GlideService) createWindows() {
 		TitleBarStyle: settingsTitleBar, HideWindowButtons: runtime.GOOS != "darwin",
 	})
 	a.mainWindow.OnShow(func() {
+		a.settingsUI.refreshOpenAtLogin()
 		if runtime.GOOS == "darwin" {
 			mygo.App.Dock.Show()
 		}
 	})
+	a.mainWindow.OnFocus(a.settingsUI.refreshOpenAtLogin)
 	a.mainWindow.OnHide(func() {
 		if runtime.GOOS == "darwin" {
 			mygo.App.Dock.Hide()

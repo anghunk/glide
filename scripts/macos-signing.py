@@ -95,15 +95,24 @@ def prepare():
     cert.write_bytes(validate(target / "identity.p12", password))
     keychain = str(target / "glide-signing.keychain-db")
     keypass = (target / "keychain-password").read_text().strip()
-    if not Path(keychain).exists():
+    created = not Path(keychain).exists()
+    if created:
         run(["security", "create-keychain", "-p", keypass, keychain])
+    # 复用的钥匙串也可能已锁定，修改设置前必须先用保存的密码解锁，避免系统弹窗。
+    try:
         run(["security", "unlock-keychain", "-p", keypass, keychain])
+    except RuntimeError as error:
+        raise RuntimeError(
+            f"无法使用 {target / 'keychain-password'} 中保存的密码解锁专用钥匙串；"
+            "请检查钥匙串与密码是否来自同一份备份，无需输入登录密码。"
+            f"原始错误：{error}"
+        ) from None
+    if created:
         run(["security", "import", str(target / "identity.p12"), "-k", keychain,
              "-P", password, "-T", "/usr/bin/codesign"])
         run(["security", "set-key-partition-list", "-S", "apple-tool:,apple:", "-s",
              "-k", keypass, keychain])
     run(["security", "set-keychain-settings", "-t", "21600", keychain])
-    run(["security", "unlock-keychain", "-p", keypass, keychain])
     existing = shlex.split(run(["security", "list-keychains", "-d", "user"]).decode())
     if keychain not in existing:
         run(["security", "list-keychains", "-d", "user", "-s", *existing, keychain])

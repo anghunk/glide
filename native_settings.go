@@ -14,6 +14,8 @@ import (
 
 // settingsUI 的可编辑状态仅由主线程访问；磁盘与系统操作在后台执行。
 type settingsUI struct {
+	openAtLogin                          bool
+	loginBusy                            bool
 	generalTab                           int
 	iconPickerOpen                       bool
 	iconPickerProviderID                 string
@@ -50,6 +52,7 @@ type settingsUI struct {
 func newSettingsUI(app *GlideService) *settingsUI {
 	s := &settingsUI{app: app, category: "home", expanded: map[string]bool{}, visibleSecrets: map[string]bool{}, messages: map[string]settingsNotice{}}
 	s.adopt(app.GetState())
+	s.openAtLogin = mygo.App.OpenAtLogin()
 	s.home = newHomeUI(app)
 	s.observedSettings = cloneSettings(s.draft)
 	s.providerList.Key = func(row int) any { return s.draft.Providers[row].ID }
@@ -572,8 +575,18 @@ func (s *settingsUI) sidebar(c *ui.Context, p pnPalette) {
 func (s *settingsUI) group(c *ui.Context, p pnPalette, title string, content func()) {
 	ui.Column(c).Shrink(0).Gap(7).Children(func() {
 		ui.Text(c, tr(title)).FontSize(12).FontWeight(600).TextColor(p.Muted).Padding(0, 4)
+		s.card(c, p, title, content)
+	})
+}
+
+// card 展示无外部标题的设置卡片；合并分组时保留各设置原有的错误提示位置。
+func (s *settingsUI) card(c *ui.Context, p pnPalette, section string, content func(), additionalSections ...string) {
+	ui.Column(c).Shrink(0).Gap(7).Children(func() {
 		ui.Column(c).Background(p.Group).Radius(12).Padding(3, 13).Dividers(.5, p.Divider).Children(content)
-		s.inlineNotice(c, p, title)
+		s.inlineNotice(c, p, section)
+		for _, section := range additionalSections {
+			s.inlineNotice(c, p, section)
+		}
 	})
 }
 
@@ -595,7 +608,7 @@ var generalSettingsTabs = []struct {
 	Label       string
 	SearchTerms []string
 }{
-	{"外观", []string{"主题风格", "明亮", "黑夜", "跟随系统", "界面语言", "托盘", "左键点击托盘显示设置面板", "外观"}},
+	{"外观", []string{"主题风格", "明亮", "黑夜", "跟随系统", "界面语言", "托盘", "左键点击托盘显示设置面板", "外观", "启动", "开机自启", "登录", "自启动"}},
 	{"翻译偏好", []string{"取词方式", "自动划词翻译", "默认语言", "源语言", "目标语言", "智能互译", "翻译历史", "保留条数", "不保留"}},
 	{"翻译浮窗", []string{"打开翻译浮窗", "浮窗随鼠标显示", "显示原文输入框", "显示语言栏"}},
 	{"系统权限", []string{"跨应用取词已获授权", "需要允许跨应用取词", "打开辅助功能设置", "刷新权限"}},
@@ -679,9 +692,9 @@ func (s *settingsUI) themeSegments(c *ui.Context, p pnPalette, selected *int, la
 	return track
 }
 
-// generalBasics 展示主题、界面语言和托盘交互。
+// generalBasics 将主题与语言、启动与托盘分别收拢到两张卡片中。
 func (s *settingsUI) generalBasics(c *ui.Context, p pnPalette) {
-	s.group(c, p, "主题风格", func() {
+	s.card(c, p, "主题风格", func() {
 		s.row(c, p, "主题风格", "选择明亮、黑夜或跟随系统，修改后立即生效。", func() {
 			modes := []string{"light", "dark", "system"}
 			labels := []string{tr("明亮"), tr("黑夜"), tr("跟随系统")}
@@ -695,8 +708,6 @@ func (s *settingsUI) generalBasics(c *ui.Context, p pnPalette) {
 				s.draft.ThemeMode = modes[chosen]
 			}
 		})
-	})
-	s.group(c, p, "界面语言", func() {
 		s.row(c, p, "界面语言", "选择应用显示语言，修改后立即生效。", func() {
 			codes := []string{"", "zh-Hans", "zh-Hant", "en"}
 			names := []string{tr("跟随系统"), "简体中文", "繁體中文", "English"}
@@ -715,17 +726,22 @@ func (s *settingsUI) generalBasics(c *ui.Context, p pnPalette) {
 				}
 			}
 		})
-	})
-	s.group(c, p, "托盘", func() {
+	}, "界面语言")
+	s.card(c, p, "启动", func() {
+		s.row(c, p, "开机自启", "登录系统后自动启动 Glide，并在托盘后台运行。", func() {
+			if ui.Switch(c, &s.openAtLogin).Label(tr("开机自启")).Size(38, 22).Disabled(s.loginBusy).Changed() {
+				s.setOpenAtLogin(s.openAtLogin)
+			}
+		})
 		s.row(c, p, "左键点击托盘显示设置面板", "", func() {
 			ui.Switch(c, &s.draft.TrayClickShowsPanel).Label(tr("左键点击托盘显示设置面板")).Size(38, 22)
 		})
-	})
+	}, "托盘")
 }
 
 // generalTranslation 展示取词方式、默认翻译语言和历史保留偏好。
 func (s *settingsUI) generalTranslation(c *ui.Context, p pnPalette) {
-	s.group(c, p, "取词方式", func() {
+	s.card(c, p, "取词方式", func() {
 		detail := "划选文字后自动显示翻译；关闭时使用快捷键触发。"
 		if !s.state.Platform.AutomaticSelectionSupported {
 			detail = "当前系统暂不支持自动划词，可以使用快捷键取词。"
@@ -734,11 +750,11 @@ func (s *settingsUI) generalTranslation(c *ui.Context, p pnPalette) {
 			ui.Switch(c, &s.draft.AutoSelection).Label(tr("自动划词翻译")).Size(38, 22).Disabled(!s.state.Platform.AutomaticSelectionSupported)
 		})
 	})
-	s.group(c, p, "默认语言", func() {
+	s.card(c, p, "默认语言", func() {
 		s.row(c, p, "源语言", "识别选中文字所使用的语言。", func() { pnLanguageSelect(c, &s.draft.SourceLang, true, 144, false) })
 		s.row(c, p, "目标语言", "智能互译：中文译为英文，其他语言译为中文；也可指定目标语言。", func() { pnLanguageSelect(c, &s.draft.TargetLang, false, 144, false) })
 	})
-	s.group(c, p, "翻译历史", func() {
+	s.card(c, p, "翻译历史", func() {
 		s.row(c, p, "保留条数", "仅保留最近的记录；选择“不保留”会清空已有历史，并停止记录。", func() {
 			chosen := fmt.Sprintf("%d 条", s.draft.HistoryLimit)
 			if s.draft.HistoryLimit == 0 {
@@ -762,7 +778,7 @@ func (s *settingsUI) generalTranslation(c *ui.Context, p pnPalette) {
 
 // generalPanel 展示翻译浮窗的位置与内容选项。
 func (s *settingsUI) generalPanel(c *ui.Context, p pnPalette) {
-	s.group(c, p, "翻译浮窗", func() {
+	s.card(c, p, "翻译浮窗", func() {
 		s.row(c, p, "打开翻译浮窗", "也可以直接输入原文进行翻译。", func() {
 			ui.Button(c, tr("打开浮窗")).Height(28).FontSize(12.5).OnClick(s.app.OpenPanel)
 		})
@@ -774,7 +790,7 @@ func (s *settingsUI) generalPanel(c *ui.Context, p pnPalette) {
 
 // generalPermissions 展示平台取词权限及授权操作。
 func (s *settingsUI) generalPermissions(c *ui.Context, p pnPalette) {
-	s.group(c, p, "系统权限", func() {
+	s.card(c, p, "系统权限", func() {
 		ui.Column(c).Padding(10, 0).Gap(9).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
 				color, title := p.Accent, "跨应用取词已获授权"

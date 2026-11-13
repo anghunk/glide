@@ -335,5 +335,10 @@
   "translation_preferences": "Translation",
   "copy_current_service": "Duplicate Current Service",
   "service_copy_suffix": " Copy",
-  "delete_action": "Delete"
+  "delete_action": "Delete",
+  "startup": "Startup",
+  "open_at_login": "Launch at login",
+  "open_at_login_description": "Start Glide automatically when you log in and run in the system tray.",
+  "open_at_login_failed": "Failed to change launch at login: %w",
+  "open_at_login_not_applied": "Launch at login was not applied. Check your system login items or startup apps settings."
 }

@@ -335,5 +335,10 @@
   "translation_preferences": "翻譯偏好",
   "copy_current_service": "複製目前服務",
   "service_copy_suffix": " 副本",
-  "delete_action": "刪除"
+  "delete_action": "刪除",
+  "startup": "啟動",
+  "open_at_login": "開機自啟",
+  "open_at_login_description": "登入系統後自動啟動 Glide，並在系統匣背景執行。",
+  "open_at_login_failed": "修改開機自啟失敗：%w",
+  "open_at_login_not_applied": "開機自啟未生效，請檢查系統的登入項目或啟動應用程式設定。"
 }
