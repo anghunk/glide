@@ -7,7 +7,9 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/xml"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -36,9 +38,56 @@ func runWindows(ctx context.Context, mode, path string) (string, error) {
 		if exit, ok := err.(*exec.ExitError); ok && exit.ExitCode() == 2 {
 			return "", ErrCanceled
 		}
-		return "", fmt.Errorf("Windows OCR 失败，请确认系统已安装所需语言的 OCR 功能，并使用支持的图片格式")
+		stage := "Windows OCR 识别失败"
+		if mode == "capture" {
+			stage = "Windows 截图失败"
+		}
+		detail := err.Error()
+		if exit, ok := err.(*exec.ExitError); ok {
+			if message := windowsErrorMessage(exit.Stderr); message != "" {
+				detail = message
+			}
+		}
+		return "", fmt.Errorf("%s：%s", stage, detail)
 	}
 	return strings.TrimPrefix(string(output), "\ufeff"), nil
+}
+
+// windowsErrorMessage 提取 PowerShell 标准错误；编码命令的错误通常包装在 CLIXML 中。
+func windowsErrorMessage(data []byte) string {
+	message := strings.TrimSpace(strings.TrimPrefix(string(data), "\ufeff"))
+	if strings.HasPrefix(message, "#< CLIXML") {
+		decoder := xml.NewDecoder(strings.NewReader(strings.TrimSpace(strings.TrimPrefix(message, "#< CLIXML"))))
+		var lines []string
+		for {
+			token, err := decoder.Token()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				break
+			}
+			start, ok := token.(xml.StartElement)
+			if !ok || start.Name.Local != "S" {
+				continue
+			}
+			for _, attr := range start.Attr {
+				if attr.Name.Local == "S" && attr.Value == "Error" {
+					var line string
+					if decoder.DecodeElement(&line, &start) == nil {
+						lines = append(lines, line)
+					}
+					break
+				}
+			}
+		}
+		if len(lines) > 0 {
+			message = strings.Join(lines, "")
+		}
+	}
+	// PowerShell 用转义表示换行，恢复后方便在错误浮窗中阅读。
+	message = strings.NewReplacer("_x000D_", "\r", "_x000A_", "\n").Replace(message)
+	return strings.TrimSpace(message)
 }
 
 // Capture 打开本机框选工具，取消时不触碰剪贴板。

@@ -47,6 +47,12 @@ func (a *GlideService) startOCR(screenshot bool) {
 
 // readOCR 保持本应用窗口可见状态，截图或选择图片后识别文字；临时截图始终在识别后删除。
 func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, error) {
+	a.mu.RLock()
+	provider, err := ocr.ActiveConfig(a.settings.OCRProviders)
+	a.mu.RUnlock()
+	if err != nil {
+		return "", errors.New(tr(err.Error()))
+	}
 	var path string
 	if screenshot {
 		dir, err := os.MkdirTemp("", "glide-ocr-*")
@@ -90,7 +96,7 @@ func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, er
 		a.panelWindow.Show()
 	}
 	a.notifyPanel()
-	text, err := ocr.Recognize(ctx, path)
+	text, err := ocr.RecognizeWithProvider(ctx, provider, path)
 	a.mu.Lock()
 	stale := generation != a.panelGeneration
 	if stale && a.panelCancel == nil && a.panel.Response == nil {

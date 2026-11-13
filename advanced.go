@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"glide/internal/ocr"
 	"glide/internal/translation"
 	"io"
 	"os"
@@ -50,6 +51,9 @@ func decodeBackup(data []byte, local WebDAVConfig) (Settings, error) {
 		return Settings{}, fmt.Errorf("不支持的配置格式或版本")
 	}
 	backup.Settings.WebDAV = local
+	if backup.Settings.OCRProviders == nil {
+		backup.Settings.OCRProviders = ocr.DefaultConfigs()
+	}
 	return *backup.Settings, nil
 }
 

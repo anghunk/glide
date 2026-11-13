@@ -2,7 +2,8 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 if ($env:GLIDE_OCR_MODE -eq 'capture') {
     Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-    Add-Type @'
+    # 加载程序集不会自动成为 C# 编译引用，需显式引用框选窗口依赖。
+    Add-Type -ReferencedAssemblies System.Windows.Forms.dll, System.Drawing.dll -TypeDefinition @'
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;

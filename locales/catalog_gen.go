@@ -3549,3 +3549,183 @@ func OpenAtLoginNotApplied() string { return In(i18n.Locale()).OpenAtLoginNotApp
 func (msgs Messages) OpenAtLoginNotApplied() string {
 	return Catalog.Format(msgs.locale, "open_at_login_not_applied", nil)
 }
+
+// OcrServices says "OCR 服务"
+// in the language the app shows.
+func OcrServices() string { return In(i18n.Locale()).OcrServices() }
+
+// OcrServices says "OCR 服务"
+// in the language of msgs.
+func (msgs Messages) OcrServices() string {
+	return Catalog.Format(msgs.locale, "ocr_services", nil)
+}
+
+// OcrSearchKeywords says "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows"
+// in the language the app shows.
+func OcrSearchKeywords() string { return In(i18n.Locale()).OcrSearchKeywords() }
+
+// OcrSearchKeywords says "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows"
+// in the language of msgs.
+func (msgs Messages) OcrSearchKeywords() string {
+	return Catalog.Format(msgs.locale, "ocr_search_keywords", nil)
+}
+
+// SystemOcr says "系统 OCR"
+// in the language the app shows.
+func SystemOcr() string { return In(i18n.Locale()).SystemOcr() }
+
+// SystemOcr says "系统 OCR"
+// in the language of msgs.
+func (msgs Messages) SystemOcr() string {
+	return Catalog.Format(msgs.locale, "system_ocr", nil)
+}
+
+// OcrPlatformSupport says "图片 OCR 暂仅支持 macOS 和 Windows"
+// in the language the app shows.
+func OcrPlatformSupport() string { return In(i18n.Locale()).OcrPlatformSupport() }
+
+// OcrPlatformSupport says "图片 OCR 暂仅支持 macOS 和 Windows"
+// in the language of msgs.
+func (msgs Messages) OcrPlatformSupport() string {
+	return Catalog.Format(msgs.locale, "ocr_platform_support", nil)
+}
+
+// OcrMacosRequirements says "使用 macOS 内置文字识别，无需配置密钥。首次截图需在系统设置中允许 Glide …"
+// in the language the app shows.
+func OcrMacosRequirements() string { return In(i18n.Locale()).OcrMacosRequirements() }
+
+// OcrMacosRequirements says "使用 macOS 内置文字识别，无需配置密钥。首次截图需在系统设置中允许 Glide …"
+// in the language of msgs.
+func (msgs Messages) OcrMacosRequirements() string {
+	return Catalog.Format(msgs.locale, "ocr_macos_requirements", nil)
+}
+
+// OcrWindowsRequirements says "使用 Windows 内置文字识别，无需配置密钥。请在系统中安装所需语言的 OCR 功能。"
+// in the language the app shows.
+func OcrWindowsRequirements() string { return In(i18n.Locale()).OcrWindowsRequirements() }
+
+// OcrWindowsRequirements says "使用 Windows 内置文字识别，无需配置密钥。请在系统中安装所需语言的 OCR 功能。"
+// in the language of msgs.
+func (msgs Messages) OcrWindowsRequirements() string {
+	return Catalog.Format(msgs.locale, "ocr_windows_requirements", nil)
+}
+
+// OcrRecognitionService says "识别服务"
+// in the language the app shows.
+func OcrRecognitionService() string { return In(i18n.Locale()).OcrRecognitionService() }
+
+// OcrRecognitionService says "识别服务"
+// in the language of msgs.
+func (msgs Messages) OcrRecognitionService() string {
+	return Catalog.Format(msgs.locale, "ocr_recognition_service", nil)
+}
+
+// OcrLocalRecognition says "本地识别"
+// in the language the app shows.
+func OcrLocalRecognition() string { return In(i18n.Locale()).OcrLocalRecognition() }
+
+// OcrLocalRecognition says "本地识别"
+// in the language of msgs.
+func (msgs Messages) OcrLocalRecognition() string {
+	return Catalog.Format(msgs.locale, "ocr_local_recognition", nil)
+}
+
+// OcrPrivacyDetails says "图片在本机识别，不会上传；识别出的文字会发送至已启用的翻译服务。"
+// in the language the app shows.
+func OcrPrivacyDetails() string { return In(i18n.Locale()).OcrPrivacyDetails() }
+
+// OcrPrivacyDetails says "图片在本机识别，不会上传；识别出的文字会发送至已启用的翻译服务。"
+// in the language of msgs.
+func (msgs Messages) OcrPrivacyDetails() string {
+	return Catalog.Format(msgs.locale, "ocr_privacy_details", nil)
+}
+
+// OcrTranslate says "识别翻译"
+// in the language the app shows.
+func OcrTranslate() string { return In(i18n.Locale()).OcrTranslate() }
+
+// OcrTranslate says "识别翻译"
+// in the language of msgs.
+func (msgs Messages) OcrTranslate() string {
+	return Catalog.Format(msgs.locale, "ocr_translate", nil)
+}
+
+// OcrScreenshotDetails says "框选屏幕区域，识别文字后自动翻译；临时截图在识别后删除。"
+// in the language the app shows.
+func OcrScreenshotDetails() string { return In(i18n.Locale()).OcrScreenshotDetails() }
+
+// OcrScreenshotDetails says "框选屏幕区域，识别文字后自动翻译；临时截图在识别后删除。"
+// in the language of msgs.
+func (msgs Messages) OcrScreenshotDetails() string {
+	return Catalog.Format(msgs.locale, "ocr_screenshot_details", nil)
+}
+
+// OcrImageLimits says "支持 PNG、JPEG、BMP、TIFF，最大 32 MB、4000 万像素。"
+// in the language the app shows.
+func OcrImageLimits() string { return In(i18n.Locale()).OcrImageLimits() }
+
+// OcrImageLimits says "支持 PNG、JPEG、BMP、TIFF，最大 32 MB、4000 万像素。"
+// in the language of msgs.
+func (msgs Messages) OcrImageLimits() string {
+	return Catalog.Format(msgs.locale, "ocr_image_limits", nil)
+}
+
+// OcrSelectImage says "选择图片"
+// in the language the app shows.
+func OcrSelectImage() string { return In(i18n.Locale()).OcrSelectImage() }
+
+// OcrSelectImage says "选择图片"
+// in the language of msgs.
+func (msgs Messages) OcrSelectImage() string {
+	return Catalog.Format(msgs.locale, "ocr_select_image", nil)
+}
+
+// OcrServiceLimit says "最多配置 24 个 OCR 服务"
+// in the language the app shows.
+func OcrServiceLimit() string { return In(i18n.Locale()).OcrServiceLimit() }
+
+// OcrServiceLimit says "最多配置 24 个 OCR 服务"
+// in the language of msgs.
+func (msgs Messages) OcrServiceLimit() string {
+	return Catalog.Format(msgs.locale, "ocr_service_limit", nil)
+}
+
+// OcrServiceIdentifierInvalid says "OCR 服务标识重复或类型无效"
+// in the language the app shows.
+func OcrServiceIdentifierInvalid() string { return In(i18n.Locale()).OcrServiceIdentifierInvalid() }
+
+// OcrServiceIdentifierInvalid says "OCR 服务标识重复或类型无效"
+// in the language of msgs.
+func (msgs Messages) OcrServiceIdentifierInvalid() string {
+	return Catalog.Format(msgs.locale, "ocr_service_identifier_invalid", nil)
+}
+
+// OcrServiceOneEnabled says "每次只能启用一个 OCR 服务"
+// in the language the app shows.
+func OcrServiceOneEnabled() string { return In(i18n.Locale()).OcrServiceOneEnabled() }
+
+// OcrServiceOneEnabled says "每次只能启用一个 OCR 服务"
+// in the language of msgs.
+func (msgs Messages) OcrServiceOneEnabled() string {
+	return Catalog.Format(msgs.locale, "ocr_service_one_enabled", nil)
+}
+
+// OcrEnableServicePrompt says "请在“OCR 服务”中添加并启用服务"
+// in the language the app shows.
+func OcrEnableServicePrompt() string { return In(i18n.Locale()).OcrEnableServicePrompt() }
+
+// OcrEnableServicePrompt says "请在“OCR 服务”中添加并启用服务"
+// in the language of msgs.
+func (msgs Messages) OcrEnableServicePrompt() string {
+	return Catalog.Format(msgs.locale, "ocr_enable_service_prompt", nil)
+}
+
+// OcrServiceSelectionHelp says "每次使用一个 OCR 服务，启用其他服务会自动停用当前服务。"
+// in the language the app shows.
+func OcrServiceSelectionHelp() string { return In(i18n.Locale()).OcrServiceSelectionHelp() }
+
+// OcrServiceSelectionHelp says "每次使用一个 OCR 服务，启用其他服务会自动停用当前服务。"
+// in the language of msgs.
+func (msgs Messages) OcrServiceSelectionHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_service_selection_help", nil)
+}

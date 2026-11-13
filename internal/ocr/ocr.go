@@ -1,4 +1,4 @@
-// Package ocr 使用操作系统离线识别图片，截图临时文件由调用方负责删除。
+// Package ocr 管理图片识别服务及系统截图，截图临时文件由调用方负责删除。
 package ocr
 
 import (
@@ -19,6 +19,11 @@ var ErrCanceled = errors.New("已取消截图")
 
 // Recognize 校验图片大小后调用系统 OCR；不发送图片到网络。
 func Recognize(ctx context.Context, path string) (string, error) {
+	return RecognizeWithProvider(ctx, DefaultConfigs()[0], path)
+}
+
+// RecognizeWithProvider 校验图片及文字大小后调用指定识别服务。
+func RecognizeWithProvider(ctx context.Context, config Config, path string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
@@ -34,14 +39,14 @@ func Recognize(ctx context.Context, path string) (string, error) {
 	if info.Size() > 32<<20 {
 		return "", fmt.Errorf("图片不能超过 32 MB")
 	}
-	config, _, err := image.DecodeConfig(f)
+	imageConfig, _, err := image.DecodeConfig(f)
 	if err != nil {
 		return "", fmt.Errorf("无法读取图片，请使用 PNG、JPEG、BMP 或 TIFF")
 	}
-	if config.Width <= 0 || config.Height <= 0 || int64(config.Width)*int64(config.Height) > 40000000 {
+	if imageConfig.Width <= 0 || imageConfig.Height <= 0 || int64(imageConfig.Width)*int64(imageConfig.Height) > 40000000 {
 		return "", fmt.Errorf("图片尺寸过大，请裁剪后重试（最多 4000 万像素）")
 	}
-	text, err := recognizeNative(ctx, path)
+	text, err := recognizeProvider(ctx, config, path)
 	if err != nil {
 		return "", err
 	}

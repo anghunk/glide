@@ -46,6 +46,8 @@ type settingsUI struct {
 	history                              []TranslationResponse
 	expanded                             map[string]bool
 	providerList                         ui.ListState
+	ocrProviderID                        string
+	ocrProviderList                      ui.ListState
 }
 
 // newSettingsUI 创建原生设置视图，不会启动翻译请求或自动申请权限。
@@ -58,6 +60,8 @@ func newSettingsUI(app *GlideService) *settingsUI {
 	s.providerList.Key = func(row int) any { return s.draft.Providers[row].ID }
 	s.providerList.Label = func(row int) string { return providerDisplayName(s.draft.Providers[row].Name) }
 	s.providerList.Reorder = s.reorderProviders
+	s.ocrProviderList.Key = func(row int) any { return s.draft.OCRProviders[row].ID }
+	s.ocrProviderList.Label = func(row int) string { return ocrDisplayName(s.draft.OCRProviders[row].Name) }
 	return s
 }
 
@@ -65,6 +69,7 @@ func newSettingsUI(app *GlideService) *settingsUI {
 func (s *settingsUI) adopt(state AppState) {
 	s.state = state
 	s.draft = cloneSettings(state.Settings)
+	s.selectOCRProvider()
 	found := false
 	for _, p := range s.draft.Providers {
 		if p.ID == s.providerID {
@@ -156,6 +161,19 @@ func (s *settingsUI) scheduleSave() {
 	if len(previous.Providers) == len(s.draft.Providers) {
 		for i, after := range s.draft.Providers {
 			before := previous.Providers[i]
+			if before.ID != after.ID {
+				textEdit = false
+				break
+			}
+			before.Enabled = after.Enabled
+			if !reflect.DeepEqual(before, after) {
+				textEdit = true
+			}
+		}
+	}
+	if !textEdit && len(previous.OCRProviders) == len(s.draft.OCRProviders) {
+		for i, after := range s.draft.OCRProviders {
+			before := previous.OCRProviders[i]
 			if before.ID != after.ID {
 				textEdit = false
 				break
@@ -442,6 +460,8 @@ func (s *settingsUI) view(c *ui.Context) {
 					s.proxy(c, p)
 				case "services":
 					s.services(c, p)
+				case "ocr":
+					s.ocrServices(c, p)
 				case "shortcut":
 					s.shortcut(c, p)
 				case "history":
@@ -461,7 +481,7 @@ func (s *settingsUI) view(c *ui.Context) {
 
 type settingsCategory struct{ ID, Label, Icon, Keywords string }
 
-var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"general", "设置", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "备份同步", "refresh", "导入 导出 WebDAV 同步 备份"}, {"proxy", "系统代理", "globe", "网络 HTTP HTTPS SOCKS proxy"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
+var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"ocr", "OCR 服务", "screenshot", "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows"}, {"general", "设置", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "备份同步", "refresh", "导入 导出 WebDAV 同步 备份"}, {"proxy", "系统代理", "globe", "网络 HTTP HTTPS SOCKS proxy"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
 
 // categoryTitle 返回当前分类标题。
 func (s *settingsUI) categoryTitle() string {
@@ -485,6 +505,13 @@ func (s *settingsUI) categoryMatches(item settingsCategory) bool {
 	if item.ID == "services" {
 		for _, p := range s.draft.Providers {
 			if strings.Contains(strings.ToLower(p.Name+" "+p.Kind+" "+p.Model), query) {
+				return true
+			}
+		}
+	}
+	if item.ID == "ocr" {
+		for _, p := range s.draft.OCRProviders {
+			if strings.Contains(strings.ToLower(p.Name+" "+p.Kind), query) {
 				return true
 			}
 		}
@@ -1366,6 +1393,9 @@ func mergeSettingsDraft(baseline, edited, latest Settings) Settings {
 	}
 	if reflect.DeepEqual(edited.Providers, baseline.Providers) {
 		edited.Providers = latest.Providers
+	}
+	if reflect.DeepEqual(edited.OCRProviders, baseline.OCRProviders) {
+		edited.OCRProviders = latest.OCRProviders
 	}
 	return cloneSettings(edited)
 }

@@ -17,11 +17,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/egoist/mygo"
+	"glide/internal/ocr"
 	"glide/internal/selection"
 	"glide/internal/translation"
 )
 
-// Settings 描述语言、触发方式及各翻译渠道的独立配置。
+// Settings 描述语言、触发方式及翻译和 OCR 服务的独立配置。
 type Settings struct {
 	ThemeMode              string               `json:"themeMode"`
 	UILanguage             string               `json:"uiLanguage"`
@@ -31,6 +32,7 @@ type Settings struct {
 	PanelCloseShortcut     string               `json:"panelCloseShortcut"`
 	PanelFollowsMouse      bool                 `json:"panelFollowsMouse"`
 	OCRShortcut            string               `json:"ocrShortcut"`
+	OCRProviders           []ocr.Config         `json:"ocrProviders"`
 	WebDAV                 WebDAVConfig         `json:"webdav"`
 	TrayClickShowsPanel    bool                 `json:"trayClickShowsPanel"`
 	InputShortcut          string               `json:"inputShortcut"`
@@ -142,11 +144,15 @@ type GlideService struct {
 
 // defaultSettings 只默认启用无需付费凭据的渠道，自动划词由用户主动开启。
 func defaultSettings() Settings {
-	return Settings{ThemeMode: "system", UseSystemProxy: true, PanelTranslateShortcut: "CmdOrCtrl+Enter", PanelCloseShortcut: "Escape", OCRShortcut: "CmdOrCtrl+Shift+O", TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "smart", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs()}
+	return Settings{ThemeMode: "system", UseSystemProxy: true, PanelTranslateShortcut: "CmdOrCtrl+Enter", PanelCloseShortcut: "Escape", OCRShortcut: "CmdOrCtrl+Shift+O", TrayClickShowsPanel: true, HistoryLimit: 50, SourceLang: "auto", TargetLang: "smart", Shortcut: "CmdOrCtrl+Shift+T", ShowSourceInput: true, ShowLanguageBar: true, Providers: translation.DefaultConfigs(), OCRProviders: ocr.DefaultConfigs()}
 }
 
 // cloneSettings 复制渠道切片，避免界面快照与运行配置共用可变数据。
-func cloneSettings(s Settings) Settings { s.Providers = slices.Clone(s.Providers); return s }
+func cloneSettings(s Settings) Settings {
+	s.Providers = slices.Clone(s.Providers)
+	s.OCRProviders = slices.Clone(s.OCRProviders)
+	return s
+}
 
 // newService 在窗口创建前读取本地配置，不会主动发起网络翻译。
 func newService() (*GlideService, error) {
@@ -192,6 +198,12 @@ func (a *GlideService) GetState() AppState {
 func (a *GlideService) SaveSettings(settings Settings) (AppState, error) {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
+	if settings.OCRProviders == nil {
+		settings.OCRProviders = ocr.DefaultConfigs()
+	}
+	if err := ocr.ValidateConfigs(settings.OCRProviders); err != nil {
+		return AppState{}, err
+	}
 	if settings.ThemeMode == "" {
 		settings.ThemeMode = "system"
 	}
