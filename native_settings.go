@@ -19,6 +19,7 @@ type settingsUI struct {
 	generalTab                           int
 	iconPickerOpen                       bool
 	iconPickerProviderID                 string
+	iconPickerCategory                   string
 	visibleSecrets                       map[string]bool
 	home                                 *homeUI
 	advancedBusy                         bool
@@ -481,7 +482,7 @@ func (s *settingsUI) view(c *ui.Context) {
 
 type settingsCategory struct{ ID, Label, Icon, Keywords string }
 
-var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"ocr", "OCR 服务", "screenshot", "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows"}, {"general", "设置", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "备份同步", "refresh", "导入 导出 WebDAV 同步 备份"}, {"proxy", "系统代理", "globe", "网络 HTTP HTTPS SOCKS proxy"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
+var settingsCategories = []settingsCategory{{"home", "首页", "home", "翻译 对比 输入"}, {"services", "翻译服务", "globe", "渠道 谷歌 Google Bing 必应 腾讯 百度 DeepL DeepLX AI Ollama 模型 密钥"}, {"ocr", "OCR 服务", "screenshot", "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows 腾讯 阿里 火山 百度 华为 讯飞 网易 有道 AI 视觉 模型 OpenAI Anthropic Gemini Tencent Aliyun Volcengine Baidu Huawei Xfyun Youdao"}, {"general", "设置", "settings", "自动 划词 权限 原文 语言 浮窗"}, {"shortcut", "快捷键", "keyboard", "热键 组合 呼出"}, {"history", "翻译历史", "history", "记录 原文 译文"}, {"advanced", "备份同步", "refresh", "导入 导出 WebDAV 同步 备份"}, {"proxy", "系统代理", "globe", "网络 HTTP HTTPS SOCKS proxy"}, {"about", "关于", "info", "版本 Glide 隐私 本地 数据 密钥 清空"}}
 
 // categoryTitle 返回当前分类标题。
 func (s *settingsUI) categoryTitle() string {
@@ -511,7 +512,7 @@ func (s *settingsUI) categoryMatches(item settingsCategory) bool {
 	}
 	if item.ID == "ocr" {
 		for _, p := range s.draft.OCRProviders {
-			if strings.Contains(strings.ToLower(p.Name+" "+p.Kind), query) {
+			if strings.Contains(strings.ToLower(p.Name+" "+p.Kind+" "+p.Model), query) {
 				return true
 			}
 		}
@@ -840,8 +841,8 @@ func (s *settingsUI) generalPermissions(c *ui.Context, p pnPalette) {
 
 // services 用独立列表和凭据表单配置翻译服务，支持同类多个实例。
 func (s *settingsUI) services(c *ui.Context, p pnPalette) {
-	ui.Row(c).Grow(1).MinWidth(0).FillWidth().Padding(12).Gap(12).Children(func() {
-		ui.Column(c).Width(176).Shrink(0).FillHeight().Gap(8).Children(func() {
+	ui.Row(c).Grow(1).MinWidth(0).FillWidth().Gap(12).Children(func() {
+		ui.Column(c).Width(188).Shrink(0).FillHeight().Padding(12, 0, 12, 12).Gap(8).Children(func() {
 			if len(s.draft.Providers) == 0 {
 				ui.Text(c, tr("尚未配置服务")).Grow(1).FontSize(12).TextColor(p.Muted).Padding(12, 4)
 			} else {
@@ -885,8 +886,8 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 				ui.ButtonBase(c).Size(29, 29).Center().Radius(7).Border(.5, p.FieldBorder).Label(tr("删除选中服务")).Tooltip(tr("删除选中服务")).Disabled(s.providerID == "").Children(func() { pnIcon(c, "trash", 14, p.Muted) }).OnClick(s.removeProvider)
 			})
 		})
-		ui.Box(c).Width(1).Shrink(0).FillHeight().Background(p.FieldBorder)
-		ui.Scroll(c.Key("service-editor")).Grow(1).MinWidth(0).FillHeight().Gap(14).Padding(4, 2, 4, 0).Children(func() {
+		ui.Box(c).Width(1).Shrink(0).FillHeight().Margin(12, 0).Background(p.FieldBorder)
+		ui.Scroll(c.Key("service-editor")).Grow(1).MinWidth(0).FillHeight().Gap(14).Padding(16, 14, 16, 0).Children(func() {
 			var selected *translation.Config
 			for i := range s.draft.Providers {
 				if s.draft.Providers[i].ID == s.providerID {
@@ -907,7 +908,7 @@ func (s *settingsUI) services(c *ui.Context, p pnPalette) {
 					})
 				})
 				s.field(c, p, "服务名称", &selected.Name, "为此服务起个名字", false)
-				s.providerIconPicker(c, p, selected)
+				s.serviceIconPicker(c, p, "services", selected.ID, providerIconKind(*selected))
 				if selected.Kind == "openai" {
 					s.aiFormatField(c, p, selected)
 				}
@@ -964,7 +965,11 @@ func (s *settingsUI) serviceBackground(p pnPalette, id string) ui.Color {
 
 // field 统一表单样式，密钥默认隐藏，可通过眼睛按钮切换可见性。
 func (s *settingsUI) field(c *ui.Context, p pnPalette, label string, value *string, placeholder string, secret bool) {
-	key := s.category + ":" + s.providerID + ":" + label
+	providerID := s.providerID
+	if s.category == "ocr" {
+		providerID = s.ocrProviderID
+	}
+	key := s.category + ":" + providerID + ":" + label
 	ui.Column(c.Key(label)).Shrink(0).Gap(6).Children(func() {
 		ui.Text(c, tr(label)).FontSize(12).TextColor(p.Muted)
 		ui.Row(c).Gap(6).Children(func() {
@@ -1202,6 +1207,7 @@ func (s *settingsUI) privacyContent(c *ui.Context, p pnPalette) {
 		s.group(c, p, "隐私与数据", func() {
 			s.row(c, p, "服务密钥", "密钥保存在本机 settings.json 中；导出或上传配置时会包含服务密钥。", func() {})
 			s.row(c, p, "翻译请求", "原文只发送至当前启用的翻译服务。Ollama 使用本机地址时，翻译请求无需离开本机。", func() {})
+			s.row(c, p, "OCR 图片", "系统 OCR 在本机识别；云端 OCR 会将图片发送至所选厂商，识别文字再发送至已启用的翻译服务。", func() {})
 			detail := fmt.Sprintf(tr("最多保留 %d 条记录，存储在本机。"), s.state.Settings.HistoryLimit)
 			if s.state.Settings.HistoryLimit == 0 {
 				detail = "当前不保留翻译历史。"

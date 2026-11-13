@@ -17,7 +17,7 @@ const maxResponseBytes = 4 << 20
 
 var httpClient = &http.Client{
 	Timeout:   120 * time.Second,
-	Transport: translationTransport(),
+	Transport: NewTransport(),
 	CheckRedirect: func(request *http.Request, via []*http.Request) error {
 		if len(via) >= 5 {
 			return errors.New("翻译服务重定向过多")
@@ -42,8 +42,8 @@ var httpClient = &http.Client{
 	},
 }
 
-// translationTransport 保留标准连接池与超时设置，并按请求选择环境或系统代理。
-func translationTransport() *http.Transport {
+// NewTransport 创建独立连接池，并按 WithProxy 指定的偏好选择环境或系统代理。
+func NewTransport() *http.Transport {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = translationProxy
 	return transport

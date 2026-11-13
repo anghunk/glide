@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"glide/internal/ocr"
+	"glide/internal/translation"
 )
 
 // ocrRunning 返回识别忙碌状态，避免重复截图和识别。
@@ -49,9 +50,13 @@ func (a *GlideService) startOCR(screenshot bool) {
 func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, error) {
 	a.mu.RLock()
 	provider, err := ocr.ActiveConfig(a.settings.OCRProviders)
+	ctx = translation.WithProxy(ctx, a.settings.UseSystemProxy, a.settings.ProxyAddress)
 	a.mu.RUnlock()
 	if err != nil {
 		return "", errors.New(tr(err.Error()))
+	}
+	if err := ocr.ValidateProvider(provider); err != nil {
+		return "", err
 	}
 	var path string
 	if screenshot {

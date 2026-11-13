@@ -48,32 +48,8 @@ func openAI(ctx context.Context, config Config, input Request) (string, string, 
 	if err != nil {
 		return "", "", err
 	}
-	var response struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-				Refusal string `json:"refusal"`
-			} `json:"message"`
-			FinishReason string `json:"finish_reason"`
-		} `json:"choices"`
-	}
-	if err := decode(body, &response); err != nil {
-		return "", "", err
-	}
-	if message := errorMessage(body); message != "" {
-		return "", "", fmt.Errorf("AI 服务返回错误：%s", message)
-	}
-	if len(response.Choices) == 0 {
-		return "", "", errors.New("AI 服务未返回候选结果，请检查模型名称和接口协议")
-	}
-	choice := response.Choices[0]
-	if choice.FinishReason == "length" {
-		return "", "", errors.New("AI 输出达到模型长度限制，译文可能不完整，请分段翻译")
-	}
-	if choice.Message.Refusal != "" || choice.FinishReason == "content_filter" {
-		return "", "", errors.New("AI 服务拒绝了本次翻译请求")
-	}
-	return strings.TrimSpace(choice.Message.Content), "", nil
+	text, err := aiResponseText(body, AIFormat(config))
+	return text, "", err
 }
 
 // ollama 通过原生 /api/chat 接口调用已安装模型，支持本机与带认证的代理地址。

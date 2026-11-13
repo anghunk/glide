@@ -17,7 +17,7 @@ import (
 func (s *settingsUI) advanced(c *ui.Context, p pnPalette) {
 	ui.Scroll(c).Grow(1).FillWidth().Padding(18).Gap(17).Disabled(s.advancedBusy).Children(func() {
 		s.group(c, p, "导入与导出", func() {
-			s.row(c, p, "导出配置", "包含翻译服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。", func() {
+			s.row(c, p, "导出配置", "包含翻译与 OCR 服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。", func() {
 				ui.Button(c, tr("导出…")).Height(28).OnClick(func() { s.startAdvanced("export") })
 			})
 			s.row(c, p, "导入配置", "用 JSON 文件替换本机服务和偏好，保留 WebDAV 配置。", func() {
@@ -203,7 +203,7 @@ func (s *settingsUI) restoreBackup(data []byte, local WebDAVConfig) (string, err
 	if err != nil {
 		return "", err
 	}
-	ok, err := s.confirmConfigReplace(fmt.Sprintf(tr("将用备份中的 %d 个翻译服务及偏好替换本机配置。WebDAV 登录信息和翻译历史不导入；历史保留条数降低时会清理超额记录。"), len(imported.Providers)))
+	ok, err := s.confirmConfigReplace(fmt.Sprintf(tr("将用备份中的 %d 个翻译服务、%d 个 OCR 服务及偏好替换本机配置。WebDAV 登录信息和翻译历史不导入；历史保留条数降低时会清理超额记录。"), len(imported.Providers), len(imported.OCRProviders)))
 	if err != nil || !ok {
 		return "", err
 	}

@@ -75,8 +75,8 @@ func (s *settingsUI) removeOCRProvider() {
 // ocrServices 沿用翻译服务的列表和详情布局，仅列出已有识别实现。
 func (s *settingsUI) ocrServices(c *ui.Context, p pnPalette) {
 	s.selectOCRProvider()
-	ui.Row(c).Grow(1).MinWidth(0).FillWidth().Padding(12).Gap(12).Children(func() {
-		ui.Column(c).Width(176).Shrink(0).FillHeight().Gap(8).Children(func() {
+	ui.Row(c).Grow(1).MinWidth(0).FillWidth().Gap(12).Children(func() {
+		ui.Column(c).Width(188).Shrink(0).FillHeight().Padding(12, 0, 12, 12).Gap(8).Children(func() {
 			if len(s.draft.OCRProviders) == 0 {
 				ui.Text(c, tr("尚未配置服务")).Grow(1).FontSize(12).TextColor(p.Muted).Padding(12, 4)
 			} else {
@@ -89,7 +89,7 @@ func (s *settingsUI) ocrServices(c *ui.Context, p pnPalette) {
 					}
 					ui.Row(row.Context.Key(id)).Height(38).Padding(5).Gap(5).Radius(8).Background(background).Children(func() {
 						ui.ButtonBase(c).Grow(1).MinWidth(0).Gap(5).Justify(ui.Start).AlignItems(ui.Center).Tooltip(ocrDisplayName(provider.Name)).Children(func() {
-							ui.Box(c).Size(22, 22).Shrink(0).Radius(6).Background(p.Surface).Center().Children(func() { pnIcon(c, "screenshot", 17, p.Text) })
+							ui.Box(c).Size(22, 22).Shrink(0).Radius(6).Background(p.Surface).Center().Children(func() { pnProviderIcon(c, ocrProviderIconKind(*provider), 17, p.Text) })
 							ui.Text(c, ocrDisplayName(provider.Name)).Grow(1).MinWidth(0).FontSize(12).SingleLine().TextAlign(ui.Start)
 						}).OnClick(func() { s.ocrProviderID = id })
 						toggle := ui.Switch(c, &provider.Enabled).Size(28, 17).Shrink(0).Label(tr("启用") + ocrDisplayName(provider.Name))
@@ -119,8 +119,8 @@ func (s *settingsUI) ocrServices(c *ui.Context, p pnPalette) {
 				ui.ButtonBase(c).Size(29, 29).Center().Radius(7).Border(.5, p.FieldBorder).Label(tr("删除选中服务")).Tooltip(tr("删除选中服务")).Disabled(s.ocrProviderID == "").Children(func() { pnIcon(c, "trash", 14, p.Muted) }).OnClick(s.removeOCRProvider)
 			})
 		})
-		ui.Box(c).Width(1).Shrink(0).FillHeight().Background(p.FieldBorder)
-		ui.Scroll(c.Key("ocr-service-editor")).Grow(1).MinWidth(0).FillHeight().Gap(14).Padding(4, 2, 4, 0).Children(func() {
+		ui.Box(c).Width(1).Shrink(0).FillHeight().Margin(12, 0).Background(p.FieldBorder)
+		ui.Scroll(c.Key("ocr-service-editor")).Grow(1).MinWidth(0).FillHeight().Gap(14).Padding(16, 14, 16, 0).Children(func() {
 			var selected *ocr.Config
 			for i := range s.draft.OCRProviders {
 				if s.draft.OCRProviders[i].ID == s.ocrProviderID {
@@ -135,18 +135,111 @@ func (s *settingsUI) ocrServices(c *ui.Context, p pnPalette) {
 			}
 			ui.Column(c.Key(selected.ID)).Shrink(0).Gap(14).Transition(settingsPageTransition()).Children(func() {
 				ui.Row(c).Gap(9).Children(func() {
-					ui.Box(c).Size(32, 32).Shrink(0).Radius(9).Background(p.Group).Center().Children(func() { pnIcon(c, "screenshot", 23, p.Text) })
+					ui.Box(c).Size(32, 32).Shrink(0).Radius(9).Background(p.Group).Center().Children(func() { pnProviderIcon(c, ocrProviderIconKind(*selected), 23, p.Text) })
 					ui.Text(c, ocrDisplayName(selected.Name)).FontSize(15).FontWeight(650)
 				})
-				s.field(c, p, "服务名称", &selected.Name, "为此服务起个名字", false)
-				ui.Text(c, tr("每次使用一个 OCR 服务，启用其他服务会自动停用当前服务。")).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+				ui.Row(c).Gap(12).Children(func() {
+					ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+						s.field(c, p, "服务名称", &selected.Name, "为此服务起个名字", false)
+					})
+					s.serviceIconPicker(c, p, "ocr", selected.ID, ocrProviderIconKind(*selected))
+				})
 				if selected.Kind == "system" {
 					s.systemOCRDetails(c, p, selected.Enabled)
+				} else {
+					s.cloudOCRDetails(c, p, selected)
 				}
 				s.inlineNotice(c, p, "服务配置")
 			})
 		})
 	})
+}
+
+// cloudOCRDetails 根据服务目录生成凭据与选项，避免各厂商表单和调用字段分离。
+func (s *settingsUI) cloudOCRDetails(c *ui.Context, p pnPalette, config *ocr.Config) {
+	docsURL := ""
+	for _, definition := range ocr.Definitions() {
+		if definition.Kind != config.Kind {
+			continue
+		}
+		for _, field := range definition.Fields {
+			if config.Kind == "tencent" && config.Method == "GeneralAccurateOCR" && field.Key == "language" {
+				continue
+			}
+			value := config.FieldValue(field.Key)
+			if value == nil {
+				continue
+			}
+			if config.Kind == "openai" && field.Key == "model" {
+				s.aiModelFieldFor(c, p, config.AIConfig(), &config.Model, "ocr")
+				continue
+			}
+			if len(field.Options) > 0 {
+				label := field.Options[0].Label
+				labels := make([]string, 0, len(field.Options))
+				for _, option := range field.Options {
+					labels = append(labels, option.Label)
+					if option.Value == *value {
+						label = option.Label
+					}
+				}
+				ui.Column(c.Key(field.Key)).Shrink(0).Gap(6).Children(func() {
+					ui.Text(c, tr(field.Label)).FontSize(12).TextColor(p.Muted)
+					if localizedSelect(c, &label, labels).FillWidth().Changed() {
+						for _, option := range field.Options {
+							if option.Label == label {
+								*value = option.Value
+								break
+							}
+						}
+					}
+				})
+				continue
+			}
+			label := tr(field.Label)
+			if field.Required {
+				label += " *"
+			}
+			s.field(c, p, label, value, field.Placeholder, field.Secret)
+		}
+		if config.Kind == "openai" {
+			ui.Text(c, tr("请选择视觉模型，图片最大 5 MB（BMP、TIFF 转码后计算）。")).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+		}
+		docsURL = definition.DocsURL
+		if config.Kind == "openai" {
+			switch config.Format {
+			case "anthropic":
+				docsURL = "https://platform.claude.com/docs/en/build-with-claude/vision"
+			case "gemini":
+				docsURL = "https://ai.google.dev/gemini-api/docs/image-understanding"
+			}
+		}
+	}
+	ui.Text(c, tr("图片发送至所选服务，识别文字交由翻译服务处理。")).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+	s.ocrActions(c, p, config.Enabled, "PNG、JPEG、BMP、TIFF", docsURL)
+}
+
+// ocrActions 共用截图和图片入口，配置保存完成后使用当前启用服务。
+func (s *settingsUI) ocrActions(c *ui.Context, p pnPalette, enabled bool, imageHint, docsURL string) {
+	busy := s.app.ocrRunning()
+	disabled := busy || !enabled || s.dirty() || s.autoSaving
+	canCapture := s.state.Platform.OS == "darwin" || s.state.Platform.OS == "windows"
+	ui.Column(c).Shrink(0).Gap(8).Children(func() {
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Button(c, tr("截图")).Height(28).Disabled(disabled || !canCapture).OnClick(func() { s.app.startOCR(true) })
+			ui.Button(c, tr("选择图片")).Height(28).Disabled(disabled).OnClick(func() { s.app.startOCR(false) })
+			if docsURL != "" {
+				ui.Spacer(c)
+				ui.Link(c, tr("查看服务说明 ↗"), "").FontSize(12).TextColor(p.Accent).OnClick(func() {
+					s.externalAction(func() error { return s.app.OpenExternal(docsURL) })
+				})
+			}
+		})
+		ui.Text(c, tr(imageHint)).FontSize(12).TextColor(p.Muted)
+	})
+	if busy {
+		ui.Text(c, tr("识别中…")).FontSize(12).TextColor(p.Muted)
+	}
 }
 
 // systemOCRDetails 展示系统引擎的使用条件；操作入口使用已保存的启用服务。
@@ -156,27 +249,14 @@ func (s *settingsUI) systemOCRDetails(c *ui.Context, p pnPalette, enabled bool) 
 	switch s.state.Platform.OS {
 	case "darwin":
 		engine = "macOS Vision"
-		detail = "使用 macOS 内置文字识别，无需配置密钥。首次截图需在系统设置中允许 Glide 使用屏幕录制。"
+		detail = "首次截图需授权屏幕录制。"
 	case "windows":
 		engine = "Windows OCR"
-		detail = "使用 Windows 内置文字识别，无需配置密钥。请在系统中安装所需语言的 OCR 功能。"
+		detail = "需安装相应语言的 OCR 功能。"
 	default:
 		supported = false
 	}
-	busy := s.app.ocrRunning()
-	s.group(c, p, "识别服务", func() {
-		s.row(c, p, "系统 OCR", detail, func() { ui.Text(c, tr(engine)).FontSize(12).TextColor(p.Muted) })
-		s.row(c, p, "本地识别", "图片在本机识别，不会上传；识别出的文字会发送至已启用的翻译服务。", func() {})
-	})
-	s.group(c, p, "识别翻译", func() {
-		s.row(c, p, "截图 OCR 翻译", "框选屏幕区域，识别文字后自动翻译；临时截图在识别后删除。", func() {
-			ui.Button(c, tr("截图")).Disabled(busy || !supported || !enabled || s.dirty() || s.autoSaving).OnClick(func() { s.app.startOCR(true) })
-		})
-		s.row(c, p, "图片 OCR", "支持 PNG、JPEG、BMP、TIFF，最大 32 MB、4000 万像素。", func() {
-			ui.Button(c, tr("选择图片")).Disabled(busy || !supported || !enabled || s.dirty() || s.autoSaving).OnClick(func() { s.app.startOCR(false) })
-		})
-	})
-	if busy {
-		ui.Text(c, tr("识别中…")).FontSize(12).TextColor(p.Muted)
-	}
+	s.row(c, p, engine, detail, func() {})
+	ui.Text(c, tr("图片在本机识别，识别文字交由翻译服务处理。")).FontSize(12).TextColor(p.Muted).LineHeight(1.4)
+	s.ocrActions(c, p, enabled && supported, "PNG、JPEG、BMP、TIFF · 32 MB · 4000 万像素", "")
 }

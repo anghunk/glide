@@ -754,13 +754,13 @@ func (msgs Messages) TranslateClipboard() string {
 	return Catalog.Format(msgs.locale, "translate_clipboard", nil)
 }
 
-// IncludesServicesApiKeysAndPreferencesExcludes says "包含翻译服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。"
+// IncludesServicesApiKeysAndPreferencesExcludes says "包含翻译与 OCR 服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。"
 // in the language the app shows.
 func IncludesServicesApiKeysAndPreferencesExcludes() string {
 	return In(i18n.Locale()).IncludesServicesApiKeysAndPreferencesExcludes()
 }
 
-// IncludesServicesApiKeysAndPreferencesExcludes says "包含翻译服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。"
+// IncludesServicesApiKeysAndPreferencesExcludes says "包含翻译与 OCR 服务、服务密钥和偏好，不含历史及 WebDAV 登录信息。"
 // in the language of msgs.
 func (msgs Messages) IncludesServicesApiKeysAndPreferencesExcludes() string {
 	return Catalog.Format(msgs.locale, "includes_services_api_keys_and_preferences_excludes", nil)
@@ -1098,13 +1098,13 @@ func (msgs Messages) ExportSettings() string {
 	return Catalog.Format(msgs.locale, "export_settings", nil)
 }
 
-// ReplaceLocalSettingsWithDServicesAnd says "将用备份中的 %d 个翻译服务及偏好替换本机配置。WebDAV …"
+// ReplaceLocalSettingsWithDServicesAnd says "将用备份中的 %d 个翻译服务、%d 个 OCR 服务及偏好替换本机配置。WebDAV …"
 // in the language the app shows.
 func ReplaceLocalSettingsWithDServicesAnd() string {
 	return In(i18n.Locale()).ReplaceLocalSettingsWithDServicesAnd()
 }
 
-// ReplaceLocalSettingsWithDServicesAnd says "将用备份中的 %d 个翻译服务及偏好替换本机配置。WebDAV …"
+// ReplaceLocalSettingsWithDServicesAnd says "将用备份中的 %d 个翻译服务、%d 个 OCR 服务及偏好替换本机配置。WebDAV …"
 // in the language of msgs.
 func (msgs Messages) ReplaceLocalSettingsWithDServicesAnd() string {
 	return Catalog.Format(msgs.locale, "replace_local_settings_with_d_services_and", nil)
@@ -3560,11 +3560,11 @@ func (msgs Messages) OcrServices() string {
 	return Catalog.Format(msgs.locale, "ocr_services", nil)
 }
 
-// OcrSearchKeywords says "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows"
+// OcrSearchKeywords says "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows 腾讯 阿里 火山 百度 华为 讯飞 网易 …"
 // in the language the app shows.
 func OcrSearchKeywords() string { return In(i18n.Locale()).OcrSearchKeywords() }
 
-// OcrSearchKeywords says "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows"
+// OcrSearchKeywords says "OCR 截图 图片 文字识别 系统 本地 离线 Vision Windows 腾讯 阿里 火山 百度 华为 讯飞 网易 …"
 // in the language of msgs.
 func (msgs Messages) OcrSearchKeywords() string {
 	return Catalog.Format(msgs.locale, "ocr_search_keywords", nil)
@@ -3590,21 +3590,21 @@ func (msgs Messages) OcrPlatformSupport() string {
 	return Catalog.Format(msgs.locale, "ocr_platform_support", nil)
 }
 
-// OcrMacosRequirements says "使用 macOS 内置文字识别，无需配置密钥。首次截图需在系统设置中允许 Glide …"
+// OcrMacosRequirements says "首次截图需授权屏幕录制。"
 // in the language the app shows.
 func OcrMacosRequirements() string { return In(i18n.Locale()).OcrMacosRequirements() }
 
-// OcrMacosRequirements says "使用 macOS 内置文字识别，无需配置密钥。首次截图需在系统设置中允许 Glide …"
+// OcrMacosRequirements says "首次截图需授权屏幕录制。"
 // in the language of msgs.
 func (msgs Messages) OcrMacosRequirements() string {
 	return Catalog.Format(msgs.locale, "ocr_macos_requirements", nil)
 }
 
-// OcrWindowsRequirements says "使用 Windows 内置文字识别，无需配置密钥。请在系统中安装所需语言的 OCR 功能。"
+// OcrWindowsRequirements says "需安装相应语言的 OCR 功能。"
 // in the language the app shows.
 func OcrWindowsRequirements() string { return In(i18n.Locale()).OcrWindowsRequirements() }
 
-// OcrWindowsRequirements says "使用 Windows 内置文字识别，无需配置密钥。请在系统中安装所需语言的 OCR 功能。"
+// OcrWindowsRequirements says "需安装相应语言的 OCR 功能。"
 // in the language of msgs.
 func (msgs Messages) OcrWindowsRequirements() string {
 	return Catalog.Format(msgs.locale, "ocr_windows_requirements", nil)
@@ -3630,11 +3630,11 @@ func (msgs Messages) OcrLocalRecognition() string {
 	return Catalog.Format(msgs.locale, "ocr_local_recognition", nil)
 }
 
-// OcrPrivacyDetails says "图片在本机识别，不会上传；识别出的文字会发送至已启用的翻译服务。"
+// OcrPrivacyDetails says "图片在本机识别，识别文字交由翻译服务处理。"
 // in the language the app shows.
 func OcrPrivacyDetails() string { return In(i18n.Locale()).OcrPrivacyDetails() }
 
-// OcrPrivacyDetails says "图片在本机识别，不会上传；识别出的文字会发送至已启用的翻译服务。"
+// OcrPrivacyDetails says "图片在本机识别，识别文字交由翻译服务处理。"
 // in the language of msgs.
 func (msgs Messages) OcrPrivacyDetails() string {
 	return Catalog.Format(msgs.locale, "ocr_privacy_details", nil)
@@ -3660,11 +3660,11 @@ func (msgs Messages) OcrScreenshotDetails() string {
 	return Catalog.Format(msgs.locale, "ocr_screenshot_details", nil)
 }
 
-// OcrImageLimits says "支持 PNG、JPEG、BMP、TIFF，最大 32 MB、4000 万像素。"
+// OcrImageLimits says "PNG、JPEG、BMP、TIFF · 32 MB · 4000 万像素"
 // in the language the app shows.
 func OcrImageLimits() string { return In(i18n.Locale()).OcrImageLimits() }
 
-// OcrImageLimits says "支持 PNG、JPEG、BMP、TIFF，最大 32 MB、4000 万像素。"
+// OcrImageLimits says "PNG、JPEG、BMP、TIFF · 32 MB · 4000 万像素"
 // in the language of msgs.
 func (msgs Messages) OcrImageLimits() string {
 	return Catalog.Format(msgs.locale, "ocr_image_limits", nil)
@@ -3720,12 +3720,492 @@ func (msgs Messages) OcrEnableServicePrompt() string {
 	return Catalog.Format(msgs.locale, "ocr_enable_service_prompt", nil)
 }
 
-// OcrServiceSelectionHelp says "每次使用一个 OCR 服务，启用其他服务会自动停用当前服务。"
+// OcrTencent says "腾讯云 OCR"
 // in the language the app shows.
-func OcrServiceSelectionHelp() string { return In(i18n.Locale()).OcrServiceSelectionHelp() }
+func OcrTencent() string { return In(i18n.Locale()).OcrTencent() }
 
-// OcrServiceSelectionHelp says "每次使用一个 OCR 服务，启用其他服务会自动停用当前服务。"
+// OcrTencent says "腾讯云 OCR"
 // in the language of msgs.
-func (msgs Messages) OcrServiceSelectionHelp() string {
-	return Catalog.Format(msgs.locale, "ocr_service_selection_help", nil)
+func (msgs Messages) OcrTencent() string {
+	return Catalog.Format(msgs.locale, "ocr_tencent", nil)
+}
+
+// OcrAliyun says "阿里云 OCR"
+// in the language the app shows.
+func OcrAliyun() string { return In(i18n.Locale()).OcrAliyun() }
+
+// OcrAliyun says "阿里云 OCR"
+// in the language of msgs.
+func (msgs Messages) OcrAliyun() string {
+	return Catalog.Format(msgs.locale, "ocr_aliyun", nil)
+}
+
+// OcrVolcengine says "火山引擎 OCR"
+// in the language the app shows.
+func OcrVolcengine() string { return In(i18n.Locale()).OcrVolcengine() }
+
+// OcrVolcengine says "火山引擎 OCR"
+// in the language of msgs.
+func (msgs Messages) OcrVolcengine() string {
+	return Catalog.Format(msgs.locale, "ocr_volcengine", nil)
+}
+
+// OcrBaidu says "百度智能云 OCR"
+// in the language the app shows.
+func OcrBaidu() string { return In(i18n.Locale()).OcrBaidu() }
+
+// OcrBaidu says "百度智能云 OCR"
+// in the language of msgs.
+func (msgs Messages) OcrBaidu() string {
+	return Catalog.Format(msgs.locale, "ocr_baidu", nil)
+}
+
+// OcrHuawei says "华为云 OCR"
+// in the language the app shows.
+func OcrHuawei() string { return In(i18n.Locale()).OcrHuawei() }
+
+// OcrHuawei says "华为云 OCR"
+// in the language of msgs.
+func (msgs Messages) OcrHuawei() string {
+	return Catalog.Format(msgs.locale, "ocr_huawei", nil)
+}
+
+// OcrXfyun says "科大讯飞 OCR"
+// in the language the app shows.
+func OcrXfyun() string { return In(i18n.Locale()).OcrXfyun() }
+
+// OcrXfyun says "科大讯飞 OCR"
+// in the language of msgs.
+func (msgs Messages) OcrXfyun() string {
+	return Catalog.Format(msgs.locale, "ocr_xfyun", nil)
+}
+
+// OcrYoudao says "网易有道 OCR"
+// in the language the app shows.
+func OcrYoudao() string { return In(i18n.Locale()).OcrYoudao() }
+
+// OcrYoudao says "网易有道 OCR"
+// in the language of msgs.
+func (msgs Messages) OcrYoudao() string {
+	return Catalog.Format(msgs.locale, "ocr_youdao", nil)
+}
+
+// OcrTencentHelp says "开通腾讯云通用文字识别，使用 SecretId 和 SecretKey；支持标准版与高精度版。"
+// in the language the app shows.
+func OcrTencentHelp() string { return In(i18n.Locale()).OcrTencentHelp() }
+
+// OcrTencentHelp says "开通腾讯云通用文字识别，使用 SecretId 和 SecretKey；支持标准版与高精度版。"
+// in the language of msgs.
+func (msgs Messages) OcrTencentHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_tencent_help", nil)
+}
+
+// OcrAliyunHelp says "开通阿里云读光通用文字识别，使用具有 OCR 权限的 AccessKey。"
+// in the language the app shows.
+func OcrAliyunHelp() string { return In(i18n.Locale()).OcrAliyunHelp() }
+
+// OcrAliyunHelp says "开通阿里云读光通用文字识别，使用具有 OCR 权限的 AccessKey。"
+// in the language of msgs.
+func (msgs Messages) OcrAliyunHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_aliyun_help", nil)
+}
+
+// OcrVolcengineHelp says "开通火山引擎通用文字识别 OCRNormal，使用 Access Key 和 Secret Key。"
+// in the language the app shows.
+func OcrVolcengineHelp() string { return In(i18n.Locale()).OcrVolcengineHelp() }
+
+// OcrVolcengineHelp says "开通火山引擎通用文字识别 OCRNormal，使用 Access Key 和 Secret Key。"
+// in the language of msgs.
+func (msgs Messages) OcrVolcengineHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_volcengine_help", nil)
+}
+
+// OcrBaiduHelp says "开通百度智能云文字识别应用，填写 OCR 应用的 API Key 和 Secret Key。"
+// in the language the app shows.
+func OcrBaiduHelp() string { return In(i18n.Locale()).OcrBaiduHelp() }
+
+// OcrBaiduHelp says "开通百度智能云文字识别应用，填写 OCR 应用的 API Key 和 Secret Key。"
+// in the language of msgs.
+func (msgs Messages) OcrBaiduHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_baidu_help", nil)
+}
+
+// OcrHuaweiHelp says "开通对应区域的通用文字识别，填写 AK、SK 和该区域的项目 ID。"
+// in the language the app shows.
+func OcrHuaweiHelp() string { return In(i18n.Locale()).OcrHuaweiHelp() }
+
+// OcrHuaweiHelp says "开通对应区域的通用文字识别，填写 AK、SK 和该区域的项目 ID。"
+// in the language of msgs.
+func (msgs Messages) OcrHuaweiHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_huawei_help", nil)
+}
+
+// OcrXfyunHelp says "开通讯飞通用文字识别，填写应用 APP ID、API Key 和 API Secret，支持中英文。"
+// in the language the app shows.
+func OcrXfyunHelp() string { return In(i18n.Locale()).OcrXfyunHelp() }
+
+// OcrXfyunHelp says "开通讯飞通用文字识别，填写应用 APP ID、API Key 和 API Secret，支持中英文。"
+// in the language of msgs.
+func (msgs Messages) OcrXfyunHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_xfyun_help", nil)
+}
+
+// OcrYoudaoHelp says "开通有道智云通用 OCR，填写应用 ID 和应用密钥；识别语言使用有道语言代码。"
+// in the language the app shows.
+func OcrYoudaoHelp() string { return In(i18n.Locale()).OcrYoudaoHelp() }
+
+// OcrYoudaoHelp says "开通有道智云通用 OCR，填写应用 ID 和应用密钥；识别语言使用有道语言代码。"
+// in the language of msgs.
+func (msgs Messages) OcrYoudaoHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_youdao_help", nil)
+}
+
+// OcrLanguage says "识别语言"
+// in the language the app shows.
+func OcrLanguage() string { return In(i18n.Locale()).OcrLanguage() }
+
+// OcrLanguage says "识别语言"
+// in the language of msgs.
+func (msgs Messages) OcrLanguage() string {
+	return Catalog.Format(msgs.locale, "ocr_language", nil)
+}
+
+// OcrStandardLanguage says "识别语言（标准版）"
+// in the language the app shows.
+func OcrStandardLanguage() string { return In(i18n.Locale()).OcrStandardLanguage() }
+
+// OcrStandardLanguage says "识别语言（标准版）"
+// in the language of msgs.
+func (msgs Messages) OcrStandardLanguage() string {
+	return Catalog.Format(msgs.locale, "ocr_standard_language", nil)
+}
+
+// OcrMethod says "识别版本"
+// in the language the app shows.
+func OcrMethod() string { return In(i18n.Locale()).OcrMethod() }
+
+// OcrMethod says "识别版本"
+// in the language of msgs.
+func (msgs Messages) OcrMethod() string {
+	return Catalog.Format(msgs.locale, "ocr_method", nil)
+}
+
+// OcrStandard says "标准版"
+// in the language the app shows.
+func OcrStandard() string { return In(i18n.Locale()).OcrStandard() }
+
+// OcrStandard says "标准版"
+// in the language of msgs.
+func (msgs Messages) OcrStandard() string {
+	return Catalog.Format(msgs.locale, "ocr_standard", nil)
+}
+
+// OcrAccurate says "高精度版"
+// in the language the app shows.
+func OcrAccurate() string { return In(i18n.Locale()).OcrAccurate() }
+
+// OcrAccurate says "高精度版"
+// in the language of msgs.
+func (msgs Messages) OcrAccurate() string {
+	return Catalog.Format(msgs.locale, "ocr_accurate", nil)
+}
+
+// OcrProjectId says "项目 ID"
+// in the language the app shows.
+func OcrProjectId() string { return In(i18n.Locale()).OcrProjectId() }
+
+// OcrProjectId says "项目 ID"
+// in the language of msgs.
+func (msgs Messages) OcrProjectId() string {
+	return Catalog.Format(msgs.locale, "ocr_project_id", nil)
+}
+
+// OcrAppId says "应用 ID"
+// in the language the app shows.
+func OcrAppId() string { return In(i18n.Locale()).OcrAppId() }
+
+// OcrAppId says "应用 ID"
+// in the language of msgs.
+func (msgs Messages) OcrAppId() string {
+	return Catalog.Format(msgs.locale, "ocr_app_id", nil)
+}
+
+// OcrAppSecret says "应用密钥"
+// in the language the app shows.
+func OcrAppSecret() string { return In(i18n.Locale()).OcrAppSecret() }
+
+// OcrAppSecret says "应用密钥"
+// in the language of msgs.
+func (msgs Messages) OcrAppSecret() string {
+	return Catalog.Format(msgs.locale, "ocr_app_secret", nil)
+}
+
+// OcrEndpointHint says "留空使用官方地址（HTTPS 域名）"
+// in the language the app shows.
+func OcrEndpointHint() string { return In(i18n.Locale()).OcrEndpointHint() }
+
+// OcrEndpointHint says "留空使用官方地址（HTTPS 域名）"
+// in the language of msgs.
+func (msgs Messages) OcrEndpointHint() string {
+	return Catalog.Format(msgs.locale, "ocr_endpoint_hint", nil)
+}
+
+// OcrCloudPrivacy says "图片发送至所选服务，识别文字交由翻译服务处理。"
+// in the language the app shows.
+func OcrCloudPrivacy() string { return In(i18n.Locale()).OcrCloudPrivacy() }
+
+// OcrCloudPrivacy says "图片发送至所选服务，识别文字交由翻译服务处理。"
+// in the language of msgs.
+func (msgs Messages) OcrCloudPrivacy() string {
+	return Catalog.Format(msgs.locale, "ocr_cloud_privacy", nil)
+}
+
+// OcrCloudImageHint says "PNG、JPEG、BMP、TIFF"
+// in the language the app shows.
+func OcrCloudImageHint() string { return In(i18n.Locale()).OcrCloudImageHint() }
+
+// OcrCloudImageHint says "PNG、JPEG、BMP、TIFF"
+// in the language of msgs.
+func (msgs Messages) OcrCloudImageHint() string {
+	return Catalog.Format(msgs.locale, "ocr_cloud_image_hint", nil)
+}
+
+// OcrImages says "OCR 图片"
+// in the language the app shows.
+func OcrImages() string { return In(i18n.Locale()).OcrImages() }
+
+// OcrImages says "OCR 图片"
+// in the language of msgs.
+func (msgs Messages) OcrImages() string {
+	return Catalog.Format(msgs.locale, "ocr_images", nil)
+}
+
+// OcrPrivacyHelp says "系统 OCR 在本机识别；云端 OCR …"
+// in the language the app shows.
+func OcrPrivacyHelp() string { return In(i18n.Locale()).OcrPrivacyHelp() }
+
+// OcrPrivacyHelp says "系统 OCR 在本机识别；云端 OCR …"
+// in the language of msgs.
+func (msgs Messages) OcrPrivacyHelp() string {
+	return Catalog.Format(msgs.locale, "ocr_privacy_help", nil)
+}
+
+// OcrInvalidResource says "OCR 区域或项目 ID 格式无效"
+// in the language the app shows.
+func OcrInvalidResource() string { return In(i18n.Locale()).OcrInvalidResource() }
+
+// OcrInvalidResource says "OCR 区域或项目 ID 格式无效"
+// in the language of msgs.
+func (msgs Messages) OcrInvalidResource() string {
+	return Catalog.Format(msgs.locale, "ocr_invalid_resource", nil)
+}
+
+// OcrInvalidMethod says "OCR 识别版本无效"
+// in the language the app shows.
+func OcrInvalidMethod() string { return In(i18n.Locale()).OcrInvalidMethod() }
+
+// OcrInvalidMethod says "OCR 识别版本无效"
+// in the language of msgs.
+func (msgs Messages) OcrInvalidMethod() string {
+	return Catalog.Format(msgs.locale, "ocr_invalid_method", nil)
+}
+
+// OcrInvalidEndpoint says "OCR 服务地址必须为 HTTPS 域名根地址"
+// in the language the app shows.
+func OcrInvalidEndpoint() string { return In(i18n.Locale()).OcrInvalidEndpoint() }
+
+// OcrInvalidEndpoint says "OCR 服务地址必须为 HTTPS 域名根地址"
+// in the language of msgs.
+func (msgs Messages) OcrInvalidEndpoint() string {
+	return Catalog.Format(msgs.locale, "ocr_invalid_endpoint", nil)
+}
+
+// IconAliyun says "阿里云"
+// in the language the app shows.
+func IconAliyun() string { return In(i18n.Locale()).IconAliyun() }
+
+// IconAliyun says "阿里云"
+// in the language of msgs.
+func (msgs Messages) IconAliyun() string {
+	return Catalog.Format(msgs.locale, "icon_aliyun", nil)
+}
+
+// IconVolcengine says "火山引擎"
+// in the language the app shows.
+func IconVolcengine() string { return In(i18n.Locale()).IconVolcengine() }
+
+// IconVolcengine says "火山引擎"
+// in the language of msgs.
+func (msgs Messages) IconVolcengine() string {
+	return Catalog.Format(msgs.locale, "icon_volcengine", nil)
+}
+
+// IconHuawei says "华为云"
+// in the language the app shows.
+func IconHuawei() string { return In(i18n.Locale()).IconHuawei() }
+
+// IconHuawei says "华为云"
+// in the language of msgs.
+func (msgs Messages) IconHuawei() string {
+	return Catalog.Format(msgs.locale, "icon_huawei", nil)
+}
+
+// IconXfyun says "科大讯飞"
+// in the language the app shows.
+func IconXfyun() string { return In(i18n.Locale()).IconXfyun() }
+
+// IconXfyun says "科大讯飞"
+// in the language of msgs.
+func (msgs Messages) IconXfyun() string {
+	return Catalog.Format(msgs.locale, "icon_xfyun", nil)
+}
+
+// IconYoudao says "网易有道"
+// in the language the app shows.
+func IconYoudao() string { return In(i18n.Locale()).IconYoudao() }
+
+// IconYoudao says "网易有道"
+// in the language of msgs.
+func (msgs Messages) IconYoudao() string {
+	return Catalog.Format(msgs.locale, "icon_youdao", nil)
+}
+
+// IconHunyuan says "腾讯混元"
+// in the language the app shows.
+func IconHunyuan() string { return In(i18n.Locale()).IconHunyuan() }
+
+// IconHunyuan says "腾讯混元"
+// in the language of msgs.
+func (msgs Messages) IconHunyuan() string {
+	return Catalog.Format(msgs.locale, "icon_hunyuan", nil)
+}
+
+// IconZhipu says "智谱"
+// in the language the app shows.
+func IconZhipu() string { return In(i18n.Locale()).IconZhipu() }
+
+// IconZhipu says "智谱"
+// in the language of msgs.
+func (msgs Messages) IconZhipu() string {
+	return Catalog.Format(msgs.locale, "icon_zhipu", nil)
+}
+
+// IconSpark says "讯飞星火"
+// in the language the app shows.
+func IconSpark() string { return In(i18n.Locale()).IconSpark() }
+
+// IconSpark says "讯飞星火"
+// in the language of msgs.
+func (msgs Messages) IconSpark() string {
+	return Catalog.Format(msgs.locale, "icon_spark", nil)
+}
+
+// IconSiliconcloud says "硅基流动"
+// in the language the app shows.
+func IconSiliconcloud() string { return In(i18n.Locale()).IconSiliconcloud() }
+
+// IconSiliconcloud says "硅基流动"
+// in the language of msgs.
+func (msgs Messages) IconSiliconcloud() string {
+	return Catalog.Format(msgs.locale, "icon_siliconcloud", nil)
+}
+
+// AiOcr says "AI 识别"
+// in the language the app shows.
+func AiOcr() string { return In(i18n.Locale()).AiOcr() }
+
+// AiOcr says "AI 识别"
+// in the language of msgs.
+func (msgs Messages) AiOcr() string {
+	return Catalog.Format(msgs.locale, "ai_ocr", nil)
+}
+
+// AiOcrDescription says "使用支持图片输入的视觉模型提取原文，支持 OpenAI、Anthropic 与 Gemini …"
+// in the language the app shows.
+func AiOcrDescription() string { return In(i18n.Locale()).AiOcrDescription() }
+
+// AiOcrDescription says "使用支持图片输入的视觉模型提取原文，支持 OpenAI、Anthropic 与 Gemini …"
+// in the language of msgs.
+func (msgs Messages) AiOcrDescription() string {
+	return Catalog.Format(msgs.locale, "ai_ocr_description", nil)
+}
+
+// AiOcrEndpointHint says "留空使用官方地址，支持自定义 API 地址"
+// in the language the app shows.
+func AiOcrEndpointHint() string { return In(i18n.Locale()).AiOcrEndpointHint() }
+
+// AiOcrEndpointHint says "留空使用官方地址，支持自定义 API 地址"
+// in the language of msgs.
+func (msgs Messages) AiOcrEndpointHint() string {
+	return Catalog.Format(msgs.locale, "ai_ocr_endpoint_hint", nil)
+}
+
+// AiOcrModelHint says "填写支持图片输入的完整模型名称"
+// in the language the app shows.
+func AiOcrModelHint() string { return In(i18n.Locale()).AiOcrModelHint() }
+
+// AiOcrModelHint says "填写支持图片输入的完整模型名称"
+// in the language of msgs.
+func (msgs Messages) AiOcrModelHint() string {
+	return Catalog.Format(msgs.locale, "ai_ocr_model_hint", nil)
+}
+
+// AiOcrHelp says "请选择视觉模型，图片最大 5 MB（BMP、TIFF 转码后计算）。"
+// in the language the app shows.
+func AiOcrHelp() string { return In(i18n.Locale()).AiOcrHelp() }
+
+// AiOcrHelp says "请选择视觉模型，图片最大 5 MB（BMP、TIFF 转码后计算）。"
+// in the language of msgs.
+func (msgs Messages) AiOcrHelp() string {
+	return Catalog.Format(msgs.locale, "ai_ocr_help", nil)
+}
+
+// AiOcrInvalidEndpoint says "AI 识别地址必须是有效的 HTTP(S) 地址，且不能包含用户名或片段"
+// in the language the app shows.
+func AiOcrInvalidEndpoint() string { return In(i18n.Locale()).AiOcrInvalidEndpoint() }
+
+// AiOcrInvalidEndpoint says "AI 识别地址必须是有效的 HTTP(S) 地址，且不能包含用户名或片段"
+// in the language of msgs.
+func (msgs Messages) AiOcrInvalidEndpoint() string {
+	return Catalog.Format(msgs.locale, "ai_ocr_invalid_endpoint", nil)
+}
+
+// AiOcrImageTooLarge says "AI 识别图片不能超过 5 MB，请裁剪或压缩后重试"
+// in the language the app shows.
+func AiOcrImageTooLarge() string { return In(i18n.Locale()).AiOcrImageTooLarge() }
+
+// AiOcrImageTooLarge says "AI 识别图片不能超过 5 MB，请裁剪或压缩后重试"
+// in the language of msgs.
+func (msgs Messages) AiOcrImageTooLarge() string {
+	return Catalog.Format(msgs.locale, "ai_ocr_image_too_large", nil)
+}
+
+// AiOcrImageType says "AI 识别需要 PNG 或 JPEG 图片"
+// in the language the app shows.
+func AiOcrImageType() string { return In(i18n.Locale()).AiOcrImageType() }
+
+// AiOcrImageType says "AI 识别需要 PNG 或 JPEG 图片"
+// in the language of msgs.
+func (msgs Messages) AiOcrImageType() string {
+	return Catalog.Format(msgs.locale, "ai_ocr_image_type", nil)
+}
+
+// AiIncompleteInput says "AI 响应未完成或被拒绝，请缩小输入范围或检查模型"
+// in the language the app shows.
+func AiIncompleteInput() string { return In(i18n.Locale()).AiIncompleteInput() }
+
+// AiIncompleteInput says "AI 响应未完成或被拒绝，请缩小输入范围或检查模型"
+// in the language of msgs.
+func (msgs Messages) AiIncompleteInput() string {
+	return Catalog.Format(msgs.locale, "ai_incomplete_input", nil)
+}
+
+// AiInvalidTextFormat says "AI 服务返回的文字格式无效"
+// in the language the app shows.
+func AiInvalidTextFormat() string { return In(i18n.Locale()).AiInvalidTextFormat() }
+
+// AiInvalidTextFormat says "AI 服务返回的文字格式无效"
+// in the language of msgs.
+func (msgs Messages) AiInvalidTextFormat() string {
+	return Catalog.Format(msgs.locale, "ai_invalid_text_format", nil)
 }

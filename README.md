@@ -10,7 +10,7 @@
 
 ## 功能
 
-- **图片 OCR**：选择图片或使用快捷键框选截图，本地识别文字后自动翻译。
+- **图片 OCR**：选择图片或使用快捷键框选截图，通过系统或云端 OCR 识别文字后自动翻译。
 - **快捷翻译**：常驻系统托盘，支持划词、手动输入与剪贴板翻译。
 - **开机自启**：在“设置 → 外观 → 启动”中开启，登录系统后自动在托盘后台运行；状态与系统登录项同步。
 - **首页翻译**：上方输入原文，下方逐项展示已启用服务的译文，支持语言选择与快捷键提交。
@@ -34,7 +34,7 @@
 
 macOS 需在“系统设置 → 隐私与安全性 → 辅助功能”中授权 Glide，授权后重启应用。快捷键取词失败时自动使用最新的剪贴板文字；剪贴板也为空时提示复制或输入文字。图片文字可通过首页“图片 OCR”、截图按钮或托盘入口识别翻译。
 
-macOS 首次截图需在系统设置中允许 Glide 使用屏幕录制；OCR 使用系统 Vision。Windows 使用框选截图及系统 OCR 语言包，需要安装相应语言的文字识别功能。识别在本机完成，图片不会上传，文字发送至启用的翻译渠道；截图临时文件识别后自动删除。支持 PNG、JPEG、BMP、TIFF 图片。可在“OCR 服务”中添加、重命名、删除和启用识别服务；每次使用一个启用服务，目前提供系统 OCR。
+macOS 首次截图需在系统设置中允许 Glide 使用屏幕录制；系统 OCR 使用 Vision。Windows 系统 OCR 需要安装相应语言的文字识别功能。可在“OCR 服务”中添加、重命名、删除和启用系统或云端识别服务，每次使用一个启用服务。系统 OCR 在本机完成，云端 OCR 将图片发送至所选厂商，识别文字再发送至启用的翻译渠道；截图临时文件识别后自动删除。支持 PNG、JPEG、BMP、TIFF；云端识别会将 BMP、TIFF 转为 PNG，各厂商另有图片大小和尺寸限制。
 
 浮窗默认在鼠标所在屏幕居中显示；在“设置”中开启“浮窗随鼠标显示”后，在鼠标附近弹出。浮窗随译文数量、长度与折叠状态自动调整高度，最多占所在屏幕可用高度的 80%，超出后滚动查看。固定的浮窗尽量保留当前位置，扩展触及底部时自动上移。设置修改自动保存，操作结果和错误显示在对应设置列表下方。
 
@@ -50,7 +50,7 @@ macOS 首次截图需在系统设置中允许 Glide 使用屏幕录制；OCR 使
 
 ## 翻译服务
 
-“备份同步”下方的“系统代理”栏目中，“使用系统代理”默认开启，关闭时翻译请求直连（忽略环境代理）；可在开关下方填写手动代理地址（例如 `http://127.0.0.1:7890` 或 `socks5://127.0.0.1:1080`），手动地址优先于环境和系统代理；留空时，macOS 使用系统设置中的手动 HTTP、HTTPS 或 SOCKS 代理，并遵守代理排除列表，对应协议的 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量优先，`NO_PROXY` 可指定直连地址。其他平台开启后使用上述环境代理。设置保存后对新请求生效，无需重启 Glide；暂不解析 PAC 自动代理脚本。谷歌内置渠道请求超过 20 秒会结束等待并提示检查网络及代理设置。
+“备份同步”下方的“系统代理”栏目中，“使用系统代理”默认开启，关闭时翻译和云端 OCR 请求直连（忽略环境代理）；可在开关下方填写手动代理地址（例如 `http://127.0.0.1:7890` 或 `socks5://127.0.0.1:1080`），手动地址优先于环境和系统代理；留空时，macOS 使用系统设置中的手动 HTTP、HTTPS 或 SOCKS 代理，并遵守代理排除列表，对应协议的 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量优先，`NO_PROXY` 可指定直连地址。其他平台开启后使用上述环境代理。设置保存后对新请求生效，无需重启 Glide；暂不解析 PAC 自动代理脚本。谷歌内置渠道请求超过 20 秒会结束等待并提示检查网络及代理设置。
 
 翻译浮窗中，每个渠道的复制按钮旁提供“重新翻译此渠道”按钮，仅重试该渠道，保留其他渠道的结果。
 
@@ -70,11 +70,31 @@ DeepL 使用[官方 API](https://developers.deepl.com/api-reference/translate/re
 
 AI 翻译支持 [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)、[OpenAI Responses](https://developers.openai.com/api/reference/resources/responses/methods/create)、[Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create) 和 [Gemini](https://ai.google.dev/api/generate-content)。填写地址与密钥后，点击“获取模型”即可下拉选择，也可选择“自定义模型…”手动输入。地址可填写基础地址或完整的生成接口地址；切换格式时请确认地址与上游匹配。
 
-翻译服务的密钥输入框支持点击眼睛显示或隐藏；每个服务可以点击小图标按钮，在弹窗中选择内置显示图标，包括 Claude、Gemini、DeepSeek、通义千问、豆包等 AI 品牌，不改变实际请求的服务类型。
+翻译与 OCR 服务的密钥输入框支持点击眼睛显示或隐藏；每个服务均可点击“显示图标”按钮，在弹窗中选择内置图标，包含 OCR 厂商及 Claude、Gemini、DeepSeek、通义千问、豆包、混元、智谱等 AI 品牌。选择后自动保存，也可恢复默认图标，不改变实际请求的服务类型。
 
 Ollama 默认连接 `http://127.0.0.1:11434`，需自行启动服务并安装模型。AI 与 Ollama 均支持添加多个实例。
 
 内置网页接口可能受网络、限流或接口调整影响；各渠道有独立的文本长度限制，超限时会提示分段。需要密钥的渠道与 Ollama 尚未完成真实账户或模型联调。
+
+## OCR 服务
+
+在“设置 → OCR 服务 → 添加服务”中选择渠道并填写凭据，启用后供截图和图片识别共用。默认保留系统 OCR；云端渠道需在厂商控制台开通相应服务，按厂商账户套餐计费。凭据可先保存，识别前会检查必填项。
+
+| 渠道 | 配置与接口 |
+| --- | --- |
+| 系统 OCR | 无需密钥；macOS Vision / Windows OCR |
+| AI 识别 | 上游格式、API 地址、API Key、视觉模型；支持获取模型列表或手动填写 |
+| [腾讯云 OCR](https://cloud.tencent.com/document/product/866/33526) | SecretId、SecretKey；区域默认 `ap-guangzhou`；通用标准版或高精度版，高精度版自动识别多语种 |
+| [阿里云 OCR](https://help.aliyun.com/zh/ocr/developer-reference/api-ocr-api-2021-07-07-recognizegeneral) | AccessKey ID、AccessKey Secret；读光 `RecognizeGeneral`，默认杭州接入点 |
+| [火山引擎 OCR](https://docs.volcengine.com/docs/large-model-of-image-generation/calling-method?lang=zh) | Access Key、Secret Key；区域默认 `cn-north-1`；`OCRNormal` |
+| [百度智能云 OCR](https://ai.baidu.com/ai-doc/OCR/) | OCR 应用的 API Key、Secret Key；通用标准版或高精度版；识别语言默认 `CHN_ENG` |
+| [华为云 OCR](https://support.huaweicloud.com/api-ocr/ocr_03_0042.html) | Access Key、Secret Key、项目 ID；区域默认 `cn-north-4`，须与项目和已开通服务一致；通用文字识别 |
+| [科大讯飞 OCR](https://static.xfyun.cn/doc/words/universal_character_recognition/API.html) | APP ID、API Key、API Secret；通用中英文文字识别 |
+| [网易有道 OCR](https://ai.youdao.com/DOCSIRMA/html/ocr/api/tyocr/index.html) | 应用 ID、应用密钥；通用 OCR，语言默认 `zh-CHS` |
+
+AI 识别支持 [OpenAI Chat Completions / Responses](https://developers.openai.com/api/docs/guides/images-vision)、[Anthropic Messages](https://platform.claude.com/docs/en/build-with-claude/vision) 和 [Gemini generateContent](https://ai.google.dev/api/generate-content)。添加“AI 识别”后选择协议、填写地址和凭据，获取模型列表或输入完整模型名称；必须选用支持图片输入的视觉模型，模型列表不会自动筛选视觉能力。地址留空时使用所选协议的官方地址，也支持自定义 HTTP(S) 基础地址或完整接口地址，无认证的本地兼容服务可不填密钥。识别仅提取原文，再由翻译服务翻译；图片限制为 5 MB（BMP、TIFF 转 PNG 后计算），截断或被拒绝的结果会报错。AI 识别同样支持多个实例、修改图标、自动保存、配置备份和系统代理。
+
+传统云端 OCR 的服务地址留空时使用官方地址；自定义地址仅接受 HTTPS 域名根地址，接口路径由渠道自动拼接。云端 OCR 共用“系统代理”设置。腾讯、阿里、华为、有道的上传上限为 10 MB（阿里按原始图片，其余按 Base64 大小）；火山、百度、讯飞按 Base64 限制为 4 MB，超限需裁剪或压缩。传统云端及 AI 渠道已按官方协议实现，尚未使用真实账户联调。
 
 ## 隐私与数据
 
@@ -83,11 +103,11 @@ Ollama 默认连接 `http://127.0.0.1:11434`，需自行启动服务并安装模
 - macOS：`~/Library/Application Support/Glide/`
 - Windows：`%AppData%\Glide\`
 
-原文会发送至当前启用的翻译渠道；仅启用本机 Ollama 时，翻译请求留在本机。应用不监听剪贴板，仅在主动使用剪贴板翻译或快捷键取词失败时读取。旧版钥匙串凭据在首次启动时自动迁移，读取旧密钥时可能需要一次系统授权；迁移成功后清理对应旧凭据。
+原文会发送至当前启用的翻译渠道；仅启用本机 Ollama 时，翻译请求留在本机。系统 OCR 不上传图片，云端 OCR 会将图片发送至所选厂商；AI 识别将图片发送至所配置的 API 地址，本机地址可将图片保留在本机；识别后的文字同样遵循翻译渠道设置。应用不监听剪贴板，仅在主动使用剪贴板翻译或快捷键取词失败时读取。旧版钥匙串凭据在首次启动时自动迁移，读取旧密钥时可能需要一次系统授权；迁移成功后清理对应旧凭据。
 
 历史可在“翻译历史”中清空或单条删除，也可在“关于”下方的“隐私与数据”中清空；保留条数可在“设置”中设置；选择“不保留”会清空已有历史，并停止记录后续翻译。
 
-“备份同步”中的配置备份包含偏好、翻译服务和明文服务密钥，不包含历史及 WebDAV 登录信息。导入会替换本机服务和偏好，保留本机 WebDAV 连接配置；可以选择某份备份恢复到本地，也可删除远端备份；恢复和删除前均会确认。不自动合并，WebDAV 登录信息始终留在本机。建议使用 HTTPS，并妥善保管备份及服务器访问权限。
+“备份同步”中的配置备份包含偏好、翻译及 OCR 服务和明文服务密钥，不包含历史及 WebDAV 登录信息。导入会替换本机服务和偏好，保留本机 WebDAV 连接配置；可以选择某份备份恢复到本地，也可删除远端备份；恢复和删除前均会确认。不自动合并，WebDAV 登录信息始终留在本机。建议使用 HTTPS，并妥善保管备份及服务器访问权限。
 
 ## 开发与构建
 

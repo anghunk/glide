@@ -49,8 +49,14 @@ func (s *settingsUI) aiFormatField(c *ui.Context, p pnPalette, config *translati
 
 // aiModelField 保留自由输入，成功获取列表后允许在同一输入框中下拉选择。
 func (s *settingsUI) aiModelField(c *ui.Context, p pnPalette, config *translation.Config) {
-	state := s.modelLists[config.ID]
-	if state != nil && !sameModelSource(state.source, *config) {
+	s.aiModelFieldFor(c, p, *config, &config.Model, "services")
+}
+
+// aiModelFieldFor 共享模型选择界面，直接绑定实际模型字段，并按页面隔离请求状态。
+func (s *settingsUI) aiModelFieldFor(c *ui.Context, p pnPalette, config translation.Config, model *string, category string) {
+	key := category + ":" + config.ID
+	state := s.modelLists[key]
+	if state != nil && !sameModelSource(state.source, config) {
 		state = nil
 	}
 	ui.Column(c.Key("ai-model")).Shrink(0).Gap(6).Children(func() {
@@ -60,11 +66,11 @@ func (s *settingsUI) aiModelField(c *ui.Context, p pnPalette, config *translatio
 			if state != nil && state.loading {
 				label = "获取中…"
 			}
-			snapshot := *config
-			ui.Button(c, tr(label)).Height(26).FontSize(12).Disabled(state != nil && state.loading).OnClick(func() { s.fetchModels(snapshot) })
+			snapshot := config
+			ui.Button(c, tr(label)).Height(26).FontSize(12).Disabled(state != nil && state.loading).OnClick(func() { s.fetchModels(snapshot, category) })
 		})
 		if state != nil && len(state.models) > 0 {
-			chosen := config.Model
+			chosen := *model
 			if state.custom || !slices.Contains(state.models, chosen) {
 				chosen = "自定义模型…"
 			}
@@ -72,14 +78,14 @@ func (s *settingsUI) aiModelField(c *ui.Context, p pnPalette, config *translatio
 			if localizedSelect(c, &chosen, options).FillWidth().Height(28).FontSize(12.5).Label(tr("选择模型")).Changed() {
 				state.custom = chosen == "自定义模型…"
 				if !state.custom {
-					config.Model = chosen
+					*model = chosen
 				}
 			}
-			if state.custom || !slices.Contains(state.models, config.Model) {
-				ui.TextInput(c, &config.Model).FillWidth().Height(28).FontSize(12.5).Label(tr("自定义模型名称")).Placeholder(tr("输入完整模型名称"))
+			if state.custom || !slices.Contains(state.models, *model) {
+				ui.TextInput(c, model).FillWidth().Height(28).FontSize(12.5).Label(tr("自定义模型名称")).Placeholder(tr("输入完整模型名称"))
 			}
 		} else {
-			ui.TextInput(c, &config.Model).FillWidth().Height(28).FontSize(12.5).Label(tr("模型名称")).Placeholder(tr("获取模型列表，或输入自定义模型名称"))
+			ui.TextInput(c, model).FillWidth().Height(28).FontSize(12.5).Label(tr("模型名称")).Placeholder(tr("获取模型列表，或输入自定义模型名称"))
 		}
 		if state != nil && state.errorText != "" {
 			ui.Text(c, tr(state.errorText)).FontSize(12).TextColor(p.Danger).MaxLines(3)
@@ -88,12 +94,13 @@ func (s *settingsUI) aiModelField(c *ui.Context, p pnPalette, config *translatio
 }
 
 // fetchModels 使用点击时的配置快照请求模型，过期或已删除服务的结果不会覆盖当前界面。
-func (s *settingsUI) fetchModels(config translation.Config) {
+func (s *settingsUI) fetchModels(config translation.Config, category string) {
+	key := category + ":" + config.ID
 	if s.modelLists == nil {
 		s.modelLists = make(map[string]*modelListState)
 	}
 	state := &modelListState{source: config, loading: true}
-	s.modelLists[config.ID] = state
+	s.modelLists[key] = state
 	proxySettings := s.app.GetState().Settings
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -101,19 +108,28 @@ func (s *settingsUI) fetchModels(config translation.Config) {
 		ctx = translation.WithProxy(ctx, proxySettings.UseSystemProxy, proxySettings.ProxyAddress)
 		models, err := translation.ListModels(ctx, config)
 		s.app.mainWindow.Update(func() {
-			if s.modelLists[config.ID] != state {
+			if s.modelLists[key] != state {
 				return
 			}
 			state.loading = false
 			found := false
-			for _, current := range s.draft.Providers {
-				if current.ID == config.ID && sameModelSource(current, config) {
-					found = true
-					break
+			if category == "ocr" {
+				for _, current := range s.draft.OCRProviders {
+					if current.Kind == "openai" && current.ID == config.ID && sameModelSource(current.AIConfig(), config) {
+						found = true
+						break
+					}
+				}
+			} else {
+				for _, current := range s.draft.Providers {
+					if current.ID == config.ID && sameModelSource(current, config) {
+						found = true
+						break
+					}
 				}
 			}
 			if !found {
-				delete(s.modelLists, config.ID)
+				delete(s.modelLists, key)
 				return
 			}
 			if err != nil {
