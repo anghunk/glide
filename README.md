@@ -94,6 +94,10 @@ Ollama 默认连接 `http://127.0.0.1:11434`，需自行启动服务并安装模
 
 AI 识别支持 [OpenAI Chat Completions / Responses](https://developers.openai.com/api/docs/guides/images-vision)、[Anthropic Messages](https://platform.claude.com/docs/en/build-with-claude/vision) 和 [Gemini generateContent](https://ai.google.dev/api/generate-content)。添加“AI 识别”后选择协议、填写地址和凭据，获取模型列表或输入完整模型名称；必须选用支持图片输入的视觉模型，模型列表不会自动筛选视觉能力。地址留空时使用所选协议的官方地址，也支持自定义 HTTP(S) 基础地址或完整接口地址，无认证的本地兼容服务可不填密钥。识别仅提取原文，再由翻译服务翻译；图片限制为 5 MB（BMP、TIFF 转 PNG 后计算），截断或被拒绝的结果会报错。AI 识别同样支持多个实例、修改图标、自动保存、配置备份和系统代理。
 
+Anthropic 基础地址会自动补充 `/v1`，例如 `https://example.com/apps/anthropic` 对应 `/apps/anthropic/v1/messages`；已含 `/v1` 的基础地址不会重复追加。填写完整接口地址时保留指定路径。此规则同时适用于 AI 翻译和 AI 识别。
+
+部分兼容服务不提供模型列表接口，例如阿里云百炼的 Anthropic 入口；“获取模型”可能返回 404。此时可直接在模型名称中填写服务支持的完整模型 ID，识别和翻译不依赖模型列表接口。
+
 传统云端 OCR 的服务地址留空时使用官方地址；自定义地址仅接受 HTTPS 域名根地址，接口路径由渠道自动拼接。云端 OCR 共用“系统代理”设置。腾讯、阿里、华为、有道的上传上限为 10 MB（阿里按原始图片，其余按 Base64 大小）；火山、百度、讯飞按 Base64 限制为 4 MB，超限需裁剪或压缩。传统云端及 AI 渠道已按官方协议实现，尚未使用真实账户联调。
 
 ## 隐私与数据

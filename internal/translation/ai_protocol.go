@@ -35,13 +35,26 @@ func aiEndpoint(config Config, operation string) (*url.URL, error) {
 		return nil, err
 	}
 	path := strings.TrimRight(endpoint.Path, "/")
+	fullEndpoint := false
 	for _, suffix := range []string{"/chat/completions", "/responses", "/messages"} {
-		path = strings.TrimSuffix(path, suffix)
+		if strings.HasSuffix(path, suffix) {
+			path = strings.TrimSuffix(path, suffix)
+			fullEndpoint = true
+			break
+		}
 	}
 	if i := strings.Index(path, "/models/"); i >= 0 {
 		path = path[:i]
+		fullEndpoint = true
 	}
-	path = strings.TrimSuffix(path, "/models")
+	if strings.HasSuffix(path, "/models") {
+		path = strings.TrimSuffix(path, "/models")
+		fullEndpoint = true
+	}
+	// Anthropic SDK 的基础地址不含 /v1；完整接口地址则保留调用方指定的路径。
+	if AIFormat(config) == "anthropic" && !fullEndpoint && !strings.HasSuffix(path, "/v1") {
+		path += "/v1"
+	}
 	endpoint.Path = path + "/" + operation
 	endpoint.RawPath = ""
 	return endpoint, nil
@@ -87,7 +100,7 @@ func ListModels(ctx context.Context, config Config) (models []string, err error)
 		aiAuth(request, config)
 		body, err := send(request)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("获取模型列表失败，可尝试手动填写完整模型名称：%w", err)
 		}
 		var response struct {
 			Data []struct {
