@@ -15,6 +15,21 @@ import (
 // ocrRunning 返回识别忙碌状态，避免重复截图和识别。
 func (a *GlideService) ocrRunning() bool { a.mu.RLock(); defer a.mu.RUnlock(); return a.ocrBusy }
 
+// stopOCR 取消当前识别并立即解除浮窗占用，过期结果由请求代次和上下文拦截。
+func (a *GlideService) stopOCR() {
+	a.mu.Lock()
+	if !a.panel.Recognizing || a.ocrCancel == nil {
+		a.mu.Unlock()
+		return
+	}
+	a.ocrCancel()
+	a.panelGeneration++
+	a.panel.Loading, a.panel.Recognizing = false, false
+	a.mu.Unlock()
+	a.focusPanelInput()
+	a.notifyPanel()
+}
+
 // startOCR 从图片或框选截图提取文字，完成后复用多渠道浮窗翻译。
 func (a *GlideService) startOCR(screenshot bool) {
 	a.mu.Lock()
@@ -32,17 +47,21 @@ func (a *GlideService) startOCR(screenshot bool) {
 		if errors.Is(err, ocr.ErrCanceled) || errors.Is(err, context.Canceled) {
 			return
 		}
-		a.mu.RLock()
-		quitting := a.quitting
-		a.mu.RUnlock()
-		if quitting {
-			return
-		}
-		if err != nil {
-			a.showPanelError(err.Error())
-			return
-		}
-		a.showTranslation(text)
+		mygo.RunOnMain(func() {
+			a.mu.RLock()
+			quitting, recognizing := a.quitting, a.panel.Recognizing
+			a.mu.RUnlock()
+			if quitting || errors.Is(ctx.Err(), context.Canceled) {
+				return
+			}
+			if err != nil {
+				a.showPanelError(err.Error())
+				return
+			}
+			if recognizing {
+				a.showTranslation(text)
+			}
+		})
 	}()
 }
 
@@ -94,7 +113,7 @@ func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, er
 	}
 	a.panelGeneration++
 	generation := a.panelGeneration
-	a.panel = PanelState{Loading: true, Pinned: a.panel.Pinned}
+	a.panel = PanelState{Loading: true, Recognizing: true, Pinned: a.panel.Pinned}
 	a.mu.Unlock()
 	a.positionPanel()
 	if !screenshot && a.mainWindow.IsVisible() {
@@ -106,6 +125,7 @@ func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, er
 	stale := generation != a.panelGeneration
 	if stale && a.panelCancel == nil && a.panel.Response == nil {
 		a.panel.Loading = false
+		a.panel.Recognizing = false
 	}
 	a.mu.Unlock()
 	if stale {

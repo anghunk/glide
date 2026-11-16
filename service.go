@@ -104,10 +104,11 @@ type TranslationResponse struct {
 
 // PanelState 使重复使用的浮窗能读取最新一批翻译，避免过期请求覆盖新选区。
 type PanelState struct {
-	Pinned   bool                 `json:"pinned"`
-	Loading  bool                 `json:"loading"`
-	Response *TranslationResponse `json:"response"`
-	Error    string               `json:"error"`
+	Pinned      bool                 `json:"pinned"`
+	Loading     bool                 `json:"loading"`
+	Recognizing bool                 `json:"recognizing"`
+	Response    *TranslationResponse `json:"response"`
+	Error       string               `json:"error"`
 }
 
 // GlideService 连接原生界面、系统取词及翻译渠道。
@@ -136,6 +137,7 @@ type GlideService struct {
 	extraHotkeys    map[string]string
 	hotkey          string
 	hotkeyError     string
+	shortcutsPaused bool
 	watchError      string
 	quitting        bool
 	lastSelection   string

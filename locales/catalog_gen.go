@@ -138,6 +138,26 @@ func (msgs Messages) GlideSelectionTranslator() string {
 	return Catalog.Format(msgs.locale, "glide_selection_translator", nil)
 }
 
+// PauseTranslationShortcuts says "停止使用"
+// in the language the app shows.
+func PauseTranslationShortcuts() string { return In(i18n.Locale()).PauseTranslationShortcuts() }
+
+// PauseTranslationShortcuts says "停止使用"
+// in the language of msgs.
+func (msgs Messages) PauseTranslationShortcuts() string {
+	return Catalog.Format(msgs.locale, "pause_translation_shortcuts", nil)
+}
+
+// UpTo10000Characters says "最多 10,000 字"
+// in the language the app shows.
+func UpTo10000Characters() string { return In(i18n.Locale()).UpTo10000Characters() }
+
+// UpTo10000Characters says "最多 10,000 字"
+// in the language of msgs.
+func (msgs Messages) UpTo10000Characters() string {
+	return Catalog.Format(msgs.locale, "up_to_10_000_characters", nil)
+}
+
 // GlideHelp says "Glide 使用说明"
 // in the language the app shows.
 func GlideHelp() string { return In(i18n.Locale()).GlideHelp() }
@@ -1802,6 +1822,26 @@ func RecognizingImageText() string { return In(i18n.Locale()).RecognizingImageTe
 // in the language of msgs.
 func (msgs Messages) RecognizingImageText() string {
 	return Catalog.Format(msgs.locale, "recognizing_image_text", nil)
+}
+
+// RecognizingOcrText says "正在 OCR 识别文字中"
+// in the language the app shows.
+func RecognizingOcrText() string { return In(i18n.Locale()).RecognizingOcrText() }
+
+// RecognizingOcrText says "正在 OCR 识别文字中"
+// in the language of msgs.
+func (msgs Messages) RecognizingOcrText() string {
+	return Catalog.Format(msgs.locale, "recognizing_ocr_text", nil)
+}
+
+// StopOcr says "结束识别"
+// in the language the app shows.
+func StopOcr() string { return In(i18n.Locale()).StopOcr() }
+
+// StopOcr says "结束识别"
+// in the language of msgs.
+func (msgs Messages) StopOcr() string {
+	return Catalog.Format(msgs.locale, "stop_ocr", nil)
 }
 
 // LoadingHistory says "正在读取历史…"

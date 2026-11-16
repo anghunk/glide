@@ -157,13 +157,18 @@ func (a *GlideService) OpenPanel() {
 
 // translateSelection 优先读取当前选区，读取失败或为空时使用此刻的剪贴板文本。
 func (a *GlideService) translateSelection() {
+	a.showTranslation(a.readSelectionText())
+}
+
+// readSelectionText 在三秒内读取选区，失败或为空时返回当前剪贴板文字。
+func (a *GlideService) readSelectionText() string {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	s, err := selection.Read(ctx)
 	if err != nil || strings.TrimSpace(s.Text) == "" {
 		s.Text = mygo.Clipboard.ReadText()
 	}
-	a.showTranslation(s.Text)
+	return s.Text
 }
 
 // positionPanel 按偏好定位并聚焦浮窗，使唤醒后的首次失焦即可收起；固定且可见时保留当前位置。
@@ -302,13 +307,35 @@ func (a *GlideService) shutdown() {
 func (a *GlideService) configureShortcuts(settings Settings) {
 	a.mu.RLock()
 	previous := map[string]string{"划词翻译": a.hotkey, "输入翻译": a.extraHotkeys["输入翻译"], "剪贴板翻译": a.extraHotkeys["剪贴板翻译"], "截图 OCR 翻译": a.extraHotkeys["截图 OCR 翻译"]}
+	paused := a.shortcutsPaused
 	a.mu.RUnlock()
 	desired := map[string]string{"划词翻译": settings.Shortcut, "输入翻译": settings.InputShortcut, "剪贴板翻译": settings.ClipboardShortcut, "截图 OCR 翻译": settings.OCRShortcut}
+	if paused {
+		for name := range desired {
+			desired[name] = ""
+		}
+	}
 	actions := map[string]func(){
 		"截图 OCR 翻译": func() { a.startOCR(true) },
-		"划词翻译":      func() { go a.translateSelection() },
-		"输入翻译":      a.OpenPanel,
-		"剪贴板翻译":     func() { a.showTranslation(mygo.Clipboard.ReadText()) },
+		"划词翻译": func() {
+			go func() {
+				text := a.readSelectionText()
+				mygo.RunOnMain(func() {
+					if a.translationShortcutsEnabled() {
+						a.showTranslation(text)
+					}
+				})
+			}()
+		},
+		"输入翻译":  a.OpenPanel,
+		"剪贴板翻译": func() { a.showTranslation(mygo.Clipboard.ReadText()) },
+	}
+	for name, action := range actions {
+		actions[name] = func() {
+			if a.translationShortcutsEnabled() {
+				action()
+			}
+		}
 	}
 	unchanged := true
 	for name, key := range desired {
@@ -317,6 +344,11 @@ func (a *GlideService) configureShortcuts(settings Settings) {
 		}
 	}
 	if unchanged {
+		if paused {
+			a.mu.Lock()
+			a.hotkeyError = ""
+			a.mu.Unlock()
+		}
 		return
 	}
 	for _, key := range previous {
@@ -353,6 +385,6 @@ func (a *GlideService) configureShortcuts(settings Settings) {
 		registered = append(registered, key)
 	}
 	a.mu.Lock()
-	a.hotkey, a.extraHotkeys, a.hotkeyError = settings.Shortcut, desired, ""
+	a.hotkey, a.extraHotkeys, a.hotkeyError = desired["划词翻译"], desired, ""
 	a.mu.Unlock()
 }

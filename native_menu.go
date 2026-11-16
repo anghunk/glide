@@ -16,6 +16,7 @@ type nativeTrayMenu struct {
 	menu            *mygo.Menu
 	selectionItem   *mygo.MenuItem
 	updateItem      *mygo.MenuItem
+	pauseItem       *mygo.MenuItem
 	shortcut        string
 	selectionSource func() error
 }
@@ -26,6 +27,10 @@ func newNativeTrayMenu(a *GlideService) (*nativeTrayMenu, error) {
 	shortcut := a.hotkey
 	a.mu.RUnlock()
 	t := &nativeTrayMenu{shortcut: shortcut}
+	t.pauseItem = &mygo.MenuItem{ID: "pause-translation-shortcuts", Label: "停止使用", Type: mygo.MenuItemCheckbox,
+		Click: func(item *mygo.MenuItem, _ *mygo.Window) {
+			a.setTranslationShortcutsPaused(item.IsChecked())
+		}}
 	t.updateItem = &mygo.MenuItem{ID: "check-updates", Label: "检查更新…", Click: func(*mygo.MenuItem, *mygo.Window) {
 		a.CheckForUpdates()
 	}}
@@ -56,6 +61,8 @@ func newNativeTrayMenu(a *GlideService) (*nativeTrayMenu, error) {
 		{Label: "截图 OCR 翻译", Click: func(*mygo.MenuItem, *mygo.Window) { a.startOCR(true) }},
 		{Label: "图片 OCR 翻译…", Click: func(*mygo.MenuItem, *mygo.Window) { a.startOCR(false) }},
 		{Label: "剪贴板翻译", Click: func(*mygo.MenuItem, *mygo.Window) { a.showTranslation(mygo.Clipboard.ReadText()) }},
+		mygo.Separator(),
+		t.pauseItem,
 		mygo.Separator(),
 		{Label: "设置…", Accelerator: "CmdOrCtrl+,", Click: func(*mygo.MenuItem, *mygo.Window) { a.ShowMain() }},
 		{Label: "翻译历史", Click: func(*mygo.MenuItem, *mygo.Window) { a.showSettingsCategory("history") }},
@@ -113,10 +120,14 @@ func (a *GlideService) refreshTrayMenu() {
 			return
 		}
 		a.mu.RLock()
-		shortcut, quitting := a.hotkey, a.quitting
+		shortcut, quitting, paused := a.hotkey, a.quitting, a.shortcutsPaused
 		a.mu.RUnlock()
 		if quitting {
 			return
+		}
+		t.pauseItem.SetChecked(paused)
+		if paused {
+			shortcut = ""
 		}
 		if shortcut != t.shortcut {
 			t.shortcut = shortcut

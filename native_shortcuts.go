@@ -17,6 +17,33 @@ var panelNamedKeys = map[ui.Key]string{
 	ui.KeyLeft: "Left", ui.KeyRight: "Right", ui.KeyUp: "Up", ui.KeyDown: "Down",
 }
 
+// translationShortcutsEnabled 返回翻译快捷键的实时开关，供全局热键和窗口按键入口共用。
+func (a *GlideService) translationShortcutsEnabled() bool {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return !a.shortcutsPaused && !a.quitting
+}
+
+// setTranslationShortcutsPaused 立即切换本次运行的快捷键状态，并在后台同步系统热键注册。
+func (a *GlideService) setTranslationShortcutsPaused(paused bool) {
+	a.mu.Lock()
+	a.shortcutsPaused = paused
+	a.mu.Unlock()
+	a.notifySettings()
+	go func() {
+		a.triggersMu.Lock()
+		defer a.triggersMu.Unlock()
+		a.mu.RLock()
+		settings, quitting := cloneSettings(a.settings), a.quitting
+		a.mu.RUnlock()
+		if quitting {
+			return
+		}
+		a.configureShortcuts(settings)
+		a.notifySettings()
+	}()
+}
+
 // panelShortcutKeyName 返回可持久化的按键名称；不支持的按键返回空字符串。
 func panelShortcutKeyName(key ui.Key) string {
 	switch {

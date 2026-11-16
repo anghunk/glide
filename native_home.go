@@ -52,7 +52,7 @@ func (h *homeUI) view(c *ui.Context, p pnPalette, settings Settings) {
 				})
 			})
 			ui.TextArea(c.Key("home-input"), &h.input).Height(140).FillWidth().Padding(12).Radius(9).Background(p.Group).Border(.5, p.FieldBorder).FontSize(14).LineHeight(1.6).Label(tr("翻译原文")).Placeholder(tr("输入需要翻译的文字…")).MaxLength(10000).OnTextKey(func(key ui.TextKey) bool {
-				if key.Key == ui.KeyEnter && (key.Mods == 0 || key.Mods == ui.Cmd) {
+				if h.app.translationShortcutsEnabled() && key.Key == ui.KeyEnter && (key.Mods == 0 || key.Mods == ui.Cmd) {
 					h.input = key.Text()
 					h.submit()
 					return true
@@ -64,7 +64,11 @@ func (h *homeUI) view(c *ui.Context, p pnPalette, settings Settings) {
 				label = "翻译中…"
 			}
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, tr("Enter 翻译 · 最多 10,000 字")).Grow(1).FontSize(11).TextColor(p.Faint)
+				hint := "最多 10,000 字"
+				if h.app.translationShortcutsEnabled() {
+					hint = "Enter 翻译 · 最多 10,000 字"
+				}
+				ui.Text(c, tr(hint)).Grow(1).FontSize(11).TextColor(p.Faint)
 				ui.PrimaryButton(c, tr(label)).Shrink(0).Height(28).Padding(4, 14).FontSize(12).Disabled(h.loading || strings.TrimSpace(h.input) == "").OnClick(h.submit)
 			})
 		})
@@ -111,7 +115,7 @@ func (h *homeUI) view(c *ui.Context, p pnPalette, settings Settings) {
 			h.cards.copiedID = ""
 		}
 	}
-	if c.Shortcut(ui.Cmd, ui.KeyEnter) {
+	if h.app.translationShortcutsEnabled() && c.Shortcut(ui.Cmd, ui.KeyEnter) {
 		h.submit()
 	}
 }

@@ -13,6 +13,7 @@ import (
 type panelUI struct {
 	app           *GlideService
 	initialized   bool
+	recognizing   bool
 	requestID     string
 	inputSession  uint64
 	inputFocus    ui.Handle
@@ -34,12 +35,17 @@ func newPanelUI(app *GlideService) *panelUI {
 	return &panelUI{app: app, collapsed: make(map[string]bool)}
 }
 
-// syncSnapshot 每批新选区只同步一次原文，逐渠道返回结果时保留用户的在途编辑。
+// syncSnapshot 在 OCR 开始时清空旧原文，新结果仅同步一次，逐渠道返回时保留在途编辑。
 func (p *panelUI) syncSnapshot(state PanelState, settings Settings) {
 	if !p.initialized {
 		p.sourceLang, p.targetLang = settings.SourceLang, settings.TargetLang
 		p.initialized = true
 	}
+	if state.Recognizing && !p.recognizing {
+		p.draft, p.message, p.copiedID = "", "", ""
+		p.inputSession++
+	}
+	p.recognizing = state.Recognizing
 	if response := state.Response; response != nil && response.RequestID != "" && response.RequestID != p.requestID {
 		p.requestID = response.RequestID
 		p.draft, p.sourceLang, p.targetLang = response.Text, response.SourceLang, response.TargetLang
@@ -81,17 +87,22 @@ func (p *panelUI) view(c *ui.Context) {
 		p.toolbar(c, state, colors)
 		composer = ui.Column(c.Key("panel-composer")).Shrink(0).Padding(0, 12, 10).Gap(8).Children(func() {
 			if settings.ShowSourceInput {
+				placeholder := "选中文字后按快捷键，或在此输入…"
+				if state.Recognizing {
+					placeholder = ""
+				}
 				var input ui.Element
-				frame := ui.Box(c.Key("panel-source-frame")).Height(104).FillWidth().Shrink(0).Radius(8).Background(colors.Group).Padding(1).Border(1, panelInputBorder(c)).Children(func() {
+				frame := ui.Box(c.Key("panel-source-frame")).Height(104).FillWidth().Shrink(0).Radius(8).Clip().Background(colors.Group).Padding(1).Border(1, panelInputBorder(c)).Children(func() {
 					input = ui.TextAreaBase(c.Key(struct {
 						Kind    string
 						Session uint64
 					}{"panel-source", p.inputSession}), &p.draft).
 						Fill().Padding(5, 7).Radius(7).FontSize(13).LineHeight(1.6).
 						Background(colors.Group).Border(0, ui.Transparent).FocusRing(false).Bind(&p.inputFocus).AutoFocus().
-						Label(tr("需要翻译的原文")).Placeholder(tr("选中文字后按快捷键，或在此输入…")).MaxLength(10000).
+						ReadOnly(state.Recognizing).Disabled(state.Recognizing).Busy(state.Recognizing).
+						Label(tr("需要翻译的原文")).Placeholder(tr(placeholder)).MaxLength(10000).
 						OnTextKey(func(key ui.TextKey) bool {
-							if (key.Key == ui.KeyEnter && key.Mods == 0) || panelShortcutMatches(settings.PanelTranslateShortcut, key.Mods, key.Key) {
+							if p.app.translationShortcutsEnabled() && ((key.Key == ui.KeyEnter && key.Mods == 0) || panelShortcutMatches(settings.PanelTranslateShortcut, key.Mods, key.Key)) {
 								p.draft = key.Text()
 								p.submit()
 								return true
@@ -102,8 +113,14 @@ func (p *panelUI) view(c *ui.Context) {
 							}
 							return false
 						})
+					if state.Recognizing {
+						ui.Column(c.Key("panel-ocr-overlay")).Absolute().Left(1).Top(1).Right(1).Bottom(1).
+							Radius(7).Background(colors.Group.Alpha(.94)).ZIndex(1).Center().Gap(9).Children(func() {
+							p.ocrProgress(c, colors)
+						})
+					}
 				})
-				if input.Focused() {
+				if input.Focused() && !state.Recognizing {
 					frame.BorderColor(colors.Accent)
 				}
 				if input.Changed() {
@@ -117,12 +134,16 @@ func (p *panelUI) view(c *ui.Context) {
 					pnLanguageSelect(c.Key("panel-target-language"), &p.targetLang, false, 96, true)
 				}
 				ui.Spacer(c)
+				tooltip := tr("翻译")
+				if p.app.translationShortcutsEnabled() {
+					tooltip = panelShortcutTooltip("重新翻译原文 · Enter", settings.PanelTranslateShortcut)
+				}
 				ui.PrimaryButton(c.Key("panel-translate"), tr("翻译")).Height(28).Padding(4, 12).FontSize(12).
-					Tooltip(tr(panelShortcutTooltip("重新翻译原文 · Enter", settings.PanelTranslateShortcut))).Disabled(strings.TrimSpace(p.draft) == "").OnClick(p.submit)
+					Tooltip(tooltip).Disabled(state.Recognizing || strings.TrimSpace(p.draft) == "").OnClick(p.submit)
 			})
 		})
 		ui.Divider(c).Height(.5).Background(colors.Divider)
-		ui.Scroll(c.Key("panel-results")).Grow(1).MinHeight(50).Padding(10, 12).Children(func() {
+		ui.Scroll(c.Key("panel-results")).Grow(1).MinHeight(50).Padding(10, 12).Busy(state.Recognizing).Children(func() {
 			resultContent = ui.Column(c.Key("panel-result-content")).FillWidth().Shrink(0).Gap(8).Children(func() {
 				if state.Error != "" {
 					p.notice(c, state.Error, colors.Danger, colors)
@@ -134,11 +155,15 @@ func (p *panelUI) view(c *ui.Context) {
 					for _, result := range state.Response.Results {
 						p.resultCard(c.Key(result.ProviderID), result, providers[result.ProviderID], colors, p.app.RetryPanelChannel)
 					}
+				} else if state.Recognizing && !settings.ShowSourceInput {
+					ui.Column(c).Padding(16, 4).Gap(9).AlignItems(ui.Center).Children(func() {
+						p.ocrProgress(c, colors)
+					})
 				} else if state.Loading {
 					ui.Row(c).Gap(8).Padding(16, 4).Children(func() {
 						ui.Spinner(c).Size(14, 14)
 						message := "正在准备翻译…"
-						if p.app.ocrRunning() {
+						if state.Recognizing {
 							message = "正在识别图片文字…"
 						}
 						ui.Text(c, tr(message)).TextColor(colors.Muted).FontSize(12)
@@ -153,12 +178,21 @@ func (p *panelUI) view(c *ui.Context) {
 		})
 	})
 	p.fitContent(c, state, settings, composer, resultContent)
-	if mods, key, ok := parsePanelShortcut(settings.PanelTranslateShortcut); ok && c.Shortcut(mods, key) {
+	if mods, key, ok := parsePanelShortcut(settings.PanelTranslateShortcut); ok && p.app.translationShortcutsEnabled() && c.Shortcut(mods, key) {
 		p.submit()
 	}
 	if mods, key, ok := parsePanelShortcut(settings.PanelCloseShortcut); ok && c.Shortcut(mods, key) {
 		p.app.HidePanel()
 	}
+}
+
+// ocrProgress 显示识别进度和结束入口，供输入框遮罩及隐藏原文时的结果区复用。
+func (p *panelUI) ocrProgress(c *ui.Context, colors pnPalette) {
+	ui.Row(c).Gap(7).AlignItems(ui.Center).Role(ui.RoleStatus).Label(tr("正在 OCR 识别文字中")).Children(func() {
+		ui.Spinner(c).Size(14, 14).TextColor(colors.Accent)
+		ui.Text(c, tr("正在 OCR 识别文字中")).FontSize(12).TextColor(colors.Muted)
+	})
+	ui.Button(c.Key("panel-stop-ocr"), tr("结束识别")).Height(26).Padding(3, 11).FontSize(11).OnClick(p.app.stopOCR)
 }
 
 // toolbar 提供固定、偏好设置和关闭入口，空白标题区域可拖动浮窗。
@@ -176,7 +210,7 @@ func (p *panelUI) toolbar(c *ui.Context, state PanelState, colors pnPalette) {
 				ui.Spinner(c).Size(11, 11)
 			}
 		})
-		p.iconButton(c.Key("panel-ocr"), "screenshot", "截图 OCR 翻译", false, colors).OnClick(func() { p.app.startOCR(true) })
+		p.iconButton(c.Key("panel-ocr"), "screenshot", "截图 OCR 翻译", false, colors).Disabled(p.app.ocrRunning()).OnClick(func() { p.app.startOCR(true) })
 		p.iconButton(c.Key("panel-settings"), "settings", "偏好设置", false, colors).OnClick(p.app.ShowMain)
 		p.iconButton(c.Key("panel-close"), "close", "关闭浮窗", false, colors).OnClick(p.app.HidePanel)
 	})
@@ -273,6 +307,9 @@ func (p *panelUI) notice(c *ui.Context, message string, color ui.Color, colors p
 
 // submit 复制本次编辑值后启动后台翻译，避免网络请求阻塞界面线程。
 func (p *panelUI) submit() {
+	if p.app.GetPanelState().Recognizing {
+		return
+	}
 	text := strings.TrimSpace(p.draft)
 	if text == "" {
 		p.message = "请输入需要翻译的文字"
