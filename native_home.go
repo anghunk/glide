@@ -189,7 +189,16 @@ func (h *homeUI) retryChannel(providerID string) {
 	h.response.Results[index] = ChannelResult{ProviderID: providerID, ProviderName: name, Pending: true}
 	go func() {
 		defer cancel()
-		response, err := h.app.translate(ctx, req, nil)
+		response, err := h.app.translate(ctx, req, func(progress TranslationResponse) {
+			h.app.mainWindow.Update(func() {
+				if h.response == nil || h.response.RequestID != requestID || h.retries[providerID] != retry {
+					return
+				}
+				if len(progress.Results) > 0 {
+					h.response.Results[index] = progress.Results[0]
+				}
+			})
+		})
 		h.app.mainWindow.Update(func() {
 			if h.response == nil || h.response.RequestID != requestID || h.retries[providerID] != retry {
 				return

@@ -115,6 +115,7 @@ type PanelState struct {
 type GlideService struct {
 	ocrBusy         bool
 	ocrCancel       context.CancelFunc
+	ocrGeneration   uint64
 	mu              sync.RWMutex
 	settingsMu      sync.Mutex
 	triggersMu      sync.Mutex
@@ -334,7 +335,7 @@ func (a *GlideService) Translate(ctx context.Context, req TranslateRequest) (Tra
 	return a.translate(ctx, req, nil)
 }
 
-// translate 将网络等待放在独立协程中，并允许浮窗在单个渠道完成后显示结果。
+// translate 并行请求各渠道，串行合并流式进度和完成结果，仅将完成结果写入历史。
 func (a *GlideService) translate(ctx context.Context, req TranslateRequest, progress func(TranslationResponse)) (TranslationResponse, error) {
 	req.Text = strings.TrimSpace(req.Text)
 	a.mu.RLock()
@@ -391,15 +392,34 @@ func (a *GlideService) translate(ctx context.Context, req TranslateRequest, prog
 	for i, p := range providers {
 		go func(i int, p translation.Config) {
 			start := time.Now()
-			result, err := translation.Translate(ctx, p, translation.Request{Text: req.Text, SourceLang: req.SourceLang, TargetLang: req.TargetLang})
+			var onProgress func(string)
+			if progress != nil {
+				var lastUpdate time.Time
+				onProgress = func(text string) {
+					// 首段立即发布，后续合并到约每 40 ms 一次，避免逐 token 重排窗口。
+					if time.Since(lastUpdate) < 40*time.Millisecond {
+						return
+					}
+					lastUpdate = time.Now()
+					partial := ChannelResult{ProviderID: p.ID, ProviderName: p.Name, Text: text, Pending: true}
+					select {
+					case completed <- completion{i, partial}:
+					case <-ctx.Done():
+					}
+				}
+			}
+			result, err := translation.TranslateStream(ctx, p, translation.Request{Text: req.Text, SourceLang: req.SourceLang, TargetLang: req.TargetLang}, onProgress)
 			channel := ChannelResult{ProviderID: p.ID, ProviderName: p.Name, Text: result.Text, DetectedLang: result.DetectedLang, DurationMS: time.Since(start).Milliseconds()}
 			if err != nil {
 				channel.Error = err.Error()
 			}
-			completed <- completion{i, channel}
+			select {
+			case completed <- completion{i, channel}:
+			case <-ctx.Done():
+			}
 		}(i, p)
 	}
-	for range providers {
+	for remaining := len(providers); remaining > 0; {
 		select {
 		case <-ctx.Done():
 			message := "翻译已取消或超时，请重试"
@@ -417,6 +437,9 @@ func (a *GlideService) translate(ctx context.Context, req TranslateRequest, prog
 			return response, fmt.Errorf("翻译已取消或超时：%w", ctx.Err())
 		case result := <-completed:
 			response.Results[result.index] = result.result
+			if !result.result.Pending {
+				remaining--
+			}
 			if progress != nil {
 				snapshot := response
 				snapshot.Results = slices.Clone(response.Results)
@@ -533,13 +556,17 @@ func (a *GlideService) SetPanelPinned(pinned bool) {
 // TranslatePanel 使用编辑后的原文、语言和渠道重新翻译，结果仍显示在同一个浮窗中。
 func (a *GlideService) TranslatePanel(req TranslateRequest) { a.runPanelTranslation(req, false) }
 
-// HidePanel 隐藏浮窗并取消该浮窗尚未完成的请求。
+// HidePanel 隐藏浮窗，取消识别和翻译请求，并立即释放 OCR 入口。
 func (a *GlideService) HidePanel() {
 	a.mu.Lock()
 	a.panelGeneration++
 	a.cancelPanelRequestsLocked()
+	if a.panel.Recognizing {
+		a.cancelOCRLocked()
+	}
 	a.mu.Unlock()
 	a.panelWindow.Hide()
+	a.notifySettings()
 }
 
 // OpenExternal 只允许网页链接，禁止页面借此调用任意系统 URL 协议。

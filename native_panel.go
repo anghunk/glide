@@ -258,15 +258,15 @@ func (p *panelUI) resultCard(c *ui.Context, result ChannelResult, provider trans
 			return
 		}
 		ui.Column(c.Key("result-content")).Padding(0, 11, 10).Gap(9).Children(func() {
+			if result.Text != "" {
+				ui.Text(c.Key("translated-text"), result.Text).Selectable().FontSize(13).LineHeight(1.55).TextColor(colors.Text)
+			}
 			if result.Pending {
 				ui.Row(c).Gap(7).Padding(5, 0).Children(func() {
 					ui.Spinner(c).Size(12, 12)
 					ui.Text(c, tr("正在翻译…")).TextColor(colors.Muted).FontSize(12)
 				})
 			} else {
-				if result.Text != "" {
-					ui.Text(c.Key("translated-text"), result.Text).Selectable().FontSize(13).LineHeight(1.55).TextColor(colors.Text)
-				}
 				if result.Error != "" {
 					ui.Text(c, tr(result.Error)).Selectable().FontSize(11).LineHeight(1.5).TextColor(colors.Danger)
 				}

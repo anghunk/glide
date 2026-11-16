@@ -2,7 +2,7 @@
   "name": "Glide",
   "slug": "glide",
   "identifier": "app.glide.translator",
-  "version": "2026.1116.1",
+  "version": "2026.1116.2",
   "out": "build",
   "icon": "resources/icon.png",
   "macos": {

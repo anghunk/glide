@@ -68,9 +68,21 @@ func (a *GlideService) RetryPanelChannel(providerID string) {
 	a.notifyPanel()
 	go func() {
 		defer cancel()
-		retried, err := a.translate(ctx, req, nil)
+		retried, err := a.translate(ctx, req, func(progress TranslationResponse) {
+			a.mu.Lock()
+			if a.panelGeneration != generation || a.panel.Response == nil || ctx.Err() != nil {
+				a.mu.Unlock()
+				return
+			}
+			if len(progress.Results) > 0 {
+				a.panel.Response.Results[index] = progress.Results[0]
+				a.panel.Loading = slices.ContainsFunc(a.panel.Response.Results, func(result ChannelResult) bool { return result.Pending })
+			}
+			a.mu.Unlock()
+			a.notifyPanel()
+		})
 		a.mu.Lock()
-		if a.panelGeneration != generation || a.panel.Response == nil {
+		if a.panelGeneration != generation || a.panel.Response == nil || ctx.Err() != nil {
 			a.mu.Unlock()
 			return
 		}

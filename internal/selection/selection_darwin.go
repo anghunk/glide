@@ -107,9 +107,17 @@ func Status() Capability {
 	granted := a.trusted()
 	message := "已支持辅助功能取词；部分应用或图片文字需使用复制翻译。"
 	if !granted {
-		message = "需要在系统设置 → 隐私与安全性 → 辅助功能中开启 Glide。自动划词可能还需输入监控权限。"
+		message = permissionError().Error()
 	}
 	return Capability{Supported: true, AutomaticSupported: true, PermissionGranted: granted, Message: message}
+}
+
+// permissionError 提供当前启动方式对应的授权说明，并保留可判断的权限错误类型。
+func permissionError() error {
+	if os.Getenv("MYGO_DEV") == "1" {
+		return fmt.Errorf("%w。开发启动可能继承终端或 IDE 的权限，请退出开发进程后从 Finder 打开 Glide Dev.app", ErrPermission)
+	}
+	return fmt.Errorf("%w。若已开启，请彻底退出并重新打开应用后重试", ErrPermission)
 }
 
 // OpenPermissionSettings 打开辅助功能授权页，由用户决定是否授权。
@@ -123,7 +131,7 @@ func readNative() (Selection, error) {
 		return Selection{}, err
 	}
 	if !a.trusted() {
-		return Selection{}, ErrPermission
+		return Selection{}, permissionError()
 	}
 	system := a.axSystem()
 	if system == 0 {
@@ -188,7 +196,7 @@ func StartWatching(parent context.Context, callback func(Selection)) (func(), er
 		return nil, err
 	}
 	if !a.trusted() {
-		return nil, ErrPermission
+		return nil, permissionError()
 	}
 	ctx, cancel := context.WithCancel(parent)
 	type started struct {

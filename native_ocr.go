@@ -15,6 +15,17 @@ import (
 // ocrRunning 返回识别忙碌状态，避免重复截图和识别。
 func (a *GlideService) ocrRunning() bool { a.mu.RLock(); defer a.mu.RUnlock(); return a.ocrBusy }
 
+// cancelOCRLocked 取消 OCR 并立即释放入口，递增代次以隔离尚未退出的旧任务。
+// 调用方必须持有 a.mu 写锁。
+func (a *GlideService) cancelOCRLocked() {
+	if a.ocrCancel != nil {
+		a.ocrCancel()
+	}
+	a.ocrGeneration++
+	a.ocrBusy, a.ocrCancel = false, nil
+	a.panel.Loading, a.panel.Recognizing = false, false
+}
+
 // stopOCR 取消当前识别并立即解除浮窗占用，过期结果由请求代次和上下文拦截。
 func (a *GlideService) stopOCR() {
 	a.mu.Lock()
@@ -22,12 +33,11 @@ func (a *GlideService) stopOCR() {
 		a.mu.Unlock()
 		return
 	}
-	a.ocrCancel()
+	a.cancelOCRLocked()
 	a.panelGeneration++
-	a.panel.Loading, a.panel.Recognizing = false, false
 	a.mu.Unlock()
 	a.focusPanelInput()
-	a.notifyPanel()
+	a.notifySettings()
 }
 
 // startOCR 从图片或框选截图提取文字，完成后复用多渠道浮窗翻译。
@@ -39,19 +49,29 @@ func (a *GlideService) startOCR(screenshot bool) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	a.ocrBusy, a.ocrCancel = true, cancel
+	a.ocrGeneration++
+	generation := a.ocrGeneration
 	a.mu.Unlock()
 	a.notifySettings()
 	go func() {
-		defer func() { cancel(); a.mu.Lock(); a.ocrBusy, a.ocrCancel = false, nil; a.mu.Unlock(); a.notifySettings() }()
+		defer func() {
+			cancel()
+			a.mu.Lock()
+			if a.ocrGeneration == generation {
+				a.ocrBusy, a.ocrCancel = false, nil
+			}
+			a.mu.Unlock()
+			a.notifySettings()
+		}()
 		text, err := a.readOCR(ctx, screenshot)
 		if errors.Is(err, ocr.ErrCanceled) || errors.Is(err, context.Canceled) {
 			return
 		}
 		mygo.RunOnMain(func() {
 			a.mu.RLock()
-			quitting, recognizing := a.quitting, a.panel.Recognizing
+			quitting, recognizing, stale := a.quitting, a.panel.Recognizing, generation != a.ocrGeneration
 			a.mu.RUnlock()
-			if quitting || errors.Is(ctx.Err(), context.Canceled) {
+			if quitting || stale || errors.Is(ctx.Err(), context.Canceled) {
 				return
 			}
 			if err != nil {
@@ -121,15 +141,10 @@ func (a *GlideService) readOCR(ctx context.Context, screenshot bool) (string, er
 	}
 	a.notifyPanel()
 	text, err := ocr.RecognizeWithProvider(ctx, provider, path)
-	a.mu.Lock()
+	a.mu.RLock()
 	stale := generation != a.panelGeneration
-	if stale && a.panelCancel == nil && a.panel.Response == nil {
-		a.panel.Loading = false
-		a.panel.Recognizing = false
-	}
-	a.mu.Unlock()
+	a.mu.RUnlock()
 	if stale {
-		a.notifyPanel()
 		return "", ocr.ErrCanceled
 	}
 	if errors.Is(err, context.DeadlineExceeded) {

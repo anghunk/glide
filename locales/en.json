@@ -5,7 +5,7 @@
   "text_1f_s": "%.1f s",
   "d_entries": "%d entries",
   "jan_02_15_04": "Jan 02 15:04",
-  "text_1_select_text_in_another_app_and": "1. Select text in another app and press %s to translate.\n2. You can also choose “Type to Translate” or “Translate Clipboard” from the tray.\n3. Configure and enable services in Settings → Translation Services.\n4. Pin the popup to keep it visible. An unpinned popup hides when you switch apps after entering it.\n\nIf selection fails, the shortcut uses the latest clipboard text. Check system permissions in General.",
+  "text_1_select_text_in_another_app_and": "1. Select text in another app and press %s to translate.\n2. You can also choose “Type to Translate” or “Translate Clipboard” from the tray.\n3. Configure and enable services in Settings → Translation Services.\n4. Pin the popup to keep it visible. An unpinned popup hides when you switch apps after entering it.\n\nIf selection fails, the popup shows the reason. Check system permissions in Settings. Use “Translate Clipboard” to translate clipboard text.",
   "text_10_entries": "10 entries",
   "text_100_entries": "100 entries",
   "text_50_entries": "50 entries",

@@ -84,10 +84,23 @@ func send(request *http.Request) ([]byte, error) {
 
 // sendWithClient 支持为网页渠道使用隔离的会话 Cookie。
 func sendWithClient(request *http.Request, client *http.Client) ([]byte, error) {
+	response, err := receiveWithClient(request, client)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	return readResponse(request, response)
+}
+
+// receiveWithClient 返回可逐步读取的响应，统一处理连接失败、认证与 HTTP 错误。
+// 成功时调用方负责关闭响应正文。
+func receiveWithClient(request *http.Request, client *http.Client) (*http.Response, error) {
 	if request.Header.Get("User-Agent") == "" {
 		request.Header.Set("User-Agent", "Glide/0.1 (+desktop translation)")
 	}
-	request.Header.Set("Accept", "application/json, text/plain, */*")
+	if request.Header.Get("Accept") == "" {
+		request.Header.Set("Accept", "application/json, text/plain, */*")
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		if ctxErr := request.Context().Err(); ctxErr != nil {
@@ -99,7 +112,31 @@ func sendWithClient(request *http.Request, client *http.Client) ([]byte, error) 
 		}
 		return nil, errors.New("无法连接翻译服务，请检查网络和服务地址")
 	}
+	if response.StatusCode >= 200 && response.StatusCode < 300 {
+		return response, nil
+	}
 	defer response.Body.Close()
+	body, err := readResponse(request, response)
+	if err != nil {
+		return nil, err
+	}
+	switch response.StatusCode {
+	case http.StatusUnauthorized:
+		return nil, errors.New("认证失败（401），请检查渠道密钥")
+	case http.StatusForbidden:
+		return nil, errors.New("访问被拒绝（403），请检查服务权限；内置渠道可能需要网页验证")
+	case http.StatusTooManyRequests:
+		return nil, errors.New("请求过于频繁或额度不足（429），请稍后重试或切换渠道")
+	default:
+		if message := errorMessage(body); message != "" {
+			return nil, fmt.Errorf("翻译服务返回 HTTP %d：%s", response.StatusCode, message)
+		}
+		return nil, fmt.Errorf("翻译服务返回 HTTP %d，请检查渠道配置或稍后重试", response.StatusCode)
+	}
+}
+
+// readResponse 在读取完整 JSON 或错误响应时限制正文大小。
+func readResponse(request *http.Request, response *http.Response) ([]byte, error) {
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
 	if err != nil {
 		if ctxErr := request.Context().Err(); ctxErr != nil {
@@ -109,21 +146,6 @@ func sendWithClient(request *http.Request, client *http.Client) ([]byte, error) 
 	}
 	if len(body) > maxResponseBytes {
 		return nil, errors.New("翻译服务响应过大")
-	}
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		switch response.StatusCode {
-		case http.StatusUnauthorized:
-			return nil, errors.New("认证失败（401），请检查渠道密钥")
-		case http.StatusForbidden:
-			return nil, errors.New("访问被拒绝（403），请检查服务权限；内置渠道可能需要网页验证")
-		case http.StatusTooManyRequests:
-			return nil, errors.New("请求过于频繁或额度不足（429），请稍后重试或切换渠道")
-		default:
-			if message := errorMessage(body); message != "" {
-				return nil, fmt.Errorf("翻译服务返回 HTTP %d：%s", response.StatusCode, message)
-			}
-			return nil, fmt.Errorf("翻译服务返回 HTTP %d，请检查渠道配置或稍后重试", response.StatusCode)
-		}
 	}
 	return body, nil
 }

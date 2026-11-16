@@ -155,20 +155,31 @@ func (a *GlideService) OpenPanel() {
 	a.notifyPanel()
 }
 
-// translateSelection 优先读取当前选区，读取失败或为空时使用此刻的剪贴板文本。
+// translateSelection 读取当前选区，并在浮窗中展示具体的权限或取词错误。
 func (a *GlideService) translateSelection() {
-	a.showTranslation(a.readSelectionText())
+	text, err := a.readSelectionText()
+	mygo.RunOnMain(func() {
+		if err != nil {
+			a.showPanelError(err.Error())
+			return
+		}
+		a.showTranslation(text)
+	})
 }
 
-// readSelectionText 在三秒内读取选区，失败或为空时返回当前剪贴板文字。
-func (a *GlideService) readSelectionText() string {
+// readSelectionText 在三秒内读取选区，保留权限、超时及空选区错误供界面展示。
+func (a *GlideService) readSelectionText() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	s, err := selection.Read(ctx)
-	if err != nil || strings.TrimSpace(s.Text) == "" {
-		s.Text = mygo.Clipboard.ReadText()
+	if err != nil {
+		return "", err
 	}
-	return s.Text
+	text := strings.TrimSpace(s.Text)
+	if text == "" {
+		return "", selection.ErrNoSelection
+	}
+	return text, nil
 }
 
 // positionPanel 按偏好定位并聚焦浮窗，使唤醒后的首次失焦即可收起；固定且可见时保留当前位置。
@@ -319,11 +330,16 @@ func (a *GlideService) configureShortcuts(settings Settings) {
 		"截图 OCR 翻译": func() { a.startOCR(true) },
 		"划词翻译": func() {
 			go func() {
-				text := a.readSelectionText()
+				text, err := a.readSelectionText()
 				mygo.RunOnMain(func() {
-					if a.translationShortcutsEnabled() {
-						a.showTranslation(text)
+					if !a.translationShortcutsEnabled() {
+						return
 					}
+					if err != nil {
+						a.showPanelError(err.Error())
+						return
+					}
+					a.showTranslation(text)
 				})
 			}()
 		},

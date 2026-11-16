@@ -27,7 +27,7 @@ func translationMessages(input Request) []chatMessage {
 }
 
 // openAI 调用 Chat Completions 兼容协议，模型名称由用户明确填写。
-func openAI(ctx context.Context, config Config, input Request) (string, string, error) {
+func openAI(ctx context.Context, config Config, input Request, progress func(string)) (string, string, error) {
 	if err := require("模型名称", config.Model); err != nil {
 		return "", "", err
 	}
@@ -36,13 +36,17 @@ func openAI(ctx context.Context, config Config, input Request) (string, string, 
 		return "", "", err
 	}
 	request, err := jsonRequest(ctx, http.MethodPost, endpoint, map[string]any{
-		"model": config.Model, "messages": translationMessages(input), "stream": false,
+		"model": config.Model, "messages": translationMessages(input), "stream": progress != nil,
 	})
 	if err != nil {
 		return "", "", err
 	}
 	if config.APIKey != "" {
 		request.Header.Set("Authorization", "Bearer "+config.APIKey)
+	}
+	if progress != nil {
+		text, err := streamAI(request, "openai", progress)
+		return text, "", err
 	}
 	body, err := send(request)
 	if err != nil {
@@ -53,7 +57,7 @@ func openAI(ctx context.Context, config Config, input Request) (string, string, 
 }
 
 // ollama 通过原生 /api/chat 接口调用已安装模型，支持本机与带认证的代理地址。
-func ollama(ctx context.Context, config Config, input Request) (string, string, error) {
+func ollama(ctx context.Context, config Config, input Request, progress func(string)) (string, string, error) {
 	if err := require("模型名称", config.Model); err != nil {
 		return "", "", err
 	}
@@ -68,13 +72,17 @@ func ollama(ctx context.Context, config Config, input Request) (string, string, 
 		endpoint.Path = path + "/api/chat"
 	}
 	request, err := jsonRequest(ctx, http.MethodPost, endpoint, map[string]any{
-		"model": config.Model, "messages": translationMessages(input), "stream": false,
+		"model": config.Model, "messages": translationMessages(input), "stream": progress != nil,
 	})
 	if err != nil {
 		return "", "", err
 	}
 	if config.APIKey != "" {
 		request.Header.Set("Authorization", "Bearer "+config.APIKey)
+	}
+	if progress != nil {
+		text, err := streamAI(request, "ollama", progress)
+		return text, "", err
 	}
 	body, err := send(request)
 	if err != nil {

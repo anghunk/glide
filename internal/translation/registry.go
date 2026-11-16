@@ -75,6 +75,12 @@ func DefaultConfigs() []Config {
 
 // Translate 调用配置指定的渠道，继承调用方取消信号；空输入与超长文本直接返回错误。
 func Translate(ctx context.Context, config Config, request Request) (result Result, err error) {
+	return TranslateStream(ctx, config, request, nil)
+}
+
+// TranslateStream 在生成期间同步回调累计译文，调用方应快速处理并自行调度界面更新。
+// progress 为 nil 时沿用完整响应请求，传统渠道始终只返回最终结果。
+func TranslateStream(ctx context.Context, config Config, request Request, progress func(string)) (result Result, err error) {
 	started := time.Now()
 	defer func() {
 		result.ProviderID = config.ID
@@ -119,19 +125,19 @@ func Translate(ctx context.Context, config Config, request Request) (result Resu
 	case "deeplx":
 		text, detected, err = deeplx(ctx, config, request)
 	case "openai":
-		text, detected, err = aiTranslate(ctx, config, request)
+		text, detected, err = aiTranslate(ctx, config, request, progress)
 	case "ollama":
-		text, detected, err = ollama(ctx, config, request)
+		text, detected, err = ollama(ctx, config, request, progress)
 	default:
 		err = fmt.Errorf("不支持的翻译渠道：%s", config.Kind)
 	}
+	result.Text = text
 	if err != nil {
 		return result, err
 	}
 	if strings.TrimSpace(text) == "" {
 		return result, errors.New("翻译服务未返回译文")
 	}
-	result.Text = text
 	if detected != "" && detected != "auto" {
 		result.DetectedLang = canonicalLanguage(detected)
 	} else if request.SourceLang != "auto" {

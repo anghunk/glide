@@ -159,10 +159,10 @@ func ListModels(ctx context.Context, config Config) (models []string, err error)
 	return nil, errors.New("模型列表分页过多，请自定义模型名称")
 }
 
-// aiTranslate 按协议构建请求并提取完整文本，不将思考内容视为译文。
-func aiTranslate(ctx context.Context, config Config, input Request) (string, string, error) {
+// aiTranslate 按协议构建请求，提供回调时逐步返回译文，忽略模型思考内容。
+func aiTranslate(ctx context.Context, config Config, input Request, progress func(string)) (string, string, error) {
 	if AIFormat(config) == "openai" {
-		return openAI(ctx, config, input)
+		return openAI(ctx, config, input, progress)
 	}
 	if err := require("模型名称", config.Model); err != nil {
 		return "", "", err
@@ -173,16 +173,19 @@ func aiTranslate(ctx context.Context, config Config, input Request) (string, str
 	switch AIFormat(config) {
 	case "responses":
 		operation = "responses"
-		payload = map[string]any{"model": config.Model, "instructions": messages[0].Content, "input": input.Text, "stream": false, "store": false}
+		payload = map[string]any{"model": config.Model, "instructions": messages[0].Content, "input": input.Text, "stream": progress != nil, "store": false}
 	case "anthropic":
 		operation = "messages"
-		payload = map[string]any{"model": config.Model, "system": messages[0].Content, "messages": messages[1:], "max_tokens": 8192, "stream": false}
+		payload = map[string]any{"model": config.Model, "system": messages[0].Content, "messages": messages[1:], "max_tokens": 8192, "stream": progress != nil}
 	case "gemini":
 		model := strings.TrimPrefix(config.Model, "models/")
 		if strings.ContainsAny(model, "/?#") {
 			return "", "", errors.New("Gemini 模型名称无效")
 		}
 		operation = "models/" + model + ":generateContent"
+		if progress != nil {
+			operation = "models/" + model + ":streamGenerateContent"
+		}
 		payload = map[string]any{"systemInstruction": map[string]any{"parts": []any{map[string]string{"text": messages[0].Content}}}, "contents": []any{map[string]any{"role": "user", "parts": []any{map[string]string{"text": input.Text}}}}}
 	default:
 		return "", "", errors.New("不支持的 AI 上游格式")
@@ -191,11 +194,20 @@ func aiTranslate(ctx context.Context, config Config, input Request) (string, str
 	if err != nil {
 		return "", "", err
 	}
+	if progress != nil && AIFormat(config) == "gemini" {
+		query := endpoint.Query()
+		query.Set("alt", "sse")
+		endpoint.RawQuery = query.Encode()
+	}
 	request, err := jsonRequest(ctx, http.MethodPost, endpoint, payload)
 	if err != nil {
 		return "", "", err
 	}
 	aiAuth(request, config)
+	if progress != nil {
+		text, err := streamAI(request, AIFormat(config), progress)
+		return text, "", err
+	}
 	body, err := send(request)
 	if err != nil {
 		return "", "", err
